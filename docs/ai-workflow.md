@@ -55,7 +55,7 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
   - Found and fixed by review: a `cd` sequence that would break when commands run one after another, a reserved SQL word used as a column name (`order`), a missing protection for cookie sessions, and statements in the README written as done while still planned.
   - No code or tests exist yet, so nothing was run.
 - **Artifacts:** `product-spec.md`, `AGENTS.md`, `README.md`; used as context for the roles and for the backlog breakdown.
-- **Links:** commits e039aa5, 0c0537d, c062760. TODO: export of the planning conversation to `docs/artifacts/planning/`.
+- **Links:** commits e039aa5, 0c0537d, c062760. Export of the planning conversation to `docs/artifacts/planning/`.
 
 ## 2026-10-17 — Entry 1: roles, task template and process (no issue yet)
 
@@ -70,6 +70,6 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
   - Role permissions repeat the Bun-only denials, because a broad `"*": allow` on a role could otherwise override the project-level rules.
 - **Verification:** Not run yet. The roles have not been used, and the permission rules and the `@role` calls are untested. TODO: run the product manager on the first issue and record the result and any fixes here.
 - **Artifacts:** `.opencode/agents/*.md`, `docs/task-template.md`, `docs/process.md`; the task template is used by the backlog breakdown, the roles by the first grooming run.
-- **Links:** _TODO: add the commit._
+- **Links:** commit c8f6884.
 
 <!-- Add new entries below, newest last. -->
