@@ -22,11 +22,12 @@ Web app where developers learn AI engineering through lessons and multiple-choic
 - `backend/` — Go API server, migrations, tests
 - `docker-compose.yml` — frontend, backend and PostgreSQL for local run
 - `.github/workflows/` — CI (tests) and CD (deploy after tests pass)
-- `docs/` — AI workflow log, stage artifacts (`docs/artifacts/`), deployment notes, `agent-extension-pack.md`, `permissions.md`
+- `docs/` — AI workflow log, `process.md` (issue lifecycle and roles), `task-template.md`, stage artifacts (`docs/artifacts/`), deployment notes, `agent-extension-pack.md`, `permissions.md`
 - `security/`, `ops/` — scan results, audit output, diagnosis notes, AI tool/data policy
 - `agent-capabilities/`, `agent-hooks/`, `mcp-server/` — agent extension pack
 - `opencode.jsonc` — OpenCode project configuration (tools and permissions)
 - `.agents/skills/` — project skills for AI tools (see Skills)
+- `.opencode/agents/` — role subagents: `pm`, `software-engineer`, `qa-engineer`
 - `security/`, `ops/`, the agent extension pack directories and `.agents/skills/` are created only when the matching course task starts, not in advance.
 
 ## Conventions
@@ -40,6 +41,7 @@ Web app where developers learn AI engineering through lessons and multiple-choic
 - Configuration and secrets come from environment variables, with separate settings for development, test and production; document new ones in `.env.example`. Never commit real secrets.
 - Keep `README.md` runnable: if a command or step changes, update the README in the same change.
 - Work from a GitHub issue that has testable acceptance criteria; reference the issue in commits and in the log entry.
+- Follow `docs/process.md` for the issue lifecycle and the roles. When acting as a role from `.opencode/agents/`, do only what that role's file allows. Acceptance criteria are changed only by the product manager role or the maintainer.
 - Each stage ends with an artifact committed to the repository and linked to its issue (for example the specification, prototype screenshots or notes, `openapi.yaml`, test results). The next stage receives the artifact as context by path, not by pasting the whole file. Note the artifact and where it was used in `docs/ai-workflow.md`. Documents, screenshots and reports go in `docs/artifacts/<stage>/` (create it with the first file); the specification and the API contract stay where Layout puts them.
 - Versions: pin runtime and tool versions in the files that use them: Go in `go.mod`, Bun and base images in the Dockerfiles, the PostgreSQL major version as an image tag in `docker-compose.yml`, action versions in the workflows. Never use `latest`. Commit the lockfiles (`go.sum`, the Bun lockfile). Do not upgrade a version or add a dependency at another version unless the task asks for it, and read library docs for the pinned version.
 - Log notable AI-assisted steps (issue and its acceptance criteria, instructions and context files given, what was generated, tests run and their result, manual review and changes made) in `docs/ai-workflow.md`.

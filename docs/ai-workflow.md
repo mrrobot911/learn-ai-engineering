@@ -12,6 +12,7 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
 - Prompt / task given:
 - Context given (files, issue, spec):
 - Result:
+- Artifacts produced (path) and where the next stage used them:
 - Accepted / rejected / changed by hand, and why:
 - Verification (tests run and result, manual checks):
 - Links (commit, issue, tool session):
@@ -53,6 +54,22 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
   - Files were checked against the 14 draft rubric criteria and for conflicts with my global `AGENTS.md`.
   - Found and fixed by review: a `cd` sequence that would break when commands run one after another, a reserved SQL word used as a column name (`order`), a missing protection for cookie sessions, and statements in the README written as done while still planned.
   - No code or tests exist yet, so nothing was run.
-- **Links:** _TODO: add the commit that adds these files; save an export of the planning conversation in `docs/artifacts/planning/` and link it here._
+- **Artifacts:** `product-spec.md`, `AGENTS.md`, `README.md`; used as context for the roles and for the backlog breakdown.
+- **Links:** commits e039aa5, 0c0537d, c062760. TODO: export of the planning conversation to `docs/artifacts/planning/`.
+
+## 2026-10-17 — Entry 1: roles, task template and process (no issue yet)
+
+- **Tool:** Claude (chat).
+- **Prompt / task given:** Set up the roles from the course workflow (product manager, software engineer, QA engineer), a task template and a process file, for OpenCode.
+- **Context given:** The course Module 1 article on specifications, loop and graph engineering; the OpenCode agents documentation; the project `AGENTS.md` and `opencode.jsonc`.
+- **Result:** `.opencode/agents/pm.md`, `software-engineer.md`, `qa-engineer.md`; `docs/task-template.md`; `docs/process.md`; matching lines in `AGENTS.md` and `README.md`.
+- **Decisions made by me:**
+  - The product manager only grooms one issue at a time, as in the course. Breaking the specification into tasks stays a main-session task reviewed by me, not a role (the AI had offered a two-mode product manager; I declined it).
+  - Roles are defined in `.opencode/agents/` because that is where OpenCode finds subagents, instead of a `docs/team/` folder.
+  - Kept two manual checkpoints (after grooming, before closing) instead of the fully automatic loop from the course, so the manual review in this log stays real.
+  - Role permissions repeat the Bun-only denials, because a broad `"*": allow` on a role could otherwise override the project-level rules.
+- **Verification:** Not run yet. The roles have not been used, and the permission rules and the `@role` calls are untested. TODO: run the product manager on the first issue and record the result and any fixes here.
+- **Artifacts:** `.opencode/agents/*.md`, `docs/task-template.md`, `docs/process.md`; the task template is used by the backlog breakdown, the roles by the first grooming run.
+- **Links:** _TODO: add the commit._
 
 <!-- Add new entries below, newest last. -->

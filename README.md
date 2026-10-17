@@ -23,6 +23,7 @@ A web application where developers learn AI engineering through structured lesso
 | Docker Compose | planned |
 | CI/CD and deployment | planned |
 | Agent extension pack, security and audit | planned (course modules) |
+| Agent roles, task template and process | done (not yet tried on an issue) |
 
 ## 1. Problem
 
@@ -68,7 +69,7 @@ The project follows a specification-first workflow:
 
 1. **Specification first.** [`product-spec.md`](product-spec.md) defines the problem, user stories, acceptance criteria and non-goals before any code.
 2. **Project instructions.** [`AGENTS.md`](AGENTS.md) gives AI tools the commands, layout, conventions and gotchas of this project, on top of a global set of personal rules.
-3. **Task tracking.** Implementation tasks are tracked as GitHub Issues in this repository. Each issue references the relevant requirements in the specification and defines testable acceptance criteria. AI tools receive the issue as the implementation task, and commits and verification results are linked back to it. _Planned: issues are created before implementation starts._
+3. **Task tracking.** Implementation tasks are tracked as GitHub Issues in this repository. Each issue references the relevant requirements in the specification and defines testable acceptance criteria. AI tools receive the issue as the implementation task, and commits and verification results are linked back to it. Work follows [`docs/process.md`](docs/process.md): a product manager role grooms each issue, a software engineer role implements it and a QA engineer role verifies it against the acceptance criteria (subagents in `.opencode/agents/`), and the maintainer reviews after grooming and before closing. _Planned: issues are created before implementation starts._
 4. **Implementation with AI tools.** Code is generated task by task, in the order: frontend prototype with mocks, OpenAPI contract, backend, integration, persistence. Tools: OpenCode in the repository (configuration in `opencode.jsonc`), Bolt for the UI prototype _(planned)_, Claude for planning and documents. Project skills for UI and React work are kept in `.agents/skills/` _(planned: installed at the prototype stage)_.
 5. **Stage artifacts.** Each stage ends with an artifact committed to the repository and linked to its issue (specification, prototype screenshots or notes, `openapi.yaml`, test results). The next stage receives it as context by path. Documents and screenshots are stored in `docs/artifacts/`; the specification and the API contract stay in the repository root.
 6. **Verification.** Generated code is checked by tests (unit and separate integration tests), a lint step, and manual review of the diff.
@@ -90,6 +91,7 @@ product-spec.md        product specification
 AGENTS.md              instructions for AI tools
 opencode.jsonc         OpenCode project configuration (tools, permissions)
 .agents/skills/        project skills for AI tools (added at the prototype stage)
+.opencode/agents/      role subagents: product manager, software engineer, QA engineer
 .gitignore             files kept out of the repository
 openapi.yaml           API contract
 frontend/              React + TypeScript app
@@ -97,7 +99,7 @@ backend/               Go API server, migrations, tests
 docker-compose.yml     frontend, backend and PostgreSQL
 .env.example           documented environment variables
 .github/workflows/     CI and CD pipelines
-docs/                  AI workflow log, stage artifacts (docs/artifacts/), deployment, extension pack and permissions notes
+docs/                  AI workflow log, process and roles, task template, stage artifacts (docs/artifacts/), deployment, extension pack and permissions notes
 ```
 
 Directories for the agent extension pack (`agent-capabilities/`, `agent-hooks/`, `mcp-server/`), `security/` and `ops/` are added when the matching course tasks are done.
