@@ -31,7 +31,7 @@ Web app where developers learn AI engineering through lessons and multiple-choic
 - `security/`, `ops/`, the agent extension pack directories and `.agents/skills/` are created only when the matching course task starts, not in advance.
 
 ## Conventions
-- Project order: spec, then a frontend prototype with a mock implementation behind the central API client, then `openapi.yaml`, then backend and its tests, then connect the frontend to the backend, then persistent storage and integration checks. The contract must exist before any real API call is written.
+- Project order: spec, then a frontend prototype with a mock implementation behind the central API client, then `openapi.yaml`, then backend and its tests, then persistent storage with its integration tests, then connect the frontend to the backend, then the deployment pipeline. The contract must exist before any real API call is written.
 - After the contract exists, change it first for any new behaviour: spec, `openapi.yaml`, then code. Do not add endpoints, fields or behaviour that are not in `openapi.yaml`; update the contract in the same change instead.
 - Frontend: components never call `fetch` directly; use the client in `frontend/src/api/`.
 - Backend: handlers stay thin; logic lives in services; SQL only in the repository layer. Return errors in the shape defined in `openapi.yaml`.
