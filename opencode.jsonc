@@ -1,0 +1,18 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "mcp": {
+    "gopls": { "enabled": true }
+  },
+
+  "permission": {
+    "bash": {
+      "npm*": "deny",
+      "npx*": "deny",
+      "yarn*": "deny",
+      "pnpm*": "deny",
+
+      "gh workflow run*": "ask"
+    }
+  }
+}
