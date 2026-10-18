@@ -66,18 +66,18 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
 - **Decisions made by me:**
   - The product manager only grooms one issue at a time, as in the course. Breaking the specification into tasks stays a main-session task reviewed by me, not a role (the AI had offered a two-mode product manager; I declined it).
   - Roles are defined in `.opencode/agents/` because that is where OpenCode finds subagents, instead of a `docs/team/` folder.
-  - Kept two manual checkpoints (after grooming, before closing) instead of the fully automatic loop from the course, so the manual review in this log stays real.
+  - Changed on 2026-10-18: the orchestrator runs the full cycle for one issue automatically and the maintainer reviews once at the end. The manual checkpoints had been proposed by Claude as a safety measure for untested roles.
   - Role permissions repeat the Bun-only denials, because a broad `"*": allow` on a role could otherwise override the project-level rules.
 - **Verification:** Not run yet. The roles have not been used, and the permission rules and the `@role` calls are untested. TODO: run the product manager on the first issue and record the result and any fixes here.
 - **Artifacts:** `.opencode/agents/*.md`, `docs/task-template.md`, `docs/process.md`; the task template is used by the backlog breakdown, the roles by the first grooming run.
 - **Links:** commit c8f6884.
 
-## 2026-10-17 — Entry 2: task breakdown of the specification (no issue yet)
+## 2026-10-17 — Entry 2: task breakdown of the specification (issues #1-#13 for T01-T13)
 
 - **Tool:** OpenCode (main session).
 - **Prompt / task given:** Break `product-spec.md` into an ordered task list following `docs/task-template.md`, then apply the maintainer's corrections: fix the header links, the T17, T20 and T33 dependencies, merge T22 and T23, narrow the CSRF rule to state-changing requests that carry a session cookie, and record the open questions as decisions.
 - **Context given:** `product-spec.md` (draft v0.2), `AGENTS.md`, `README.md`, `docs/task-template.md`, `docs/process.md`, `docs/ai-workflow.md`.
-- **Result:** `docs/artifacts/backlog/tasks.md` with T01-T37 in the project order from `AGENTS.md`; the project order corrected in `AGENTS.md` and `README.md` (section 4).
+- **Result:** `docs/artifacts/backlog/tasks.md` with T01-T37 in the project order from `AGENTS.md`; the project order corrected in `AGENTS.md` and `README.md` (section 4). The issues for the first three stages (T01-T13) were then created from that file, one label per stage: `foundation`, `frontend-prototype`, `api-contract`.
 - **Decisions made by me, confirmed by the maintainer:**
   - T22 and T23 are merged into one persistence task, so the list ends at T37; every other task stays as it is.
   - CI (T33) depends on T01 alone and runs lint, format, unit tests and the contract lint from the start; its integration job against PostgreSQL is added after T21.
@@ -85,8 +85,19 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
   - Passwords: Argon2id, at least 8 and at most 128 characters. Session cookie `SameSite=Lax`.
   - Seed content is drafted with AI, reviewed by hand and committed as seed files; one lesson and six questions per topic is the minimum.
   - The frontend is served by its own static server image; the hosting target is chosen by the maintainer before the deployment task, and the image task is not blocked by it.
-- **Verification:** no code exists, so nothing was run. The dependency graph, the Order table and the header links were checked with a script over the file; one dependency check was found to be vacuous on the first run and was redone.
+- **Verification:** no code exists, so nothing was run. The dependency graph, the Order table and the header links were checked with a script over the file; one dependency check was found to be vacuous on the first run and was redone. The created issues were verified through `gh issue list`/`gh issue view` (title, label, dependency line); they were not opened in a browser.
 - **Artifacts:** `docs/artifacts/backlog/tasks.md`; the source the maintainer turns into GitHub issues.
-- **Links:** no commit yet, and no issue yet.
+- **Links:** issues #1-#13 for T01-T13 (stages Foundation, Frontend prototype, API contract); the files above are in commit `a59ae3f`.
+
+## 2026-10-18 — Entry 3: the orchestrator runs the whole cycle, one review at the end (no issue yet)
+
+- **Tool:** OpenCode (main session).
+- **Prompt / task given:** Change the lifecycle of an issue so the main session, as orchestrator, runs the whole cycle for one issue by itself (pick, groom, implement, verify) without the maintainer starting any role, repeats implement and verify after a QA FAIL for at most three rounds, and stops on PASS. Keep the wording of the six files in step with that change: `docs/process.md` (lifecycle, branches, backlog changes, end of cycle), `README.md` (section 4 item 3), `docs/ai-workflow.md` (the decision line in Entry 1), `AGENTS.md` (the Conventions line), `.opencode/agents/pm.md` (step 4) and `.opencode/agents/software-engineer.md` (step 6). Do not commit.
+- **Context given:** `docs/process.md`, `README.md`, `AGENTS.md`, `.opencode/agents/pm.md`, `.opencode/agents/software-engineer.md`, `docs/ai-workflow.md`.
+- **Result:** the lifecycle in `docs/process.md` lost the `@role` commands and the check after grooming, and gained the automatic cycle, a `Branches` section and a `Changes to the backlog` section; README section 4 item 3 describes the same cycle; the Conventions line in `AGENTS.md` says that a request to work on an issue means the full cycle with the main session as orchestrator; `pm.md` step 4 and `software-engineer.md` step 6 were extended as asked. Nothing else in those files was changed, and nothing was committed.
+- **Decisions given by the maintainer:** the two manual checkpoints of Entry 1 are dropped, because the orchestrator now runs the cycle itself and the maintainer reviews once at the end (the diff and the log entry) before the orchestrator closes the issue. The orchestrator creates `issue-<N>` from `main` before the cycle, never pushes, merges or runs a workflow, stops and names the issue when a dependency is not yet closed and merged, and works on one issue at a time. When the product manager reports that part of an issue belongs to another task, the orchestrator itself moves the criteria into `docs/artifacts/backlog/tasks.md`.
+- **Verification:** no code or tests exist, so nothing was run. The diff of the six files was read back and checked change by change against the request. The other uncommitted changes in the working tree (the lines of Entry 2 above and `docs/artifacts/backlog/tasks.md`) belong to the previous task and are not part of this one.
+- **Artifacts:** `docs/process.md`, `README.md`, `AGENTS.md`, `.opencode/agents/pm.md`, `.opencode/agents/software-engineer.md`, `docs/ai-workflow.md`; `docs/process.md` is what the next cycle follows.
+- **Links:** no commit yet; nothing has been accepted or changed by hand so far.
 
 <!-- Add new entries below, newest last. -->

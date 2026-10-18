@@ -2,9 +2,10 @@
 
 Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-10-17, following [`docs/task-template.md`](../../task-template.md) and the order in [`AGENTS.md`](../../../AGENTS.md).
 
-- `T01`-`T37` are placeholders for issue numbers. When the maintainer creates the issues, every `Depends on: Txx` becomes `Depends on: #<number of Txx>`.
+- `T01`-`T13` became GitHub issues on 2026-10-17, where the issue number matches the task number (`T01` is #1, `T13` is #13); in those issues `Depends on: Txx` is written as `Depends on: #<issue number>`.
+- `T14`-`T37` are still placeholders for issue numbers. When the maintainer creates them, every `Depends on: Txx` becomes `Depends on: #<issue number>`.
 - Each task fits one session and can be read on its own.
-- This file creates no issues and no code. The maintainer merges, splits and removes tasks before creating them (see [`docs/process.md`](../../process.md), "Backlog").
+- This file creates no issues and no code. The maintainer merges, splits and removes tasks before creating them (see [`docs/process.md`](../../process.md), "Backlog"). The issues for T01-T13 were created from this file on 2026-10-17.
 - No task adds behaviour outside version 1 of the specification.
 - Every task ends with an entry in [`docs/ai-workflow.md`](../../ai-workflow.md) and a committed stage artifact; the retrospective pass over that bookkeeping is T37.
 

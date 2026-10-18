@@ -18,15 +18,25 @@ The roles are subagents defined in `.opencode/agents/`. The main session is the 
 | QA engineer | `qa-engineer.md` | Verifies against the criteria, reports PASS or FAIL | Fix code, close the issue |
 
 ## Lifecycle of an issue
-1. **Pick** the next open issue whose dependencies are closed.
-2. **Groom:** `@pm groom issue #N`.
-3. **Maintainer check:** read the groomed issue and approve it or send it back.
-4. **Implement:** `@software-engineer implement issue #N`.
-5. **Verify:** `@qa-engineer test issue #N`.
-6. **FAIL:** give the QA comment to the software engineer and repeat steps 4 and 5. After three failed rounds, stop and ask the maintainer.
-7. **PASS:** the maintainer reviews the diff and fills in the manual review in the log entry; the orchestrator closes the issue.
+The orchestrator runs the whole cycle for one issue by itself. The maintainer starts no role.
+1. **Pick** the next open issue whose dependencies are closed and merged into `main`. One issue at a time.
+2. **Groom:** the product manager rewrites issue #N into the task template.
+3. **Implement:** the software engineer implements issue #N on its branch.
+4. **Verify:** the QA engineer verifies issue #N against its acceptance criteria.
+5. **FAIL:** give the QA comment to the software engineer and repeat steps 3 and 4. After three failed rounds, stop and ask the maintainer.
+6. **PASS:** stop and report the changed files, the QA verdict, the test results and the log entry the software engineer added to [`ai-workflow.md`](ai-workflow.md).
+7. **Maintainer review:** the maintainer reviews the diff and the log entry. Only after that review does the orchestrator close the issue.
 
-The maintainer checks twice: after grooming and before closing. This keeps the manual review that [`ai-workflow.md`](ai-workflow.md) records.
+The maintainer reviews once, at the end. This keeps the manual review that [`ai-workflow.md`](ai-workflow.md) records.
+
+## Branches
+- The orchestrator creates the branch `issue-<N>` from `main` before it starts the cycle.
+- Every issue the chosen issue depends on must be closed and its branch merged into `main` by the maintainer. Otherwise the orchestrator stops and names the issue that is missing.
+- The software engineer commits to that branch, with `#<N>` in the commit message.
+- The orchestrator never pushes, merges or runs a workflow.
+
+## Changes to the backlog
+When the product manager reports that part of the issue belongs to another task, the orchestrator updates `docs/artifacts/backlog/tasks.md` before it continues: the receiving task gets the criteria.
 
 ## Notes
 - Each role works on one issue per run and leaves its result as an issue comment.
