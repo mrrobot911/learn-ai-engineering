@@ -12,6 +12,7 @@ Web app where developers learn AI engineering through lessons and multiple-choic
 - apply formatting (changes files): `(cd backend && gofmt -w .)`; `(cd frontend && bun run format)`
 - validate API contract: `bunx @redocly/cli lint openapi.yaml`
 - JavaScript tooling is Bun only: do not use `npm`, `npx`, `yarn` or `pnpm`; install with `bun install` / `bun add`
+- Packages are installed per project only, with `bun install` / `bun add` / `go mod download`. Never install a package, tool or skill globally, and never work around a problem by installing or patching something outside the project; a tool that will not run on the maintainer's machine is reported as a blocker.
 - These commands are planned; scripts and tools may not exist until the project is scaffolded. If one is missing, say so and add it deliberately instead of guessing.
 
 ## Layout

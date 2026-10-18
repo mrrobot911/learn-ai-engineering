@@ -2,10 +2,11 @@
 
 Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-10-17, following [`docs/task-template.md`](../../task-template.md) and the order in [`AGENTS.md`](../../../AGENTS.md).
 
-- `T01`-`T13` became GitHub issues on 2026-10-17, where the issue number matches the task number (`T01` is #1, `T13` is #13); in those issues `Depends on: Txx` is written as `Depends on: #<issue number>`.
+- `T02`-`T13` became GitHub issues on 2026-10-17, where the issue number matches the task number (`T02` is #2, `T13` is #13); in those issues `Depends on: Txx` is written as `Depends on: #<issue number>`.
+- `T01` was issue #1. It was cancelled by the maintainer on 2026-10-18 and removed from this file: the scaffold it asked for contradicts the project order of `AGENTS.md`, the frontend project comes from Bolt and the Go project belongs to `T14`, after the contract. Nothing of it was carried over to another task.
 - `T14`-`T37` are still placeholders for issue numbers. When the maintainer creates them, every `Depends on: Txx` becomes `Depends on: #<issue number>`.
 - Each task fits one session and can be read on its own.
-- This file creates no issues and no code. The maintainer merges, splits and removes tasks before creating them (see [`docs/process.md`](../../process.md), "Backlog"). The issues for T01-T13 were created from this file on 2026-10-17.
+- This file creates no issues and no code. The maintainer merges, splits and removes tasks before creating them (see [`docs/process.md`](../../process.md), "Backlog"). The issues for T02-T13 were created from this file on 2026-10-17.
 - No task adds behaviour outside version 1 of the specification.
 - Every task ends with an entry in [`docs/ai-workflow.md`](../../ai-workflow.md) and a committed stage artifact; the retrospective pass over that bookkeeping is T37.
 
@@ -13,8 +14,7 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 
 | Stage | Tasks | User stories |
 |---|---|---|
-| Foundation | T01-T02 | none (supports all) |
-| Frontend prototype with mock API client | T03-T09 | US-1, US-2, US-3, US-4, US-5, US-6 |
+| Frontend prototype with mock API client | T02-T09 | US-1, US-2, US-3, US-4, US-5, US-6 |
 | API contract | T10-T13 | US-1, US-2, US-3 / US-4 / US-5, US-6 / US-7 |
 | Backend by user story | T14-T20 | US-1, US-2, US-3, US-4, US-5, US-6, US-7 |
 | Persistence: migrations, repositories, seed | T21-T25 | US-1, US-4, US-5, US-6, US-7, US-8 |
@@ -30,43 +30,10 @@ Tasks not covered by a user story come from section 7 (non-functional requiremen
 
 ---
 
-## T01 - Scaffold the empty frontend and backend
-
-**User story:** none - foundation for US-1 to US-8
-**Depends on:** none
-
-## Goal
-
-The repository holds a minimal Go backend and a minimal React + TypeScript frontend whose build, test, lint and format commands from `AGENTS.md` all work, so every later task can rely on them existing.
-Source: `product-spec.md` section 7 (testing, reproducibility), `AGENTS.md` "Commands".
-
-## Acceptance criteria
-
-- [ ] `(cd backend && go test ./...)` reports one passing test, and `(cd frontend && bun install && bun run test)` reports one passing test.
-- [ ] The frontend test command is the project's runner through `bun run test`; `bun test` appears nowhere in the repository.
-- [ ] `frontend/package.json` defines the scripts `test`, `lint`, `format` and `format:check`; `(cd frontend && bun run lint && bun run format:check)` passes and `bun run format` changes files.
-- [ ] `(cd backend && gofmt -l . && go vet ./...)` prints nothing.
-- [ ] Go is pinned in `backend/go.mod`, Bun is pinned in the frontend, and no version is written as `latest`; `backend/go.sum` and the Bun lockfile are committed.
-- [ ] `.env.example` exists, documents the variables that exist at this point, and contains no real secret.
-- [ ] Tests for the new behaviour exist and pass (one unit test per side).
-
-## Out of scope
-
-- Any feature, screen, endpoint, table or migration.
-- Docker files, Compose and CI: `docker compose up --build` only works from T32.
-
-## Constraints
-
-- Bun only; `npm`, `npx`, `yarn` and `pnpm` stay denied in `opencode.jsonc`.
-- Pin every version in the file that uses it.
-- Depends on: none.
-
----
-
 ## T02 - Install the project skills for UI and React work
 
 **User story:** none - foundation for the frontend tasks
-**Depends on:** T01
+**Depends on:** none
 
 ## Goal
 
@@ -92,18 +59,19 @@ Source: `AGENTS.md` "Skills" (course module: project skills).
 
 - Install only when asked, which this task is.
 - Never commit credentials or private data from the source repository.
-- Depends on: T01.
+- Depends on: none.
 
 ---
 
 ## T03 - Central API client module with a mock implementation
 
 **User story:** none - required by `product-spec.md` section 7 (one client module); supports US-1 to US-8
-**Depends on:** T01, T02
+**Depends on:** T02
 
 ## Goal
 
 The frontend has exactly one module that talks to the backend, with a mock implementation behind it, so screens can be built and reviewed before any real API call exists.
+The frontend project itself is generated by Bolt in this task; every later frontend task works from that output.
 Source: `product-spec.md` section 7 (API contract), `AGENTS.md` "Conventions".
 
 ## Acceptance criteria
@@ -123,7 +91,7 @@ Source: `product-spec.md` section 7 (API contract), `AGENTS.md` "Conventions".
 
 - No dependency is added for something the platform or the installed tools already provide.
 - All backend calls go through `frontend/src/api/`.
-- Depends on: T01, T02.
+- Depends on: T02.
 
 ---
 
@@ -1016,7 +984,7 @@ Source: `product-spec.md` section 7 (operability), `README.md` section 8.
 ## T33 - CI runs the tests and the checks
 
 **User story:** none - supports all stories (`product-spec.md` section 7, testing and operability)
-**Depends on:** T01
+**Depends on:** T14
 
 ## Goal
 
@@ -1038,7 +1006,7 @@ Source: `product-spec.md` section 7, `README.md` section 9.
 ## Constraints
 
 - Do not run a deploy command or workflow.
-- Depends on: T01.
+- Depends on: T14.
 
 ---
 
