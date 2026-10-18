@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-ink-50 text-ink-800 font-sans;
+  }
+  ::selection {
+    @apply bg-brand-200 text-ink-900;
+  }
+  *:focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-ink-50 rounded;
+  }
+  h1, h2, h3, h4 {
+    @apply text-ink-900 font-semibold tracking-tight;
+    line-height: 1.2;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all
+      disabled:opacity-50 disabled:cursor-not-allowed select-none text-sm px-4 py-2.5;
+  }
+  .btn-primary {
+    @apply btn bg-ink-900 text-white hover:bg-ink-800 active:bg-ink-950
+      shadow-sm hover:shadow-md;
+  }
+  .btn-brand {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800
+      shadow-sm hover:shadow-md;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-ink-700 border border-ink-200 hover:bg-ink-50 hover:border-ink-300;
+  }
+  .btn-ghost {
+    @apply btn text-ink-600 hover:bg-ink-100 hover:text-ink-900;
+  }
+  .btn-danger {
+    @apply btn bg-error-50 text-error-700 border border-error-100 hover:bg-error-100;
+  }
+  .card {
+    @apply bg-white rounded-xl border border-ink-200/70 shadow-card;
+  }
+  .input {
+    @apply w-full rounded-lg border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900
+      placeholder:text-ink-400 transition-colors
+      hover:border-ink-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none;
+  }
+  .input-error {
+    @apply border-error-400 focus:border-error-500 focus:ring-error-500/20;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .prose-lesson {
+    @apply text-ink-700 leading-[1.7] space-y-4 text-[15px];
+  }
+  .prose-lesson h2 {
+    @apply text-xl text-ink-900 mt-8 mb-2;
+  }
+  .prose-lesson h3 {
+    @apply text-lg text-ink-900 mt-6 mb-2;
+  }
+  .prose-lesson p {
+    @apply text-ink-700;
+  }
+  .prose-lesson ul {
+    @apply list-disc pl-6 space-y-1.5 my-3;
+  }
+  .prose-lesson ol {
+    @apply list-decimal pl-6 space-y-1.5 my-3;
+  }
+  .prose-lesson li {
+    @apply text-ink-700;
+  }
+  .prose-lesson code {
+    @apply font-mono text-[13px] bg-ink-100 text-ink-800 px-1.5 py-0.5 rounded;
+  }
+  .prose-lesson pre {
+    @apply bg-ink-900 text-ink-100 rounded-lg p-4 overflow-x-auto my-4 text-[13px] leading-relaxed;
+  }
+  .prose-lesson pre code {
+    @apply bg-transparent text-inherit p-0;
+  }
+  .prose-lesson strong {
+    @apply text-ink-900 font-semibold;
+  }
+  .prose-lesson blockquote {
+    @apply border-l-2 border-brand-400 pl-4 italic text-ink-600 my-4;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #eef0f4 25%, #f7f8fa 50%, #eef0f4 75%);
+  background-size: 936px 100%;
+  @apply rounded animate-shimmer;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-ink-200 rounded; }
+::-webkit-scrollbar-thumb:hover { @apply bg-ink-300; }
