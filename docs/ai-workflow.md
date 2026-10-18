@@ -45,7 +45,7 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
   - Decided that an unanswered quiz question counts as incorrect, instead of rejecting the submission.
   - Agreed that quiz size is fixed at 5 and a maintainer is a user with an `is_maintainer` flag; AI-generated curriculum stays out of version 1.
   - Took from the second assistant's review: the project order with a frontend prototype before the contract, commands run from the repository root in subshells, separate check and write formatting commands, and task tracking through GitHub Issues. Did not take: its request to remove CI/CD, the extension pack and security directories (the draft rubric scores them), and its file-name claim for the AI report, which I could not confirm.
-  - Added project skills in `.agents/skills/`: `frontend-design`, `web-design-guidelines`, `react-best-practices` and `composition-patterns`, all installed in the project and not globally; no extra skills for Go and PostgreSQL. A skill never overrides `AGENTS.md` or the specification.
+  - Decided the project skills in `.agents/skills/`: `frontend-design`, `web-design-guidelines`, `react-best-practices` and `composition-patterns`, all to be installed in the project and not globally; no extra skills for Go and PostgreSQL. A skill never overrides `AGENTS.md` or the specification. They were installed in issue #2 (Entry 5).
   - Added a rule that each stage ends with a committed artifact that the next stage receives as context by path.
   - Added a version policy: pin versions in `go.mod`, Dockerfiles, compose image tags and workflows, commit lockfiles, never `latest`.
   - Configured OpenCode for the project (`opencode.jsonc`): Go language server enabled, `npm`, `npx`, `yarn` and `pnpm` denied (Bun only), `gh workflow run` requires approval.
@@ -114,5 +114,35 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
 - **Verification:** during the cycle `go test ./...` printed `ok`, `gofmt -l . && go vet ./...` printed nothing, and `bun run test` reported one passing test; `bun run lint`, `bun run format:check` and `bun run format` exit 127 on this host because the pinned Biome build needs an interpreter that NixOS does not enable here. Those results say nothing about the project: the scaffold was never going to be used. After the cancellation the branch was deleted, the untracked directories (`backend/`, `frontend/`, `docs/artifacts/foundation/`) were removed, the Bun cache entry was checked again and holds the registry version, `main` matches `origin/main`, and the backlog and issues were re-read to confirm that no reference to the removed task is left.
 - **Artifacts:** the stage artifact of the cycle (`docs/artifacts/foundation/verification.md`) is gone with the branch. What remains is this entry, the cancelled issue with its analysis, and the corrected `docs/artifacts/backlog/tasks.md`, which the next cycle (`T02`) reads.
 - **Links:** issue #1, closed with `wontfix` and the analysis in a comment; the three deleted commits are only in the local reflog for now. No branch was pushed.
+
+## 2026-10-18 — Entry 5: the project skills for UI and React work are installed (issue #2)
+
+- **Tool:** OpenCode (main session as orchestrator) with the `software-engineer` subagent.
+- **Prompt / task given:** implement issue #2, groomed in `docs/task-template.md`: install the four skills named in `AGENTS.md` under `.agents/skills/`, each pinned to one upstream commit, copied file for file and recorded, so every UI and React task can load them before writing code.
+- **Context given:** issue #2 (with the decided source table), `AGENTS.md` (Layout, Conventions, Skills, Gotchas), `docs/process.md`, `docs/artifacts/backlog/tasks.md` (T02), and the OpenCode Agent Skills documentation for the discovery path `.agents/skills/<name>/SKILL.md` and its frontmatter rules.
+- **Result:**
+  - `.agents/skills/` holds exactly the four directories and nothing else, 93 files, copied on 2026-10-18:
+
+    | Skill | Repository | Path in the repository | Commit fetched and copied | Licence file that came with it |
+    |---|---|---|---|---|
+    | `frontend-design` | `anthropics/skills` | `skills/frontend-design` | `dbd4588f9e1033efb41dad4bef2f7947c8993d44` | `LICENSE.txt` (Apache License 2.0) |
+    | `web-design-guidelines` | `vercel-labs/agent-skills` | `skills/web-design-guidelines` | `063bee94c3f4df8453406c830b0a7df0f2860278` | none ships with the directory, and the repository has none |
+    | `react-best-practices` | `vercel-labs/agent-skills` | `skills/react-best-practices` | `063bee94c3f4df8453406c830b0a7df0f2860278` | none ships with the directory, and the repository has none; the frontmatter declares `license: MIT` |
+    | `composition-patterns` | `vercel-labs/agent-skills` | `skills/composition-patterns` | `063bee94c3f4df8453406c830b0a7df0f2860278` | none ships with the directory, and the repository has none; the frontmatter declares `license: MIT` |
+
+  - `frontend-design` and `web-design-guidelines` are byte-identical to the source. The two React skills ship a nested `AGENTS.md`, `README.md`, `metadata.json` and `rules/`, all kept verbatim.
+  - Frontmatter, recorded here as criterion 5 asks: all four `SKILL.md` files start with YAML frontmatter and hold a non-empty `description`. The `name` of `frontend-design` and `web-design-guidelines` already matched their directory and was left alone. Upstream ships `name: vercel-react-best-practices` and `name: vercel-composition-patterns`, which are not equal to their directory names, and OpenCode requires the `name` to match the directory holding the `SKILL.md`; only that one line in each of those two files was changed to `react-best-practices` and `composition-patterns`. Nothing else in the vendored files was touched.
+  - `README.md` section 4 item 4 and the repository structure block no longer call the skills planned, the Entry 0 line above now says the skills were decided there and installed in this issue, and `AGENTS.md` was not changed: its Skills section already names exactly these four and keeps the rule that a skill never overrides `AGENTS.md` or `product-spec.md`.
+- **Accepted / rejected / changed by hand, and why:** _not filled in; for the maintainer._
+- **Verification:**
+  - `diff -r` of every installed directory against a checkout of the recorded commit: nothing printed for `frontend-design` and `web-design-guidelines`, one changed line for each of the two React skills, the `name` line above.
+  - The first lines of the four `SKILL.md` files were read: frontmatter present, `name` equal to the directory name, `description` non-empty.
+  - The global skill locations were listed: `~/.config/opencode/skills`, `~/.claude/skills` and `~/.agents/skills` do not exist, and `git check-ignore .agents` prints nothing.
+  - The `skill` tool was called once with each of the four names. Every call answered that the skill was not found, because the skill list of that session was built at session start, before these files existed. Loading them was therefore not confirmed there and no configuration was changed to force it; a session started after this commit is the check.
+  - `rg` over `.agents/skills` for `sk-`, `ghp_`, `-----BEGIN`, `api_key` and `password` returned no match, and no `.env` file was added.
+  - The nested `AGENTS.md` of the two React skills was read before committing, as `AGENTS.md` asks. Its Next.js-specific rules (server components, `"use client"`, `next/image`, server actions, `optimizePackageImports`, SWR) do not apply to this plain React app and were ignored. It also showed up as a loaded instruction file in that session, which issue #2 already names as a follow-up issue if OpenCode picks it up.
+  - No test was run and none was added: this change adds no behaviour (criterion 11).
+- **Artifacts:** `docs/artifacts/frontend-prototype/skills.md`, the source table and the deviation above; the prototype tasks #3 to #9 read it and load the skills it names.
+- **Links:** issue #2; the commit that installs them is referenced in the issue comment.
 
 <!-- Add new entries below, newest last. -->
