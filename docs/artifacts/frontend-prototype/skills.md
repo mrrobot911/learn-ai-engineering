@@ -49,6 +49,11 @@ Nothing else differs: `diff -r` against the checkouts prints nothing for `fronte
 `web-design-guidelines`, and only those two lines for the two React skills. All four `SKILL.md`
 files carry a non-empty `description`.
 
+The first QA run of issue #2 failed the original wording of criterion 1, which required `diff -r` to
+print nothing for all four directories and therefore contradicted criterion 2, the criterion that
+requires these two `name:` lines. The product manager reworded criterion 1 to name this single line.
+The files were not changed by that rewording: the deviation above is still the whole of it.
+
 ## How the next tasks use them
 
 Load the skill before writing UI or React code, as `AGENTS.md` > Skills says: `frontend-design` and
@@ -69,5 +74,6 @@ React app apply and the Next.js-specific ones are ignored. A skill never overrid
   `.env` file was added.
 - The `skill` tool was called once with each of the four names. Every call answered "not found"
   because the skill list of that session was built at session start, before these files existed, so
-  loading could not be confirmed there; a session started after this commit sees them.
+  loading could not be confirmed there; a session started after this commit sees them. Criterion 4
+  of issue #2 now states that precondition, because the QA session hit the same limit.
 - No test was run and none was added: this change adds no behaviour (criterion 11 of issue #2).
