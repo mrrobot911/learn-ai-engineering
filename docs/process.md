@@ -24,7 +24,7 @@ The orchestrator runs the whole cycle for one issue by itself. The maintainer st
 3. **Implement:** the software engineer implements issue #N on its branch.
 4. **Verify:** the QA engineer verifies issue #N against its acceptance criteria.
 5. **FAIL:** give the QA comment to the software engineer and repeat steps 3 and 4. After three failed rounds, stop and ask the maintainer.
-6. **PASS:** stop and report the changed files, the QA verdict, the test results and the log entry the software engineer added to [`ai-workflow.md`](ai-workflow.md).
+6. **PASS:** push the branch, open the pull request from [`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md) filled with the engineer's comment and the QA verdict, then stop and report the changed files, the QA verdict, the test results, the log entry the software engineer added to [`ai-workflow.md`](ai-workflow.md), and the link to the pull request.
 7. **Maintainer review:** the maintainer reviews the diff and the log entry. Only after that review does the orchestrator close the issue.
 
 The maintainer reviews once, at the end. This keeps the manual review that [`ai-workflow.md`](ai-workflow.md) records.
@@ -32,8 +32,16 @@ The maintainer reviews once, at the end. This keeps the manual review that [`ai-
 ## Branches
 - The orchestrator creates the branch `issue-<N>` from `main` before it starts the cycle.
 - Every issue the chosen issue depends on must be closed and its branch merged into `main` by the maintainer. Otherwise the orchestrator stops and names the issue that is missing.
-- The software engineer commits to that branch, with `#<N>` in the commit message.
-- The orchestrator never pushes, merges or runs a workflow.
+- The software engineer commits to that branch, with `#<N>` in the commit message, and does not push.
+- The orchestrator pushes `issue-<N>` and opens the pull request after the QA engineer reported PASS, so the body carries the final verdict:
+
+  ```bash
+  git push origin issue-<N>
+  gh pr create --base main --head issue-<N> --title "<issue title>" --body-file <filled template>
+  ```
+
+- The pull request title is the issue title; the body references the issue with `Refs #<N>`.
+- The orchestrator never merges into `main` and never runs a workflow. Merging is the maintainer's.
 
 ## Changes to the backlog
 When the product manager reports that part of the issue belongs to another task, the orchestrator updates `docs/artifacts/backlog/tasks.md` before it continues: the receiving task gets the criteria.
