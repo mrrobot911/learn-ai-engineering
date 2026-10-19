@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, FileText,
-  ListChecks, BookOpen, Trophy, CircleDot,
+  ArrowLeft, ArrowRight, BookOpen, Clock, ListChecks, Trophy,
 } from 'lucide-react';
-import type { Lesson, Topic } from '@/types';
-import { getTopicBySlug, getQuestionsForTopic } from '@/data/content';
-import { useStore } from '@/store';
-import { Link, Spinner, EmptyState, ErrorState, Badge, ProgressBar } from '@/components/ui';
+import { api } from '@/api';
+import type { Lesson, Topic } from '@/api';
+import { Link, Spinner, EmptyState, ErrorState } from '@/components/ui';
 import { TopicIcon } from '@/components/TopicIcon';
 
 const colorMap: Record<string, { bg: string; text: string; ring: string }> = {
@@ -16,26 +14,53 @@ const colorMap: Record<string, { bg: string; text: string; ring: string }> = {
 };
 
 export function TopicPage({ slug }: { slug: string }) {
-  const { user, completedLessons, quizHistory } = useStore();
+  const [topic, setTopic] = useState<Topic | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [topic, setTopic] = useState<Topic | undefined>(undefined);
+  const [errored, setErrored] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
+  // The slug is resolved only through the API client: listTopics() finds the
+  // summary, getTopic() loads the lessons for its id.
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    const t = setTimeout(() => {
-      setTopic(getTopicBySlug(slug));
-      setLoading(false);
-    }, 350);
-    return () => clearTimeout(t);
-  }, [slug]);
-
-  const questions = useMemo(() => topic ? getQuestionsForTopic(topic.id) : [], [topic]);
-  const attemptsForTopic = useMemo(() => topic ? quizHistory.filter((a) => a.topicId === topic.id) : [], [topic, quizHistory]);
-  const completedCount = topic ? topic.lessons.filter((l) => completedLessons.includes(l.id)).length : 0;
+    setErrored(false);
+    setNotFound(false);
+    setTopic(null);
+    (async () => {
+      try {
+        const summaries = await api.listTopics();
+        const summary = summaries.find((t) => t.slug === slug);
+        if (!summary) {
+          if (!cancelled) {
+            setNotFound(true);
+            setLoading(false);
+          }
+          return;
+        }
+        const loaded = await api.getTopic(summary.id);
+        if (!cancelled) {
+          setTopic(loaded);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setErrored(true);
+          setLoading(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [slug, reloadKey]);
 
   if (loading) return <TopicSkeleton />;
 
-  if (!topic) {
+  if (errored) {
+    return <ErrorState onRetry={() => setReloadKey((key) => key + 1)} />;
+  }
+
+  if (notFound || !topic) {
     return (
       <EmptyState
         icon={BookOpen}
@@ -47,9 +72,6 @@ export function TopicPage({ slug }: { slug: string }) {
   }
 
   const c = colorMap[topic.color] ?? colorMap.brand;
-  const bestScore = attemptsForTopic.length > 0
-    ? Math.round((Math.max(...attemptsForTopic.map((a) => a.score / a.total)) * 100))
-    : null;
 
   return (
     <div className="animate-fade-in">
@@ -76,7 +98,7 @@ export function TopicPage({ slug }: { slug: string }) {
             </div>
             <h2 className="text-lg font-semibold text-white mb-1">Test your knowledge</h2>
             <p className="text-sm text-ink-300">
-              {questions.length} published questions · {Math.min(5, questions.length)} per attempt, drawn at random.
+              Take a short multiple-choice quiz on this topic.
             </p>
           </div>
           <Link
@@ -86,61 +108,37 @@ export function TopicPage({ slug }: { slug: string }) {
             Start quiz <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-        {attemptsForTopic.length > 0 && (
-          <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-white/10 text-xs text-ink-300">
-            <span>Attempts: <b className="text-white">{attemptsForTopic.length}</b></span>
-            <span>Best score: <b className="text-white">{bestScore}%</b></span>
-          </div>
-        )}
       </div>
-
-      {/* Progress for logged-in users */}
-      {user && (
-        <div className="card p-4 mb-6">
-          <div className="flex items-center justify-between mb-2 text-sm">
-            <span className="text-ink-700 font-medium flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-brand-600" /> Your progress
-            </span>
-            <span className="text-ink-500 text-xs">{completedCount} of {topic.lessons.length} complete</span>
-          </div>
-          <ProgressBar value={completedCount} total={topic.lessons.length} />
-        </div>
-      )}
 
       <h2 className="text-sm font-semibold text-ink-500 uppercase tracking-wider mb-3 flex items-center gap-2">
         <ListChecks className="w-4 h-4" /> Lessons
       </h2>
 
-      <div className="space-y-2.5">
-        {topic.lessons.map((lesson, idx) => (
-          <LessonRow
-            key={lesson.id}
-            lesson={lesson}
-            index={idx + 1}
-            topicSlug={topic.slug}
-            completed={completedLessons.includes(lesson.id)}
-            showCompletion={!!user}
-          />
-        ))}
-      </div>
+      {topic.lessons.length === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          title="No lessons yet"
+          description="Lessons for this topic will appear here once they are published."
+        />
+      ) : (
+        <div className="space-y-2.5">
+          {topic.lessons.map((lesson, idx) => (
+            <LessonRow key={lesson.id} lesson={lesson} index={idx + 1} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function LessonRow({
-  lesson, index, topicSlug, completed, showCompletion,
-}: {
-  lesson: Lesson; index: number; topicSlug: string; completed: boolean; showCompletion: boolean;
-}) {
+function LessonRow({ lesson, index }: { lesson: Lesson; index: number }) {
   return (
     <Link
       to={{ name: 'lesson', params: { id: lesson.id } }}
       className="card p-4 hover:shadow-card-hover hover:border-ink-300/80 transition-all duration-200 group flex items-center gap-4"
     >
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-mono shrink-0 ${
-        completed ? 'bg-brand-50 text-brand-700' : 'bg-ink-100 text-ink-500'
-      }`}>
-        {completed ? <CheckCircle2 className="w-5 h-5" /> : <span>{index}</span>}
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-mono shrink-0 bg-ink-100 text-ink-500">
+        {index}
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="text-sm sm:text-base font-medium text-ink-900 group-hover:text-ink-950 truncate">{lesson.title}</h3>
@@ -150,11 +148,6 @@ function LessonRow({
         <span className="hidden sm:flex items-center gap-1 text-xs text-ink-400">
           <Clock className="w-3 h-3" /> {lesson.durationMin}m
         </span>
-        {showCompletion && (
-          completed
-            ? <Badge tone="brand"><CheckCircle2 className="w-3 h-3" /> Done</Badge>
-            : <Badge tone="neutral"><Circle className="w-3 h-3" /> Not done</Badge>
-        )}
         <ArrowRight className="w-4 h-4 text-ink-300 group-hover:text-ink-600 group-hover:translate-x-0.5 transition-all" />
       </div>
     </Link>

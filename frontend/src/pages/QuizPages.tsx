@@ -6,8 +6,8 @@ import type { Question, QuizAttempt, QuizResultAnswer, Topic } from '@/types';
 import { getTopicBySlug, getQuestionsForTopic } from '@/data/content';
 import { useStore } from '@/store';
 import { useStore as useStoreForHistory } from '@/store';
-import { Link, Spinner, EmptyState, ProgressBar, toast } from '@/components/ui';
-import { TopicIcon } from '@/components/TopicIcon';
+import { Link, Spinner, EmptyState, ProgressBar } from '@/components/ui';
+import { toast } from '@/components/toast';
 import { pickQuizQuestions, makeSeed, gradeAnswer, QUIZ_SIZE } from '@/lib/quiz';
 
 export function QuizStartPage({ slug }: { slug: string }) {

@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import type { Route } from '@/types';
 import { routeToHash } from '@/router';
 
@@ -25,70 +25,6 @@ export function Link({
     >
       {children}
     </a>
-  );
-}
-
-type ToastKind = 'success' | 'error' | 'warning' | 'info';
-interface ToastItem { id: number; kind: ToastKind; message: string; }
-
-let toastSeq = 0;
-const TOAST_LISTENERS = new Set<(items: ToastItem[]) => void>();
-let currentToasts: ToastItem[] = [];
-
-export function toast(message: string, kind: ToastKind = 'info') {
-  const id = ++toastSeq;
-  currentToasts = [...currentToasts, { id, kind, message }];
-  TOAST_LISTENERS.forEach((fn) => fn(currentToasts));
-  setTimeout(() => {
-    currentToasts = currentToasts.filter((t) => t.id !== id);
-    TOAST_LISTENERS.forEach((fn) => fn(currentToasts));
-  }, 3200);
-}
-
-export function ToastHost() {
-  const [items, setItems] = useState<ToastItem[]>([]);
-  useEffect(() => {
-    const fn = (next: ToastItem[]) => setItems(next);
-    TOAST_LISTENERS.add(fn);
-    return () => { TOAST_LISTENERS.delete(fn); };
-  }, []);
-
-  const icons: Record<ToastKind, typeof CheckCircle2> = {
-    success: CheckCircle2, error: XCircle, warning: AlertTriangle, info: Info,
-  };
-  const colors: Record<ToastKind, string> = {
-    success: 'bg-brand-50 text-brand-800 border-brand-200',
-    error: 'bg-error-50 text-error-700 border-error-100',
-    warning: 'bg-warning-50 text-warning-700 border-warning-100',
-    info: 'bg-ink-50 text-ink-800 border-ink-200',
-  };
-
-  return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 w-[min(92vw,360px)]">
-      {items.map((t) => {
-        const Icon = icons[t.kind];
-        return (
-          <div
-            key={t.id}
-            role="status"
-            className={`flex items-start gap-2.5 rounded-lg border px-3.5 py-3 shadow-card-hover animate-slide-up ${colors[t.kind]}`}
-          >
-            <Icon className="w-4 h-4 mt-0.5 shrink-0" />
-            <p className="text-sm flex-1 leading-snug">{t.message}</p>
-            <button
-              className="opacity-50 hover:opacity-100 transition-opacity"
-              onClick={() => {
-                currentToasts = currentToasts.filter((x) => x.id !== t.id);
-                TOAST_LISTENERS.forEach((fn) => fn(currentToasts));
-              }}
-              aria-label="Dismiss"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        );
-      })}
-    </div>
   );
 }
 
