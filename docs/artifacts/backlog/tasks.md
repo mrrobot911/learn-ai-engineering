@@ -7,6 +7,7 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 - `T14`-`T37` are still placeholders for issue numbers. When the maintainer creates them, every `Depends on: Txx` becomes `Depends on: #<issue number>`.
 - Each task fits one session and can be read on its own.
 - This file creates no issues and no code. The maintainer merges, splits and removes tasks before creating them (see [`docs/process.md`](../../process.md), "Backlog"). The issues for T02-T13 were created from this file on 2026-10-17.
+- `T04`-`T09` were revised on 2026-10-19, after the Bolt prototype was imported and the API client of issue #3 was merged: each of them now adapts and verifies the pages that already exist in `frontend/` instead of building them, carries the lint problems of the imported files it touches, and `T09` closes the prototype stage with `bun run lint` exiting 0. Issues #4-#9 were updated in the same change. Nothing was merged, split or renumbered.
 - No task adds behaviour outside version 1 of the specification.
 - Every task ends with an entry in [`docs/ai-workflow.md`](../../ai-workflow.md) and a committed stage artifact; the retrospective pass over that bookkeeping is T37.
 
@@ -106,27 +107,32 @@ Source: `product-spec.md` section 7 (API contract), `AGENTS.md` "Conventions".
 
 ## Goal
 
-A visitor can see all published topics on the home page and the ordered lessons of one topic on its page, with mock data.
-Source: `product-spec.md` section 4 US-1.
+The topic list and topic pages of the Bolt import (`frontend/src/pages/TopicsPage.tsx`, `frontend/src/pages/TopicPage.tsx`) read their data through the API client of T03 instead of the fixture and browser-storage modules, and carry the loading, empty, error and not-found states a real client needs.
+Source: `product-spec.md` section 4 US-1; the Bolt prototype imported with issue #3 as the starting point.
 
 ## Acceptance criteria
 
-- [ ] The home page lists every topic the client returns, in the order the client returns them, with title and description, and each links to its topic page.
-- [ ] The topic page lists that topic's lessons in the given order, each linking to its lesson page.
-- [ ] Loading, empty and error states exist; a failing client call shows the error state with a retry action.
-- [ ] An unknown topic slug shows a "not found" state instead of an empty list.
-- [ ] Tests for the new behaviour exist and pass: list rendering, order, the three states and the unknown slug.
+- [ ] Both pages get their data only through `frontend/src/api/`: the home page lists every topic `listTopics` returns, in the order it returns them, with title and description, each linking to its topic page; the topic page resolves its slug through the client and lists that topic's lessons in the given order, each linking to its lesson page.
+- [ ] Loading, empty and error states exist on both pages; a failing client call shows the error state with a retry action, and an unknown topic slug shows a "not found" state instead of an empty list.
+- [ ] Neither page imports `frontend/src/data/content.ts`, `frontend/src/store.tsx` or reads browser storage; the artificial `setTimeout` latency of the import is gone and the loading state follows the client's pending promise.
+- [ ] The lesson-completed and quiz-attempt counters the imported home page showed are removed, not ported: they are not in the specification; the per-topic completion view returns with T08.
+- [ ] The five lint problems of the two files are gone: the unused `Clock` in `TopicsPage.tsx`, and the unused `FileText`, `CircleDot`, `ErrorState` and `topicSlug` in `TopicPage.tsx`.
+- [ ] The `react-refresh/only-export-components` warning in `frontend/src/components/ui.tsx` is fixed by moving the `toast` helper out of the component file; every existing importer keeps working.
+- [ ] `@supabase/supabase-js` is removed from `frontend/package.json` and `frontend/bun.lock`; nothing imports it.
+- [ ] A component-testing harness exists and is used: the testing libraries and the DOM environment the page tests need are added as pinned devDependencies, and tests pass for list rendering, order, the three states and the unknown slug.
 
 ## Out of scope
 
 - The lesson body (T05).
 - Completion state (T08).
+- Attempt counters and every history view (T09).
 - Any real API call.
 
 ## Constraints
 
 - Build only the screens in the specification; no extra screens or features for visual reasons.
 - Keyboard access and labels for every interactive element; headings in order.
+- The slug from the route is resolved through the client, with no second lookup mechanism.
 - Depends on: T03.
 
 ---
@@ -138,20 +144,21 @@ Source: `product-spec.md` section 4 US-1.
 
 ## Goal
 
-A visitor can open a lesson and read its Markdown content, with mock data.
+The lesson page of the Bolt import (`frontend/src/pages/LessonPage.tsx`) reads the lesson and its topic through the API client and shows the Markdown body, for anonymous and logged-in visitors alike.
 Source: `product-spec.md` section 4 US-1, section 5 (lesson body in Markdown).
 
 ## Acceptance criteria
 
-- [ ] The lesson page shows the topic, the lesson title and the body rendered from Markdown as HTML.
+- [ ] The page loads the lesson through the client and its topic through the client, and shows the topic, the lesson title and the body rendered from Markdown as HTML.
 - [ ] Raw HTML inside the Markdown body is not rendered as HTML.
-- [ ] Loading, error and not-found states exist.
-- [ ] Tests for the new behaviour exist and pass: a heading, a list and a code block in the Markdown body are rendered as HTML; the title and topic are shown.
+- [ ] Loading, error and not-found states exist; a failing client call shows the error state with a retry action, and an unknown lesson id shows a "not found" state.
+- [ ] The completion toggle, the completion badges and every read of `frontend/src/store.tsx` or the fixtures are gone from the page; they return with T08, backed by the client.
+- [ ] Tests for the new behaviour exist and pass: a heading, a list and a code block in the Markdown body are rendered as HTML; raw HTML is shown as text; the title and topic are shown; the not-found state appears for an unknown id.
 - [ ] The page is reachable and readable with the keyboard only, and the body is not exposed as raw Markdown.
 
 ## Out of scope
 
-- Completion toggle (T08).
+- Completion toggle and completion state (T08).
 
 ## Constraints
 
@@ -167,23 +174,26 @@ Source: `product-spec.md` section 4 US-1, section 5 (lesson body in Markdown).
 
 ## Goal
 
-A visitor can start a quiz on a topic, answer it and see the graded result, without the browser doing any grading.
+The quiz pages of the Bolt import (`frontend/src/pages/QuizPages.tsx`) start and submit the quiz through the API client, so the browser neither picks the questions nor grades the answers.
 Source: `product-spec.md` section 4 US-2, US-3.
 
 ## Acceptance criteria
 
-- [ ] Starting a quiz shows 5 questions, or all of them when the topic has fewer, each with its options in the order the client returns them; the quiz size is not configurable in the UI.
-- [ ] The data the client returns before submission contains no field that reveals the correct option.
+- [ ] Starting a quiz through the client shows 5 questions, or all of them when the topic has fewer, each with its options in the order the client returns them; the quiz size is not configurable in the UI.
+- [ ] The data the client returns before submission contains no field that reveals the correct option, and nothing correct or explanatory is rendered before the submission response arrives.
 - [ ] Each option can be selected and cleared; submission is possible while some questions are unanswered.
 - [ ] After submission the result shows the score out of the total and, per question, whether it was correct, the correct answer and its explanation.
-- [ ] The score shown comes from the client's response; no grading happens in the browser: `gradeAnswer` is removed from `frontend/src/lib/quiz.ts` and the `isCorrect` field from `frontend/src/types.ts`. Moved here from T03 by issue #3, which leaves both in place and grades inside the mock only.
-- [ ] Loading and error states exist, and the options are operable with the keyboard.
-- [ ] Tests for the new behaviour exist and pass for the question list, an unanswered submission and the result view.
+- [ ] The score shown comes from the client's response; no grading happens in the browser: `frontend/src/lib/quiz.ts` is deleted, together with `gradeAnswer` and the `isCorrect` field in `frontend/src/types.ts` that only the browser grading needed. Moved here from T03 by issue #3, which left both in place and grades inside the mock only.
+- [ ] The anonymous result is shown from the submission response and is not written to `sessionStorage`, `localStorage` or the store; the quiz pages no longer import `frontend/src/store.tsx` or `frontend/src/data/content.ts`.
+- [ ] The imported start screen's question-bank count and last-attempt card are removed, not ported: no client operation returns them before a quiz is started, and attempt history belongs to T09.
+- [ ] The unused `TopicIcon` import in `QuizPages.tsx` is gone.
+- [ ] Loading and error states exist, the artificial latency timers are gone, and the options are operable with the keyboard.
+- [ ] Tests for the new behaviour exist and pass for the question list, an unanswered submission, the result view and the absence of the correct answer before submission.
 
 ## Out of scope
 
 - Server-side grading (T16).
-- Storing attempts (T19).
+- Storing attempts (T19) and every history view (T09).
 - Any login (T07).
 
 ## Constraints
@@ -200,21 +210,25 @@ Source: `product-spec.md` section 4 US-2, US-3.
 
 ## Goal
 
-A visitor can register, log in and log out from the prototype, and the app shows whether a session exists, with mock data.
+The auth page and the shell of the Bolt import (`frontend/src/pages/AuthPage.tsx`, `frontend/src/components/AppShell.tsx`, `frontend/src/App.tsx`) manage the session through the API client, and the browser-storage account simulation of `frontend/src/store.tsx` is replaced.
 Source: `product-spec.md` section 4 US-4.
 
 ## Acceptance criteria
 
-- [ ] Registration and log-in forms validate the fields required by the contract (this task uses the mock's rules) and show the error message returned for invalid or duplicate input next to the form.
-- [ ] Registering or logging in updates the session state in the app; the header shows the logged-in state, and logging out clears it.
-- [ ] Session state is only read and written through the API client; the session itself is not stored in the browser by this task.
+- [ ] Registration and log-in call the client and validate the fields the client's `Credentials` carry: email and password, with the password limits of the specification (8 to 128 characters); the error returned for invalid or duplicate input is shown next to the form.
+- [ ] The name field of the imported registration form and the display name in the header are gone: the client types carry no name, and the header shows the email of the logged-in user.
+- [ ] Registering or logging in updates the session state in the app; the header shows the logged-in state, and logging out clears it. The session is held in memory only: nothing writes it to `localStorage` or `sessionStorage`, and a reload starts the prototype anonymous (the real session arrives with T29).
+- [ ] The seeded demo account, the plaintext passwords and every `forge.*` key of the imported store are gone; the session state is only read and written through the API client, never from the store's browser storage.
+- [ ] The `react-refresh/only-export-components` warning in `frontend/src/store.tsx` is gone: the session state this task introduces lives in a file that exports no plain functions next to components.
 - [ ] Password inputs are not echoed into logs or error messages.
-- [ ] Tests for the new behaviour exist and pass for the validation error, the duplicate-email error, the logged-in state and the logged-out state.
+- [ ] Tests for the new behaviour exist and pass for the validation error, the duplicate-email error, the logged-in header state and the logged-out state.
 
 ## Out of scope
 
 - Cookie handling, CSRF and password hashing (T11, T17).
 - Password rules beyond what the contract defines (see Decisions).
+- Persisting the session across a reload (T29).
+- Progress and quiz history, which stay on the old store until T08 and T09.
 
 ## Constraints
 
@@ -230,15 +244,16 @@ Source: `product-spec.md` section 4 US-4.
 
 ## Goal
 
-A logged-in visitor can mark a lesson complete and undo it, and sees the completion state on the lesson and topic pages.
+A logged-in visitor can mark a lesson complete and undo it through the API client, and sees the completion state on the lesson and topic pages.
 Source: `product-spec.md` section 4 US-5.
 
 ## Acceptance criteria
 
-- [ ] The lesson page shows a control that reflects the current completion state for the logged-in user and toggles it both ways.
-- [ ] The topic page shows how many lessons of that topic are completed and which ones.
+- [ ] The lesson page shows a control that reflects the current completion state for the logged-in user, read through the client, and toggles it both ways through the client.
+- [ ] The topic page shows how many lessons of that topic are completed and which ones, from the client's progress.
 - [ ] An anonymous visitor sees no completion control.
 - [ ] While the request is in flight the control is disabled; a failed request shows an error and leaves the shown state unchanged.
+- [ ] No completion state is read from `frontend/src/store.tsx` or browser storage anymore: the progress path of the imported store is removed in this task.
 - [ ] Tests for the new behaviour exist and pass for completed, not completed, anonymous and failed-request cases.
 
 ## Out of scope
@@ -260,16 +275,19 @@ Source: `product-spec.md` section 4 US-5.
 
 ## Goal
 
-A logged-in user can list their past quiz attempts and open one to see its detail, with mock data.
+A logged-in user can list their past quiz attempts and open one to see its detail, all through the API client, and the frontend prototype stage ends with every check green.
 Source: `product-spec.md` section 4 US-6.
 
 ## Acceptance criteria
 
-- [ ] A history page lists the user's attempts with topic, date and score, newest first, and links to an attempt page.
+- [ ] A history page lists the user's attempts with topic, date and score, newest first, and links to an attempt page; the list and the detail come through the client.
 - [ ] The attempt page shows, per question, the question text, the selected answer text (empty when unanswered) and the correct answer text.
-- [ ] The mock data demonstrates the snapshot: an attempt shows the question and answer wording stored with the attempt, which differs from the current content.
+- [ ] The mock data demonstrates the snapshot: an attempt shows the question and answer wording stored with the attempt, which differs from the current content; the fixtures may be adjusted for this in `frontend/src/data/content.ts`.
 - [ ] An empty state is shown when the user has no attempts.
+- [ ] An anonymous visitor is directed to log in instead of being shown an empty history.
+- [ ] The history path of the imported store is removed; `frontend/src/store.tsx` is deleted when nothing of it remains, and no page imports the store or the Bolt fixtures directly.
 - [ ] Tests for the new behaviour exist and pass for the list order, the detail view and the empty state.
+- [ ] `(cd frontend && bun run lint)`, `(cd frontend && bun run test)` and `(cd frontend && bun run typecheck)` all exit 0, with no lint problem left from the imported files.
 
 ## Out of scope
 
@@ -278,7 +296,6 @@ Source: `product-spec.md` section 4 US-6.
 
 ## Constraints
 
-- Anonymous visitors are redirected to log in rather than shown an empty history.
 - Depends on: T07.
 
 ---

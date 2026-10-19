@@ -21,3 +21,5 @@ backend/bin/
 .DS_Store
 .idea/
 .vscode/
+
+.cortexkit/
