@@ -12,7 +12,8 @@
       "yarn*": "deny",
       "pnpm*": "deny",
 
-      "gh workflow run*": "ask"
+      "gh workflow run*": "ask",
+      "git push origin main*": "ask"
     }
   }
 }
