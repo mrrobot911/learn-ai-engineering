@@ -1,7 +1,8 @@
 import { StoreProvider, useStore } from '@/store';
 import { useRouter } from '@/router';
 import { AppShell } from '@/components/AppShell';
-import { ToastHost, Spinner } from '@/components/ui';
+import { ToastHost } from '@/components/ToastHost';
+import { Spinner } from '@/components/ui';
 import { TopicsPage } from '@/pages/TopicsPage';
 import { TopicPage } from '@/pages/TopicPage';
 import { LessonPage } from '@/pages/LessonPage';

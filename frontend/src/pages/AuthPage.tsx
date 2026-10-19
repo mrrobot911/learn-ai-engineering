@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ArrowRight, BookOpen, Mail, Lock, User as UserIcon, AlertCircle, Check, Info } from 'lucide-react';
 import { useStore } from '@/store';
-import { Link, Spinner, toast } from '@/components/ui';
+import { Link, Spinner } from '@/components/ui';
+import { toast } from '@/components/toast';
 
 type FieldErrors = { name?: string; email?: string; password?: string; confirm?: string };
 

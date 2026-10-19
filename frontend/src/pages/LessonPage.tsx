@@ -6,7 +6,8 @@ import {
 import type { Lesson, Topic } from '@/types';
 import { getLessonById } from '@/data/content';
 import { useStore } from '@/store';
-import { Link, Spinner, EmptyState, Badge, toast } from '@/components/ui';
+import { Link, Spinner, EmptyState, Badge } from '@/components/ui';
+import { toast } from '@/components/toast';
 import { Markdown } from '@/components/Markdown';
 
 export function LessonPage({ id }: { id: string }) {
