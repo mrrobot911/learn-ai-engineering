@@ -63,7 +63,7 @@ describe('AuthPage', () => {
     await user.click(screen.getByRole('button', { name: /create account/i }));
     await waitFor(() => expect(register).toHaveBeenCalledTimes(1));
     expect(register).toHaveBeenCalledWith({ email: 'test@example.com', password: 'password123' });
-    const callArg = register.mock.calls[0][0] as Record<string, unknown>;
+    const callArg = register.mock.calls[0][0] as unknown as Record<string, unknown>;
     expect(callArg).not.toHaveProperty('name');
   });
 

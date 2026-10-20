@@ -59,14 +59,6 @@ export interface QuizAttempt {
   answers: QuizResultAnswer[];
 }
 
-export interface SimUser {
-  id: ID;
-  email: string;
-  name: string;
-  isMaintainer: boolean;
-  createdAt: number;
-}
-
 export interface Route {
   name: 'topics' | 'topic' | 'lesson' | 'quiz-start' | 'quiz' | 'quiz-result' | 'history' | 'history-detail' | 'login' | 'register';
   params: Record<string, string>;

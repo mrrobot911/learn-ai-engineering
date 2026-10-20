@@ -88,6 +88,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<StoreValue>(
     () => ({
+      user,
       completedLessons,
       toggleLessonComplete,
       isLessonComplete,
@@ -95,7 +96,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addQuizAttempt,
       getAttempt,
     }),
-    [completedLessons, toggleLessonComplete, isLessonComplete, quizHistory, addQuizAttempt, getAttempt],
+    [user, completedLessons, toggleLessonComplete, isLessonComplete, quizHistory, addQuizAttempt, getAttempt],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
