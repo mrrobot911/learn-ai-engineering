@@ -1,28 +1,53 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, ChevronLeft, ChevronRight,
+  ArrowLeft, ArrowRight, Clock, ChevronLeft, ChevronRight,
   BookOpen, ListChecks,
 } from 'lucide-react';
-import type { Lesson, Topic } from '@/types';
-import { getLessonById } from '@/data/content';
-import { useStore } from '@/store';
-import { Link, Spinner, EmptyState, Badge } from '@/components/ui';
-import { toast } from '@/components/toast';
+import { api } from '@/api';
+import type { Lesson, Topic } from '@/api';
+import { Link, Spinner, EmptyState, ErrorState, Badge } from '@/components/ui';
 import { Markdown } from '@/components/Markdown';
 
-export function LessonPage({ id }: { id: string }) {
-  const { user, isLessonComplete, toggleLessonComplete } = useStore();
-  const [loading, setLoading] = useState(true);
-  const [record, setRecord] = useState<{ lesson: Lesson; topic: Topic } | undefined>(undefined);
+// The client's not-found signal is an error whose status is 404; message text
+// is never matched, so a real HTTP 404 maps onto the same check later (T27).
+function isNotFound(error: unknown): boolean {
+  return typeof error === 'object' && error !== null
+    && (error as { status?: number }).status === 404;
+}
 
+export function LessonPage({ id }: { id: string }) {
+  const [record, setRecord] = useState<{ lesson: Lesson; topic: Topic } | undefined>(undefined);
+  const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [errored, setErrored] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // The lesson and its topic both arrive through the API client: getLesson()
+  // first, then getTopic() for the lesson's topicId. No fake latency — the
+  // loading state lasts exactly as long as the client promises are pending.
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    const t = setTimeout(() => {
-      setRecord(getLessonById(id));
-      setLoading(false);
-    }, 350);
-    return () => clearTimeout(t);
-  }, [id]);
+    setErrored(false);
+    setNotFound(false);
+    setRecord(undefined);
+    (async () => {
+      try {
+        const lesson = await api.getLesson(id);
+        const topic = await api.getTopic(lesson.topicId);
+        if (!cancelled) {
+          setRecord({ lesson, topic });
+          setLoading(false);
+        }
+      } catch (error) {
+        if (cancelled) return;
+        if (isNotFound(error)) setNotFound(true);
+        else setErrored(true);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id, reloadKey]);
 
   const { prev, next } = useMemo(() => {
     if (!record) return { prev: undefined, next: undefined };
@@ -36,7 +61,11 @@ export function LessonPage({ id }: { id: string }) {
 
   if (loading) return <LessonSkeleton />;
 
-  if (!record) {
+  if (errored) {
+    return <ErrorState onRetry={() => setReloadKey((key) => key + 1)} />;
+  }
+
+  if (notFound || !record) {
     return (
       <EmptyState
         icon={BookOpen}
@@ -48,17 +77,7 @@ export function LessonPage({ id }: { id: string }) {
   }
 
   const { lesson, topic } = record;
-  const completed = isLessonComplete(lesson.id);
   const idxInTopic = topic.lessons.findIndex((l) => l.id === lesson.id) + 1;
-
-  function handleToggle() {
-    if (!user) {
-      toast('Log in to save your progress.', 'info');
-      return;
-    }
-    toggleLessonComplete(lesson.id);
-    toast(completed ? 'Marked as not completed.' : 'Lesson marked complete.', completed ? 'info' : 'success');
-  }
 
   return (
     <div className="animate-fade-in max-w-3xl mx-auto">
@@ -73,13 +92,8 @@ export function LessonPage({ id }: { id: string }) {
 
       <article>
         <div className="flex items-center gap-3 text-xs text-ink-400 mb-3">
-          <Badge tone="neutral"><FileTextMini /> Lesson {idxInTopic} of {topic.lessons.length}</Badge>
+          <Badge tone="neutral"><ListChecks className="w-3 h-3" /> Lesson {idxInTopic} of {topic.lessons.length}</Badge>
           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {lesson.durationMin} min read</span>
-          {user && (
-            completed
-              ? <Badge tone="brand"><CheckCircle2 className="w-3 h-3" /> Completed</Badge>
-              : <Badge tone="neutral"><Circle className="w-3 h-3" /> Not completed</Badge>
-          )}
         </div>
 
         <h1 className="text-2xl sm:text-3xl font-bold text-ink-900 tracking-tight mb-3">{lesson.title}</h1>
@@ -89,38 +103,6 @@ export function LessonPage({ id }: { id: string }) {
 
         <Markdown source={lesson.body} />
       </article>
-
-      {/* Completion toggle */}
-      <div className="mt-8 card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {completed ? (
-            <CheckCircle2 className="w-5 h-5 text-brand-600 shrink-0" />
-          ) : (
-            <Circle className="w-5 h-5 text-ink-300 shrink-0" />
-          )}
-          <div>
-            <p className="text-sm font-medium text-ink-900">
-              {completed ? 'You completed this lesson' : 'Finished reading?'}
-            </p>
-            <p className="text-xs text-ink-500">
-              {user
-                ? (completed ? 'Tap to undo — your progress is saved.' : 'Mark this lesson as complete to track your progress.')
-                : 'Log in to save your progress across sessions.'}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={handleToggle}
-          className={completed ? 'btn-secondary' : 'btn-brand'}
-          disabled={!user && completed}
-        >
-          {completed ? (
-            <>Mark as not done</>
-          ) : (
-            <><CheckCircle2 className="w-4 h-4" /> Mark as complete</>
-          )}
-        </button>
-      </div>
 
       {/* Prev / Next */}
       <nav className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -145,7 +127,7 @@ export function LessonPage({ id }: { id: string }) {
               <div className="text-[11px] text-ink-400 uppercase tracking-wider">Next</div>
               <div className="text-sm font-medium text-ink-900 truncate">{next.title}</div>
             </div>
-            <ChevronRight className="w-5 h-5 text-ink-400 group-hover:text-ink-700 shrink-0" />
+            <ChevronRight className="w-5 h-5 text-ink-400 group-hover:text-ink-600 group-hover:translate-x-0.5 transition-all shrink-0" />
           </Link>
         ) : (
           <Link
@@ -168,10 +150,6 @@ export function LessonPage({ id }: { id: string }) {
       </div>
     </div>
   );
-}
-
-function FileTextMini() {
-  return <ListChecks className="w-3 h-3" />;
 }
 
 function LessonSkeleton() {

@@ -65,6 +65,14 @@ function requireSession(): string {
   return sessionUserId;
 }
 
+// The not-found signal: an error whose status is 404. The later HTTP client
+// maps a real 404 onto the same shape (T27), so screens match on status only.
+function notFoundError(message: string): Error & { status: number } {
+  const error = new Error(message) as Error & { status: number };
+  error.status = 404;
+  return error;
+}
+
 function requireTopic(topicId: string): FixtureTopic {
   const topic = getTopicById(topicId);
   if (!topic) throw new Error(`No topic with id "${topicId}".`);
@@ -130,7 +138,7 @@ export const mockClient: ApiClient = {
 
   async getLesson(lessonId) {
     const found = getLessonById(lessonId);
-    if (!found) throw new Error(`No lesson with id "${lessonId}".`);
+    if (!found) throw notFoundError(`No lesson with id "${lessonId}".`);
     return found.lesson;
   },
 
