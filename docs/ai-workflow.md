@@ -283,3 +283,6 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
   - `(cd frontend && bun run lint)`: exit 0 (no errors; only pre-existing unrelated warnings none blocking).
 - **Artifacts:** session context split modules, updated auth/page/shell/app/store wiring, new tests for auth behavior.
 - **Links:** issue #7, branch `issue-7`, commit `f2a3772`.
+
+
+- **Follow-up (issue #7):** Fixed typecheck regressions - corrected `useStore` return type, added `user` to `StoreValue` from session, updated `HistoryPages` to use session email, fixed AuthPage test type cast; removed unused `SimUser` from `frontend/src/types.ts`. All checks green.
