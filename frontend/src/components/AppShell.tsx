@@ -1,12 +1,12 @@
 import { type ReactNode } from 'react';
 import { BookOpen, LogOut, History, UserCircle2, Menu, X } from 'lucide-react';
-import { useStore } from '@/store';
+import { useSession } from '@/session';
 import { Link } from '@/components/ui';
 import type { Route } from '@/types';
 import { useState } from 'react';
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, logout } = useStore();
+  const { user, logout } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navLinks: { to: Route; label: string }[] = [
@@ -16,8 +16,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     navLinks.push({ to: { name: 'history', params: {} }, label: 'Quiz History' });
   }
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     setMenuOpen(false);
     window.location.hash = '#/topics';
   }
@@ -47,10 +47,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               <>
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-ink-50">
                   <UserCircle2 className="w-4 h-4 text-ink-400" />
-                  <span className="text-sm text-ink-700 font-medium">{user.name}</span>
-                  {user.isMaintainer && (
-                    <span className="badge bg-brand-50 text-brand-700 text-[10px]">maintainer</span>
-                  )}
+                  <span className="text-sm text-ink-700 font-medium">{user.email}</span>
+                  {user.isMaintainer && <span className="badge bg-brand-50 text-brand-700 text-[10px]">maintainer</span>}
                 </div>
                 <button onClick={handleLogout} className="btn-ghost text-sm">
                   <LogOut className="w-4 h-4" /> Log out
@@ -78,8 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="md:hidden border-t border-ink-200/70 bg-white animate-fade-in">
             <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-1">
               {navLinks.map((l) => (
-                <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)}
-                  className="px-3 py-2 rounded-md text-sm text-ink-700 hover:bg-ink-100">
+                <Link key={l.label} to={l.to} onClick={() => setMenuOpen(false)} className="px-3 py-2 rounded-md text-sm text-ink-700 hover:bg-ink-100">
                   {l.label}
                 </Link>
               ))}
@@ -87,7 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               {user ? (
                 <>
                   <div className="px-3 py-2 text-sm text-ink-600 flex items-center gap-2">
-                    <UserCircle2 className="w-4 h-4" /> {user.name}
+                    <UserCircle2 className="w-4 h-4" /> {user.email}
                     {user.isMaintainer && <span className="badge bg-brand-50 text-brand-700 text-[10px]">maintainer</span>}
                   </div>
                   <button onClick={handleLogout} className="px-3 py-2 rounded-md text-sm text-left text-error-600 hover:bg-error-50 flex items-center gap-2">

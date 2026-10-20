@@ -3,7 +3,7 @@ import {
   ArrowLeft, ArrowRight, Trophy, History, CheckCircle2, XCircle, Clock,
 } from 'lucide-react';
 import type { QuizAttempt } from '@/types';
-import { useStore } from '@/store';
+import { useStore } from '@/useStore';
 import { getTopicById } from '@/data/content';
 import { Link, Spinner, EmptyState, Badge } from '@/components/ui';
 import { TopicIcon } from '@/components/TopicIcon';
