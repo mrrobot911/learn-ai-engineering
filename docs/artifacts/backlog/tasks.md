@@ -179,25 +179,30 @@ Source: `product-spec.md` section 4 US-2, US-3.
 
 ## Acceptance criteria
 
-- [ ] Starting a quiz through the client shows 5 questions, or all of them when the topic has fewer, each with its options in the order the client returns them; the quiz size is not configurable in the UI.
-- [ ] The data the client returns before submission contains no field that reveals the correct option, and nothing correct or explanatory is rendered before the submission response arrives.
-- [ ] Each option can be selected and cleared; submission is possible while some questions are unanswered.
-- [ ] After submission the result shows the score out of the total and, per question, whether it was correct, the correct answer and its explanation.
-- [ ] The score shown comes from the client's response; no grading happens in the browser: `frontend/src/lib/quiz.ts` is deleted, together with `gradeAnswer` and the `isCorrect` field in `frontend/src/types.ts` that only the browser grading needed. Moved here from T03 by issue #3, which left both in place and grades inside the mock only.
-- [ ] The anonymous result is shown from the submission response and is not written to `sessionStorage`, `localStorage` or the store; the quiz pages no longer import `frontend/src/store.tsx` or `frontend/src/data/content.ts`.
-- [ ] The imported start screen's question-bank count and last-attempt card are removed, not ported: no client operation returns them before a quiz is started, and attempt history belongs to T09.
-- [ ] The unused `TopicIcon` import in `QuizPages.tsx` is gone.
-- [ ] Loading and error states exist, the artificial latency timers are gone, and the options are operable with the keyboard.
-- [ ] Tests for the new behaviour exist and pass for the question list, an unanswered submission, the result view and the absence of the correct answer before submission.
+Groomed by issue #6 on 2026-10-20; the issue carries the full given/when/then wording.
+
+- [ ] Starting a quiz through the client shows exactly the list returned by `api.startQuiz(topicId)`: 5 questions, or all when the topic has fewer, options in the order the client returned them, and no UI to change the quiz size.
+- [ ] Before the submission response arrives, neither the DOM nor the page state contains a correct option, a marked option or an explanation: the rendered question data is limited to `QuizQuestion` from `frontend/src/api/types.ts`.
+- [ ] An option can be selected and cleared again; submission works with some or all questions unanswered, and unanswered questions travel with `optionId: null`.
+- [ ] The result view shows the score out of the total and, per question, correctness, the correct answer and the explanation, all from the submission response; the page computes none of it.
+- [ ] No browser grading left: `frontend/src/lib/quiz.ts` is deleted, `pickQuizQuestions`, `makeSeed`, `gradeAnswer` and the page-local `QUIZ_SIZE` are gone from `QuizPages.tsx`, and the quiz result types the pages use come from `frontend/src/api/types.ts`.
+- [ ] Nothing is written to `sessionStorage` or `localStorage`; `QuizPages.tsx` imports neither `@/store`, `@/data/content` nor `@/lib/quiz`; a reload with no submission in memory shows the empty state, never stale data.
+- [ ] The imported start screen's question-bank size, attempts count and last-attempt card are removed, not ported; the signed-out banner that read `user` from the store goes with the store dependency.
+- [ ] Loading indicators while the client calls are pending, an error state with retry when they reject (the `ErrorState` pattern of `LessonPage.tsx`), and no artificial latency timers around client calls.
+- [ ] The play screen is keyboard operable: options focusable and selectable with Enter or Space, buttons and question dots reachable with Tab, the selected option visually distinguishable.
+- [ ] Tests exist next to the pages and pass for the question list, the absence of correct-answer data before submission, an unanswered submission, the result view, the loading state and the error state with retry.
 
 ## Out of scope
 
-- Server-side grading (T16).
+- Server-side grading (T16) and the real HTTP client (T27-T30).
 - Storing attempts (T19) and every history view (T09).
 - Any login (T07).
+- Deleting `AnswerOption.isCorrect` or the `QuizResultAnswer`/`QuizAttempt` types from `frontend/src/types.ts`: the fixture field is what the mock grades with, and the attempt types are still used by `store.tsx` and `HistoryPages.tsx` until T09 removes them (moved to T09 by the grooming of issue #6).
+- Changes to `openapi.yaml`: the contract tasks come after the prototype stage.
 
 ## Constraints
 
+- All quiz data flows through the client in `frontend/src/api/`; no direct `fetch`.
 - Correct answers must never be present in the client data before submission.
 - Depends on: T03.
 
@@ -286,6 +291,7 @@ Source: `product-spec.md` section 4 US-6.
 - [ ] An empty state is shown when the user has no attempts.
 - [ ] An anonymous visitor is directed to log in instead of being shown an empty history.
 - [ ] The history path of the imported store is removed; `frontend/src/store.tsx` is deleted when nothing of it remains, and no page imports the store or the Bolt fixtures directly.
+- [ ] The quiz result types only this path needed are deleted with it: `QuizResultAnswer`, `QuizAttempt` and the other now-unused exports of `frontend/src/types.ts`, and `AnswerOption.isCorrect` stays only as long as `frontend/src/api/mock.ts` grades with it. Moved here from T06 by the grooming of issue #6.
 - [ ] Tests for the new behaviour exist and pass for the list order, the detail view and the empty state.
 - [ ] `(cd frontend && bun run lint)`, `(cd frontend && bun run test)` and `(cd frontend && bun run typecheck)` all exit 0, with no lint problem left from the imported files.
 
