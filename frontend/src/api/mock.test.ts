@@ -42,6 +42,10 @@ describe('content operations', () => {
     const lesson = await mockClient.getLesson(topics[0].lessons[0].id);
     expect(lesson).toEqual(topics[0].lessons[0]);
   });
+
+  it('getLesson rejects an unknown id with the 404 not-found signal', async () => {
+    await expect(mockClient.getLesson('les-does-not-exist')).rejects.toMatchObject({ status: 404 });
+  });
 });
 
 describe('quiz operations', () => {
