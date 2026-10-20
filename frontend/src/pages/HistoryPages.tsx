@@ -96,7 +96,7 @@ function AttemptRow({ attempt }: { attempt: QuizAttempt }) {
   const pct = Math.round((attempt.score / attempt.total) * 100);
   const passed = pct >= 60;
   const date = new Date(attempt.createdAt);
-  const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const dateStr = date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
   const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
   return (
@@ -147,7 +147,23 @@ export function HistoryDetailPage({ attemptId }: { attemptId: string }) {
 
   if (loading) return <HistoryDetailSkeleton />;
 
-  if (!user || !attempt) {
+  if (!user) {
+    return (
+      <EmptyState
+        icon={History}
+        title="Log in to see your history"
+        description="Quiz attempts are only saved for registered users. Log in or create an account to start tracking your progress."
+        action={
+          <div className="flex gap-2">
+            <Link to={{ name: 'login', params: {} }} className="btn-primary">Log in</Link>
+            <Link to={{ name: 'register', params: {} }} className="btn-secondary">Sign up</Link>
+          </div>
+        }
+      />
+    );
+  }
+
+  if (!attempt) {
     return (
       <EmptyState
         icon={History}
@@ -160,7 +176,7 @@ export function HistoryDetailPage({ attemptId }: { attemptId: string }) {
 
   const pct = Math.round((attempt.score / attempt.total) * 100);
   const date = new Date(attempt.createdAt);
-  const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const dateStr = date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
   const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
   return (

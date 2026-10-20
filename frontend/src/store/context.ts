@@ -3,7 +3,7 @@ import type { ID, QuizAttempt } from '@/types';
 import type { User } from '@/api/types';
 
 export interface StoreValue {
-  user?: User | null;
+  user: User | null;
   completedLessons: ID[];
   toggleLessonComplete: (lessonId: ID) => void;
   isLessonComplete: (lessonId: ID) => boolean;
