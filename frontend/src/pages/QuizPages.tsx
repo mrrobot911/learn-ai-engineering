@@ -1,36 +1,57 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  ArrowLeft, ArrowRight, Trophy, ListChecks, Sparkles, AlertTriangle, Check,
-} from 'lucide-react';
-import type { Question, QuizAttempt, QuizResultAnswer, Topic } from '@/types';
-import { getTopicBySlug, getQuestionsForTopic } from '@/data/content';
-import { useStore } from '@/store';
-import { useStore as useStoreForHistory } from '@/store';
-import { Link, Spinner, EmptyState, ProgressBar } from '@/components/ui';
-import { toast } from '@/components/toast';
-import { pickQuizQuestions, makeSeed, gradeAnswer, QUIZ_SIZE } from '@/lib/quiz';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, ListChecks, Trophy } from 'lucide-react';
+import { api } from '@/api';
+import type { QuizAnswerResult, QuizQuestion, QuizResult, TopicSummary } from '@/api';
+import { Link, Spinner, EmptyState, ErrorState, ProgressBar } from '@/components/ui';
+import { routeToHash } from '@/router';
+
+// The play screen hands the submission response to the result screen in memory
+// only: nothing is written to browser storage, so reloading the result route
+// shows the empty state instead of a stale result.
+let submittedResult: { id: string; slug: string; topicTitle: string; result: QuizResult } | null = null;
 
 export function QuizStartPage({ slug }: { slug: string }) {
-  const { user, quizHistory } = useStore();
+  const [topic, setTopic] = useState<TopicSummary | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [topic, setTopic] = useState<Topic | undefined>(undefined);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [errored, setErrored] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
+  // The route slug resolves through the API client only: listTopics() supplies
+  // the summary the start screen shows. No fake latency — the loading state
+  // lasts exactly as long as the client promise is pending.
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    const t = setTimeout(() => {
-      const tp = getTopicBySlug(slug);
-      setTopic(tp);
-      setQuestions(tp ? getQuestionsForTopic(tp.id) : []);
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [slug]);
-
-  const attempts = useMemo(() => topic ? quizHistory.filter((a) => a.topicId === topic.id) : [], [topic, quizHistory]);
+    setErrored(false);
+    setNotFound(false);
+    setTopic(null);
+    (async () => {
+      try {
+        const summaries = await api.listTopics();
+        const summary = summaries.find((t) => t.slug === slug);
+        if (!cancelled) {
+          if (summary) setTopic(summary);
+          else setNotFound(true);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setErrored(true);
+          setLoading(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [slug, reloadKey]);
 
   if (loading) return <QuizStartSkeleton />;
-  if (!topic) {
+
+  if (errored) {
+    return <ErrorState onRetry={() => setReloadKey((key) => key + 1)} />;
+  }
+
+  if (notFound || !topic) {
     return (
       <EmptyState
         icon={Trophy}
@@ -40,9 +61,6 @@ export function QuizStartPage({ slug }: { slug: string }) {
       />
     );
   }
-
-  const quizSize = Math.min(QUIZ_SIZE, questions.length);
-  const lastAttempt = attempts[0];
 
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
@@ -56,36 +74,9 @@ export function QuizStartPage({ slug }: { slug: string }) {
         </div>
         <h1 className="text-2xl font-bold text-ink-900 mb-2">{topic.title} Quiz</h1>
         <p className="text-ink-600 mb-6 max-w-md mx-auto">
-          Answer {quizSize} multiple-choice questions drawn at random from this topic's question bank.
+          Answer up to five multiple-choice questions chosen at random from this topic's published questions.
           Each question has exactly one correct answer.
         </p>
-
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <Stat label="Questions" value={quizSize} />
-          <Stat label="In bank" value={questions.length} />
-          <Stat label="Attempts" value={attempts.length} />
-        </div>
-
-        {lastAttempt && (
-          <div className="mb-6 p-3.5 rounded-lg bg-ink-50 border border-ink-200/70 text-left">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-ink-600 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-accent-500" /> Last attempt
-              </span>
-              <span className="font-mono text-ink-900 font-semibold">
-                {lastAttempt.score}/{lastAttempt.total}
-                <span className="text-ink-400 ml-1">({Math.round((lastAttempt.score / lastAttempt.total) * 100)}%)</span>
-              </span>
-            </div>
-          </div>
-        )}
-
-        {!user && (
-          <div className="mb-5 p-3 rounded-lg bg-accent-50 border border-accent-100 text-accent-700 text-xs flex items-start gap-2 text-left">
-            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            <span>You can take this quiz without an account, but your result won't be saved. <Link to={{ name: 'login', params: {} }} className="underline font-medium">Log in</Link> to keep your history.</span>
-          </div>
-        )}
 
         <Link
           to={{ name: 'quiz', params: { slug: topic.slug } }}
@@ -94,50 +85,78 @@ export function QuizStartPage({ slug }: { slug: string }) {
           Start quiz <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
-
-      {questions.length < QUIZ_SIZE && (
-        <p className="text-xs text-ink-400 text-center mt-4">
-          This topic has {questions.length} published question{questions.length === 1 ? '' : 's'} — all of them will appear.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg bg-ink-50 py-3">
-      <div className="text-xl font-bold text-ink-900 font-mono">{value}</div>
-      <div className="text-[11px] text-ink-500 uppercase tracking-wider">{label}</div>
     </div>
   );
 }
 
 export function QuizPlayPage({ slug }: { slug: string }) {
-  const { addQuizAttempt, user } = useStoreForHistory();
+  const [topic, setTopic] = useState<TopicSummary | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [topic, setTopic] = useState<Topic | undefined>(undefined);
-  const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
+  const [errored, setErrored] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | null>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
 
+  // The questions come from startQuiz() and nothing else: the browser never
+  // picks them and never sees a correct option before the submission response.
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    const t = setTimeout(() => {
-      const tp = getTopicBySlug(slug);
-      setTopic(tp);
-      if (tp) {
-        const pool = getQuestionsForTopic(tp.id);
-        setQuizQuestions(pickQuizQuestions(pool, makeSeed()));
+    setErrored(false);
+    setNotFound(false);
+    setTopic(null);
+    setQuizQuestions([]);
+    setCurrent(0);
+    setAnswers({});
+    (async () => {
+      try {
+        const summaries = await api.listTopics();
+        const summary = summaries.find((t) => t.slug === slug);
+        if (!summary) {
+          if (!cancelled) {
+            setNotFound(true);
+            setLoading(false);
+          }
+          return;
+        }
+        const questions = await api.startQuiz(summary.id);
+        if (!cancelled) {
+          setTopic(summary);
+          setQuizQuestions(questions);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setErrored(true);
+          setLoading(false);
+        }
       }
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [slug]);
+    })();
+    return () => { cancelled = true; };
+  }, [slug, reloadKey]);
 
   if (loading) return <QuizPlaySkeleton />;
-  if (!topic || quizQuestions.length === 0) {
+
+  if (errored) {
+    return <ErrorState onRetry={() => setReloadKey((key) => key + 1)} />;
+  }
+
+  if (notFound || !topic) {
+    return (
+      <EmptyState
+        icon={Trophy}
+        title="Quiz not found"
+        description="This topic doesn't exist, so there's no quiz to take."
+        action={<Link to={{ name: 'topics', params: {} }} className="btn-secondary">Back to topics</Link>}
+      />
+    );
+  }
+
+  if (quizQuestions.length === 0) {
     return (
       <EmptyState
         icon={ListChecks}
@@ -154,51 +173,33 @@ export function QuizPlayPage({ slug }: { slug: string }) {
   const isLast = current === quizQuestions.length - 1;
 
   function selectOption(optionId: string) {
-    setAnswers((prev) => ({ ...prev, [q.id]: optionId }));
+    // Activating the selected option again returns the question to unanswered.
+    setAnswers((prev) => ({ ...prev, [q.id]: prev[q.id] === optionId ? null : optionId }));
   }
 
   function go(delta: number) {
     setCurrent((c) => Math.min(quizQuestions.length - 1, Math.max(0, c + delta)));
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
+    if (!topic) return;
     setSubmitting(true);
-    // Simulate grading latency.
-    setTimeout(() => {
-      const resultAnswers: QuizResultAnswer[] = quizQuestions.map((qq) => {
-        const sel = answers[qq.id] ?? null;
-        const g = gradeAnswer(qq, sel);
-        return {
-          questionId: qq.id,
-          questionText: qq.text,
-          selectedOptionId: sel,
-          selectedOptionText: g.selectedOptionText,
-          correctOptionId: g.correctOptionId,
-          correctOptionText: g.correctOptionText,
-          isCorrect: g.isCorrect,
-          explanation: qq.explanation,
-        };
+    setSubmitError(false);
+    try {
+      const result = await api.submitQuiz({
+        topicId: topic.id,
+        answers: quizQuestions.map((question) => ({
+          questionId: question.id,
+          optionId: answers[question.id] ?? null,
+        })),
       });
-      const score = resultAnswers.filter((a) => a.isCorrect).length;
-      const attempt: QuizAttempt = {
-        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        topicId: topic!.id,
-        topicTitle: topic!.title,
-        score,
-        total: quizQuestions.length,
-        createdAt: Date.now(),
-        answers: resultAnswers,
-      };
-      if (user) {
-        addQuizAttempt(attempt);
-        toast(`Quiz submitted — scored ${score}/${quizQuestions.length}. Saved to your history.`, 'success');
-      } else {
-        toast(`Quiz submitted — scored ${score}/${quizQuestions.length}.`, 'info');
-      }
-      // Stash the transient attempt for the result page (anonymous case).
-      try { sessionStorage.setItem('forge.lastAttempt', JSON.stringify(attempt)); } catch { /* ignore */ }
-      window.location.hash = `#/quiz/${topic!.slug}/result/${attempt.id}`;
-    }, 700);
+      const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      submittedResult = { id, slug, topicTitle: topic.title, result };
+      window.location.hash = routeToHash({ name: 'quiz-result', params: { slug, attemptId: id } });
+    } catch {
+      setSubmitting(false);
+      setSubmitError(true);
+    }
   }
 
   return (
@@ -224,7 +225,9 @@ export function QuizPlayPage({ slug }: { slug: string }) {
             return (
               <button
                 key={opt.id}
+                type="button"
                 onClick={() => selectOption(opt.id)}
+                aria-pressed={isSelected}
                 className={`w-full text-left rounded-lg border px-4 py-3.5 transition-all flex items-center gap-3 ${
                   isSelected
                     ? 'border-brand-500 bg-brand-50/60 ring-2 ring-brand-500/20'
@@ -251,11 +254,13 @@ export function QuizPlayPage({ slug }: { slug: string }) {
           return (
             <button
               key={qq.id}
+              type="button"
               onClick={() => setCurrent(i)}
+              aria-label={`Go to question ${i + 1}`}
+              aria-current={isCurrent ? 'step' : undefined}
               className={`w-2.5 h-2.5 rounded-full transition-all ${
                 isCurrent ? 'bg-ink-900 w-5' : isAnswered ? 'bg-brand-500' : 'bg-ink-200 hover:bg-ink-300'
               }`}
-              aria-label={`Go to question ${i + 1}`}
             />
           );
         })}
@@ -264,6 +269,7 @@ export function QuizPlayPage({ slug }: { slug: string }) {
       {/* Nav buttons */}
       <div className="flex items-center justify-between mt-6">
         <button
+          type="button"
           className="btn-secondary"
           onClick={() => go(-1)}
           disabled={current === 0}
@@ -272,49 +278,35 @@ export function QuizPlayPage({ slug }: { slug: string }) {
         </button>
 
         {isLast ? (
-          <button className="btn-brand" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? <><Spinner className="w-4 h-4" /> Grading…</> : <>Submit quiz <Check className="w-4 h-4" /></>}
+          <button type="button" className="btn-brand" onClick={() => { void handleSubmit(); }} disabled={submitting}>
+            {submitting ? <><Spinner className="w-4 h-4" /> Submitting…</> : <>Submit quiz <Check className="w-4 h-4" /></>}
           </button>
         ) : (
-          <button className="btn-primary" onClick={() => go(1)}>
+          <button type="button" className="btn-primary" onClick={() => go(1)}>
             Next <ArrowRight className="w-4 h-4" />
           </button>
         )}
       </div>
+
+      {submitError && (
+        <div role="alert" className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-error-700">
+          <span>Couldn't submit the quiz. Your answers are still here.</span>
+          <button type="button" className="btn-secondary" onClick={() => { void handleSubmit(); }}>
+            Try again
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 export function QuizResultPage({ slug, attemptId }: { slug: string; attemptId: string }) {
-  const { user, getAttempt } = useStore();
-  const [loading, setLoading] = useState(true);
-  const [attempt, setAttempt] = useState<QuizAttempt | undefined>(undefined);
-  const [topic, setTopic] = useState<Topic | undefined>(undefined);
+  const submitted = submittedResult;
+  const attempt = submitted && submitted.slug === slug && submitted.id === attemptId
+    ? submitted
+    : null;
 
-  useEffect(() => {
-    setLoading(true);
-    const t = setTimeout(() => {
-      const tp = getTopicBySlug(slug);
-      setTopic(tp);
-      let att = user ? getAttempt(attemptId) : undefined;
-      if (!att) {
-        // fall back to transient anonymous attempt from sessionStorage
-        try {
-          const raw = sessionStorage.getItem('forge.lastAttempt');
-          if (raw) {
-            const parsed = JSON.parse(raw) as QuizAttempt;
-            if (parsed.id === attemptId) att = parsed;
-          }
-        } catch { /* ignore */ }
-      }
-      setAttempt(att);
-      setLoading(false);
-    }, 350);
-    return () => clearTimeout(t);
-  }, [attemptId, slug, user, getAttempt]);
-
-  if (loading) return <QuizResultSkeleton />;
-  if (!attempt || !topic) {
+  if (!attempt) {
     return (
       <EmptyState
         icon={Trophy}
@@ -325,41 +317,33 @@ export function QuizResultPage({ slug, attemptId }: { slug: string; attemptId: s
     );
   }
 
-  const pct = Math.round((attempt.score / attempt.total) * 100);
-  const passed = pct >= 60;
-  const gradeLabel = pct >= 80 ? 'Excellent' : pct >= 60 ? 'Good' : pct >= 40 ? 'Keep going' : 'Needs work';
-  const gradeColor = pct >= 80 ? 'text-brand-600' : pct >= 60 ? 'text-accent-600' : 'text-warning-600';
+  const { topicTitle, result } = attempt;
 
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
       <div className="card p-6 sm:p-8 mb-6 text-center">
-        <div className={`w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
-          passed ? 'bg-brand-50 text-brand-600' : 'bg-warning-50 text-warning-600'
-        }`}>
+        <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mx-auto mb-4">
           <Trophy className="w-7 h-7" />
         </div>
-        <p className="text-xs font-mono text-ink-400 uppercase tracking-wider mb-1">{topic.title} · Quiz result</p>
+        <p className="text-xs font-mono text-ink-400 uppercase tracking-wider mb-1">{topicTitle} · Quiz result</p>
         <div className="flex items-baseline justify-center gap-1.5 mb-2">
-          <span className={`text-4xl font-bold font-mono ${gradeColor}`}>{attempt.score}</span>
-          <span className="text-xl text-ink-400 font-mono">/ {attempt.total}</span>
+          <span className="text-4xl font-bold font-mono text-ink-900">{result.score}</span>
+          <span className="text-xl text-ink-400 font-mono">/ {result.total}</span>
         </div>
-        <p className={`text-sm font-medium ${gradeColor}`}>{gradeLabel} · {pct}%</p>
-
-        {!user && (
-          <p className="text-xs text-ink-500 mt-3 max-w-sm mx-auto">
-            This was an anonymous attempt — the result isn't saved. <Link to={{ name: 'register', params: {} }} className="underline">Sign up</Link> to keep your history.
-          </p>
-        )}
       </div>
 
       <h2 className="text-sm font-semibold text-ink-500 uppercase tracking-wider mb-3">Review answers</h2>
       <div className="space-y-3">
-        {attempt.answers.map((a, i) => (
-          <div key={i} className="card p-5">
+        {result.answers.map((a: QuizAnswerResult) => (
+          <div key={a.questionId} className="card p-5">
             <div className="flex items-start gap-3 mb-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-mono ${
-                a.isCorrect ? 'bg-brand-600' : 'bg-error-500'
-              }`}>
+              <div
+                role="img"
+                aria-label={a.isCorrect ? 'Correct' : 'Incorrect'}
+                className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-mono ${
+                  a.isCorrect ? 'bg-brand-600' : 'bg-error-500'
+                }`}
+              >
                 {a.isCorrect ? <Check className="w-3.5 h-3.5" /> : '✕'}
               </div>
               <p className="text-sm font-medium text-ink-900 flex-1">{a.questionText}</p>
@@ -372,12 +356,10 @@ export function QuizResultPage({ slug, attemptId }: { slug: string; attemptId: s
                   {a.selectedOptionText || <span className="text-ink-400 italic">No answer selected</span>}
                 </span>
               </div>
-              {!a.isCorrect && (
-                <div className="flex items-start gap-2 text-sm">
-                  <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Correct</span>
-                  <span className="text-brand-700 font-medium">{a.correctOptionText}</span>
-                </div>
-              )}
+              <div className="flex items-start gap-2 text-sm">
+                <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Correct</span>
+                <span className="text-brand-700 font-medium">{a.correctOptionText}</span>
+              </div>
               <div className="flex items-start gap-2 text-sm mt-2 pt-2 border-t border-ink-100">
                 <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Why</span>
                 <span className="text-ink-600 leading-relaxed">{a.explanation}</span>
@@ -388,17 +370,12 @@ export function QuizResultPage({ slug, attemptId }: { slug: string; attemptId: s
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mt-6">
-        <Link to={{ name: 'quiz-start', params: { slug: topic.slug } }} className="btn-brand flex-1">
+        <Link to={{ name: 'quiz-start', params: { slug } }} className="btn-brand flex-1">
           Take another attempt <ArrowRight className="w-4 h-4" />
         </Link>
-        <Link to={{ name: 'topic', params: { slug: topic.slug } }} className="btn-secondary flex-1">
+        <Link to={{ name: 'topic', params: { slug } }} className="btn-secondary flex-1">
           Back to topic
         </Link>
-        {user && (
-          <Link to={{ name: 'history', params: {} }} className="btn-secondary flex-1">
-            View history
-          </Link>
-        )}
       </div>
     </div>
   );
@@ -412,9 +389,6 @@ function QuizStartSkeleton() {
         <div className="skeleton w-14 h-14 rounded-2xl mx-auto mb-4" />
         <div className="skeleton h-7 w-1/2 mx-auto mb-2" />
         <div className="skeleton h-4 w-3/4 mx-auto mb-6" />
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton h-16 rounded-lg" />)}
-        </div>
         <div className="skeleton h-10 w-40 mx-auto rounded-lg" />
       </div>
       <div className="flex items-center justify-center gap-2 text-ink-400 text-sm py-4">
@@ -438,21 +412,6 @@ function QuizPlaySkeleton() {
       </div>
       <div className="flex items-center justify-center gap-2 text-ink-400 text-sm py-5">
         <Spinner className="w-4 h-4" /> Loading question…
-      </div>
-    </div>
-  );
-}
-
-function QuizResultSkeleton() {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div className="card p-8 mb-6">
-        <div className="skeleton w-14 h-14 rounded-2xl mx-auto mb-4" />
-        <div className="skeleton h-10 w-32 mx-auto mb-2" />
-        <div className="skeleton h-4 w-24 mx-auto" />
-      </div>
-      <div className="flex items-center justify-center gap-2 text-ink-400 text-sm py-4">
-        <Spinner className="w-4 h-4" /> Loading result…
       </div>
     </div>
   );
