@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import type { Route } from '@/types';
 import { routeToHash } from '@/router';
@@ -40,11 +40,13 @@ export function ProgressBar({ value, total, className = '' }: { value: number; t
   );
 }
 
-export function Badge({ children, tone = 'neutral', className = '' }: {
+export function Badge({
+  children, tone = 'neutral', className = '', ...rest
+}: {
   children: ReactNode;
   tone?: 'neutral' | 'brand' | 'accent' | 'warning' | 'success' | 'error';
   className?: string;
-}) {
+} & Omit<HTMLAttributes<HTMLSpanElement>, 'children' | 'className'>) {
   const tones: Record<string, string> = {
     neutral: 'bg-ink-100 text-ink-600',
     brand: 'bg-brand-50 text-brand-700',
@@ -53,7 +55,7 @@ export function Badge({ children, tone = 'neutral', className = '' }: {
     success: 'bg-brand-50 text-brand-700',
     error: 'bg-error-50 text-error-700',
   };
-  return <span className={`badge ${tones[tone]} ${className}`}>{children}</span>;
+  return <span className={`badge ${tones[tone]} ${className}`} {...rest}>{children}</span>;
 }
 
 export function EmptyState({

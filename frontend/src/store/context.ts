@@ -4,9 +4,6 @@ import type { User } from '@/api/types';
 
 export interface StoreValue {
   user: User | null;
-  completedLessons: ID[];
-  toggleLessonComplete: (lessonId: ID) => void;
-  isLessonComplete: (lessonId: ID) => boolean;
 
   quizHistory: QuizAttempt[];
   addQuizAttempt: (attempt: QuizAttempt) => void;
