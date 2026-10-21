@@ -3,7 +3,7 @@ import {
   ArrowLeft, ArrowRight, Trophy, History, CheckCircle2, XCircle, Clock,
 } from 'lucide-react';
 import type { QuizAttempt } from '@/types';
-import { useStore } from '@/store';
+import { useStore } from '@/useStore';
 import { getTopicById } from '@/data/content';
 import { Link, Spinner, EmptyState, Badge } from '@/components/ui';
 import { TopicIcon } from '@/components/TopicIcon';
@@ -59,7 +59,7 @@ export function HistoryPage() {
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-2 text-xs font-mono text-ink-400 mb-3">
-        <History className="w-3 h-3" /> {user.name}'s quiz history
+        <History className="w-3 h-3" /> {user.email}'s quiz history
       </div>
       <h1 className="text-2xl sm:text-3xl font-bold text-ink-900 tracking-tight mb-1">Quiz history</h1>
       <p className="text-ink-600 mb-6">Every attempt is saved with a snapshot of the questions and answers at the time.</p>

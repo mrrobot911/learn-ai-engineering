@@ -1,4 +1,5 @@
-import { StoreProvider, useStore } from '@/store';
+import { StoreProvider } from '@/store';
+import { SessionProvider, useSession } from '@/session';
 import { useRouter } from '@/router';
 import { AppShell } from '@/components/AppShell';
 import { ToastHost } from '@/components/ToastHost';
@@ -12,7 +13,7 @@ import { AuthPage } from '@/pages/AuthPage';
 
 function Routes() {
   const { route } = useRouter();
-  const { authReady } = useStore();
+  const { authReady } = useSession();
 
   if (!authReady) {
     return (
@@ -50,11 +51,13 @@ function Routes() {
 
 export default function App() {
   return (
-    <StoreProvider>
-      <AppShell>
-        <Routes />
-      </AppShell>
-      <ToastHost />
-    </StoreProvider>
+    <SessionProvider>
+      <StoreProvider>
+        <AppShell>
+          <Routes />
+        </AppShell>
+        <ToastHost />
+      </StoreProvider>
+    </SessionProvider>
   );
 }
