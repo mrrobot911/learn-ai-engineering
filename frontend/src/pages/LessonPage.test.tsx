@@ -288,6 +288,28 @@ describe('LessonPage', () => {
     expect(button).not.toBeDisabled();
   });
 
+  it('activates the completion control with the keyboard', async () => {
+    setSession(loggedInUser);
+    getLesson.mockResolvedValue(lesson);
+    getTopic.mockResolvedValue(topicWithLesson);
+    getProgress.mockResolvedValue([]);
+
+    const user = userEvent.setup();
+    render(<LessonPage id="les-1" />);
+
+    const button = await screen.findByRole('button', { name: /complete/i });
+    button.focus();
+    expect(button).toHaveFocus();
+
+    await user.keyboard('{Enter}');
+    await waitFor(() => expect(markLessonComplete).toHaveBeenCalledWith('les-1'));
+    await waitFor(() => expect(button).toHaveAttribute('aria-pressed', 'true'));
+
+    await user.keyboard(' ');
+    await waitFor(() => expect(undoLessonComplete).toHaveBeenCalledWith('les-1'));
+    await waitFor(() => expect(button).toHaveAttribute('aria-pressed', 'false'));
+  });
+
   it('shows no completion control and never reads the progress for an anonymous visitor', async () => {
     getLesson.mockResolvedValue(lesson);
     getTopic.mockResolvedValue(topicWithLesson);
