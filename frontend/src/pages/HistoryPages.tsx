@@ -19,14 +19,11 @@ export function HistoryPage() {
 
   const stats = useMemo(() => {
     if (quizHistory.length === 0) return { total: 0, avgPct: 0, bestPct: 0 };
-    const attempts = quizHistory as QuizAttempt[];
-    const pcts = attempts.map((a: QuizAttempt) => a.score / a.total);
-    const avg = (pcts as number[]).reduce((s: number, x: number) => s + x, 0) / pcts.length;
-    const best = Math.max(...(pcts as number[]));
+    const pcts = quizHistory.map((a) => a.score / a.total);
     return {
       total: quizHistory.length,
-      avgPct: Math.round(avg * 100),
-      bestPct: Math.round(best * 100),
+      avgPct: Math.round((pcts.reduce((s, x) => s + x, 0) / pcts.length) * 100),
+      bestPct: Math.round(Math.max(...pcts) * 100),
     };
   }, [quizHistory]);
 
@@ -74,7 +71,7 @@ export function HistoryPage() {
       </div>
 
       <div className="space-y-2.5">
-        {(quizHistory as QuizAttempt[]).map((att: QuizAttempt) => (
+        {quizHistory.map((att) => (
           <AttemptRow key={att.id} attempt={att} />
         ))}
       </div>
@@ -96,7 +93,7 @@ function AttemptRow({ attempt }: { attempt: QuizAttempt }) {
   const pct = Math.round((attempt.score / attempt.total) * 100);
   const passed = pct >= 60;
   const date = new Date(attempt.createdAt);
-  const dateStr = date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
   return (
@@ -143,32 +140,25 @@ export function HistoryDetailPage({ attemptId }: { attemptId: string }) {
       setLoading(false);
     }, 300);
     return () => clearTimeout(t);
-  }, [getAttempt, attemptId]);
+  }, [attemptId, getAttempt]);
 
   if (loading) return <HistoryDetailSkeleton />;
-
   if (!user) {
     return (
       <EmptyState
         icon={History}
-        title="Log in to see your history"
-        description="Quiz attempts are only saved for registered users. Log in or create an account to start tracking your progress."
-        action={
-          <div className="flex gap-2">
-            <Link to={{ name: 'login', params: {} }} className="btn-primary">Log in</Link>
-            <Link to={{ name: 'register', params: {} }} className="btn-secondary">Sign up</Link>
-          </div>
-        }
+        title="Log in required"
+        description="You need to be logged in to view saved quiz attempts."
+        action={<Link to={{ name: 'login', params: {} }} className="btn-primary">Log in</Link>}
       />
     );
   }
-
   if (!attempt) {
     return (
       <EmptyState
-        icon={History}
+        icon={Trophy}
         title="Attempt not found"
-        description="That quiz attempt doesn't exist or isn't available for this account."
+        description="This attempt may have been removed or doesn't belong to your account."
         action={<Link to={{ name: 'history', params: {} }} className="btn-secondary">Back to history</Link>}
       />
     );
@@ -206,7 +196,7 @@ export function HistoryDetailPage({ attemptId }: { attemptId: string }) {
 
       <h2 className="text-sm font-semibold text-ink-500 uppercase tracking-wider mb-3">Answers</h2>
       <div className="space-y-3">
-        {(attempt.answers as QuizAttempt['answers']).map((a: QuizAttempt['answers'][number], i: number) => (
+        {attempt.answers.map((a, i) => (
           <div key={i} className="card p-5">
             <div className="flex items-start gap-3 mb-3">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-mono ${
