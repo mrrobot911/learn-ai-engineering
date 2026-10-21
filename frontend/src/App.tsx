@@ -1,4 +1,3 @@
-import { StoreProvider } from '@/store';
 import { SessionProvider, useSession } from '@/session';
 import { useRouter } from '@/router';
 import { AppShell } from '@/components/AppShell';
@@ -52,12 +51,10 @@ function Routes() {
 export default function App() {
   return (
     <SessionProvider>
-      <StoreProvider>
-        <AppShell>
-          <Routes />
-        </AppShell>
-        <ToastHost />
-      </StoreProvider>
+      <AppShell>
+        <Routes />
+      </AppShell>
+      <ToastHost />
     </SessionProvider>
   );
 }

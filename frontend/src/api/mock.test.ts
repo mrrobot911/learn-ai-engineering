@@ -175,6 +175,15 @@ describe('attempt operations', () => {
     ]);
   });
 
+  it('listAttempts gives every summary an ISO-8601 createdAt', async () => {
+    await mockClient.login(DEMO);
+    const list = await mockClient.listAttempts();
+    expect(list).toHaveLength(seedQuizHistory.length);
+    for (const summary of list) {
+      expect(summary.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    }
+  });
+
   it('getAttempt resolves with one seeded attempt and its answers', async () => {
     await mockClient.login(DEMO);
     const attempt = await mockClient.getAttempt('att-seed-1');
@@ -197,5 +206,6 @@ describe('attempt operations', () => {
     await mockClient.logout();
     await mockClient.register({ email: 'fresh@forge.dev', password: 'password123' });
     expect(await mockClient.listAttempts()).toEqual([]);
+    await expect(mockClient.getAttempt('att-seed-1')).rejects.toThrow();
   });
 });

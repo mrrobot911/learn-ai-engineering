@@ -1,4 +1,5 @@
-import type { Topic, Question, Lesson, QuizAttempt } from '@/types';
+import type { Topic, Question, Lesson } from '@/types';
+import type { QuizAttempt } from '@/api/types';
 
 const lessons_llms: Lesson[] = [
   {
@@ -1357,7 +1358,9 @@ export function getQuestionsForTopic(topicId: string): Question[] {
   return allQuestions.filter((q) => q.topicId === topicId);
 }
 
-// Seed quiz history for the demo authenticated user.
+// Seed quiz history for the demo authenticated user. US-6: every attempt keeps
+// a snapshot of the questions and the answers at the time of the attempt, so
+// the wording below is the wording of that moment, not the current one.
 export const seedQuizHistory: QuizAttempt[] = [
   {
     id: 'att-seed-1',
@@ -1365,12 +1368,12 @@ export const seedQuizHistory: QuizAttempt[] = [
     topicTitle: 'Large Language Models',
     score: 4,
     total: 5,
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 6,
+    createdAt: '2026-10-12T09:00:00Z',
     answers: [
       {
-        questionId: 'q-llm-1', questionText: 'What is the core training objective of a large language model during pre-training?',
-        selectedOptionId: 'o2', selectedOptionText: 'Predict the next token in a sequence',
-        correctOptionId: 'o2', correctOptionText: 'Predict the next token in a sequence',
+        questionId: 'q-llm-1', questionText: 'What is the main training objective of a large language model?',
+        selectedOptionId: 'o2', selectedOptionText: 'Predict the next word in a sequence',
+        correctOptionId: 'o2', correctOptionText: 'Predict the next word in a sequence',
         isCorrect: true, explanation: 'LLMs are trained with next-token prediction.',
       },
       {
@@ -1405,7 +1408,7 @@ export const seedQuizHistory: QuizAttempt[] = [
     topicTitle: 'AI Agents',
     score: 5,
     total: 5,
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2,
+    createdAt: '2026-10-14T09:00:00Z',
     answers: [
       {
         questionId: 'q-agt-1', questionText: 'What distinguishes an AI agent from a single chat completion?',
@@ -1445,7 +1448,7 @@ export const seedQuizHistory: QuizAttempt[] = [
     topicTitle: 'Retrieval-Augmented Generation',
     score: 3,
     total: 5,
-    createdAt: Date.now() - 1000 * 60 * 60 * 5,
+    createdAt: '2026-10-15T09:00:00Z',
     answers: [
       {
         questionId: 'q-rag-1', questionText: 'What is the core idea of retrieval-augmented generation?',

@@ -1,56 +1,60 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Trophy, History, CheckCircle2, XCircle, Clock,
+  ArrowLeft, ArrowRight, CheckCircle2, Clock, History, Trophy, XCircle,
 } from 'lucide-react';
-import type { QuizAttempt } from '@/types';
-import { useStore } from '@/useStore';
-import { getTopicById } from '@/data/content';
-import { Link, Spinner, EmptyState, Badge } from '@/components/ui';
-import { TopicIcon } from '@/components/TopicIcon';
+import { api } from '@/api';
+import type { QuizAnswerResult, QuizAttempt, QuizAttemptSummary } from '@/api';
+import { useSession } from '@/session';
+import { Link, Spinner, EmptyState, ErrorState } from '@/components/ui';
+
+/** The UTC day of an ISO timestamp, so the date does not depend on the locale. */
+function utcDay(iso: string): string {
+  return new Date(iso).toISOString().slice(0, 10);
+}
 
 export function HistoryPage() {
-  const { user, quizHistory } = useStore();
+  const { user } = useSession();
+  const [attempts, setAttempts] = useState<QuizAttemptSummary[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const userId = user?.id;
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 350);
-    return () => clearTimeout(t);
-  }, []);
+    if (!userId) return;
+    let cancelled = false;
+    setLoading(true);
+    setFailed(false);
+    api.listAttempts()
+      .then((list) => {
+        if (cancelled) return;
+        setAttempts(list);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setFailed(true);
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [userId, retry]);
 
-  const stats = useMemo(() => {
-    if (quizHistory.length === 0) return { total: 0, avgPct: 0, bestPct: 0 };
-    const pcts = quizHistory.map((a) => a.score / a.total);
-    return {
-      total: quizHistory.length,
-      avgPct: Math.round((pcts.reduce((s, x) => s + x, 0) / pcts.length) * 100),
-      bestPct: Math.round(Math.max(...pcts) * 100),
-    };
-  }, [quizHistory]);
+  const retryLoad = () => {
+    setFailed(false);
+    setLoading(true);
+    setRetry((count) => count + 1);
+  };
 
+  if (!user) return <SignInPrompt />;
   if (loading) return <HistorySkeleton />;
+  if (failed) return <ErrorState description="Your quiz history could not be loaded." onRetry={retryLoad} />;
 
-  if (!user) {
-    return (
-      <EmptyState
-        icon={History}
-        title="Log in to see your history"
-        description="Quiz attempts are only saved for registered users. Log in or create an account to start tracking your progress."
-        action={
-          <div className="flex gap-2">
-            <Link to={{ name: 'login', params: {} }} className="btn-primary">Log in</Link>
-            <Link to={{ name: 'register', params: {} }} className="btn-secondary">Sign up</Link>
-          </div>
-        }
-      />
-    );
-  }
-
-  if (quizHistory.length === 0) {
+  if (attempts && attempts.length === 0) {
     return (
       <EmptyState
         icon={Trophy}
         title="No quiz attempts yet"
-        description="Take a quiz on any topic and your results will appear here, with scores and per-question breakdowns."
+        description="Take a quiz on any topic and your attempts will appear here, with the score and the answers of every question."
         action={<Link to={{ name: 'topics', params: {} }} className="btn-brand">Browse topics</Link>}
       />
     );
@@ -59,179 +63,167 @@ export function HistoryPage() {
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-2 text-xs font-mono text-ink-400 mb-3">
-        <History className="w-3 h-3" /> {user.email}'s quiz history
+        <History className="w-3 h-3" aria-hidden="true" /> {user.email}'s quiz history
       </div>
       <h1 className="text-2xl sm:text-3xl font-bold text-ink-900 tracking-tight mb-1">Quiz history</h1>
       <p className="text-ink-600 mb-6">Every attempt is saved with a snapshot of the questions and answers at the time.</p>
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <StatBox label="Attempts" value={stats.total} />
-        <StatBox label="Average" value={`${stats.avgPct}%`} />
-        <StatBox label="Best score" value={`${stats.bestPct}%`} />
-      </div>
-
-      <div className="space-y-2.5">
-        {quizHistory.map((att) => (
-          <AttemptRow key={att.id} attempt={att} />
+      <ul className="space-y-2.5">
+        {(attempts ?? []).map((attempt) => (
+          <AttemptRow key={attempt.id} attempt={attempt} />
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
 
-function StatBox({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="card p-4 text-center">
-      <div className="text-xl sm:text-2xl font-bold font-mono text-ink-900">{value}</div>
-      <div className="text-[11px] text-ink-500 uppercase tracking-wider mt-0.5">{label}</div>
-    </div>
-  );
-}
-
-function AttemptRow({ attempt }: { attempt: QuizAttempt }) {
-  const topic = getTopicById(attempt.topicId);
-  const pct = Math.round((attempt.score / attempt.total) * 100);
-  const passed = pct >= 60;
-  const date = new Date(attempt.createdAt);
-  const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+function AttemptRow({ attempt }: { attempt: QuizAttemptSummary }) {
+  const passed = attempt.total > 0 && attempt.score / attempt.total >= 0.6;
 
   return (
-    <Link
-      to={{ name: 'history-detail', params: { attemptId: attempt.id } }}
-      className="card p-4 hover:shadow-card-hover hover:border-ink-300/80 transition-all group flex items-center gap-4"
-    >
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-        passed ? 'bg-brand-50 text-brand-600' : 'bg-warning-50 text-warning-600'
-      }`}>
-        <Trophy className="w-5 h-5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
+    <li>
+      <Link
+        to={{ name: 'history-detail', params: { attemptId: attempt.id } }}
+        className="card p-4 hover:shadow-card-hover hover:border-ink-300/80 transition-all group flex items-center gap-4"
+      >
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+          passed ? 'bg-brand-50 text-brand-600' : 'bg-warning-50 text-warning-600'
+        }`}>
+          <Trophy className="w-5 h-5" aria-hidden="true" />
+        </div>
+        <div className="flex-1 min-w-0">
           <h3 className="text-sm font-medium text-ink-900 truncate group-hover:text-ink-950">{attempt.topicTitle}</h3>
-          {topic && <TopicIcon name={topic.icon} className="w-3.5 h-3.5 text-ink-300 shrink-0" />}
+          <div className="flex items-center gap-2 text-xs text-ink-400">
+            <Clock className="w-3 h-3" aria-hidden="true" />
+            <time dateTime={attempt.createdAt}>{utcDay(attempt.createdAt)}</time>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-ink-400">
-          <Clock className="w-3 h-3" />
-          <span>{dateStr} · {timeStr}</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="text-right">
+        <div className="flex items-center gap-3 shrink-0">
           <div className={`font-mono font-bold ${passed ? 'text-brand-700' : 'text-warning-700'}`}>
             {attempt.score}/{attempt.total}
           </div>
-          <div className="text-[11px] text-ink-400">{pct}%</div>
+          <ArrowRight className="w-4 h-4 text-ink-300 group-hover:text-ink-600 group-hover:translate-x-0.5 transition-all" aria-hidden="true" />
         </div>
-        <ArrowRight className="w-4 h-4 text-ink-300 group-hover:text-ink-600 group-hover:translate-x-0.5 transition-all" />
-      </div>
-    </Link>
+      </Link>
+    </li>
   );
 }
 
 export function HistoryDetailPage({ attemptId }: { attemptId: string }) {
-  const { user, getAttempt } = useStore();
+  const { user } = useSession();
+  const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
   const [loading, setLoading] = useState(true);
-  const [attempt, setAttempt] = useState<QuizAttempt | undefined>(undefined);
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const userId = user?.id;
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setAttempt(getAttempt(attemptId));
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [attemptId, getAttempt]);
+    if (!userId) return;
+    let cancelled = false;
+    setLoading(true);
+    setFailed(false);
+    api.getAttempt(attemptId)
+      .then((loaded) => {
+        if (cancelled) return;
+        setAttempt(loaded);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setFailed(true);
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [userId, attemptId, retry]);
 
+  const retryLoad = () => {
+    setFailed(false);
+    setLoading(true);
+    setRetry((count) => count + 1);
+  };
+
+  if (!user) return <SignInPrompt />;
   if (loading) return <HistoryDetailSkeleton />;
-  if (!user) {
-    return (
-      <EmptyState
-        icon={History}
-        title="Log in required"
-        description="You need to be logged in to view saved quiz attempts."
-        action={<Link to={{ name: 'login', params: {} }} className="btn-primary">Log in</Link>}
-      />
-    );
+  if (failed || !attempt) {
+    return <ErrorState description="This attempt could not be loaded." onRetry={retryLoad} />;
   }
-  if (!attempt) {
-    return (
-      <EmptyState
-        icon={Trophy}
-        title="Attempt not found"
-        description="This attempt may have been removed or doesn't belong to your account."
-        action={<Link to={{ name: 'history', params: {} }} className="btn-secondary">Back to history</Link>}
-      />
-    );
-  }
-
-  const pct = Math.round((attempt.score / attempt.total) * 100);
-  const date = new Date(attempt.createdAt);
-  const dateStr = date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-  const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
       <Link to={{ name: 'history', params: {} }} className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-ink-800 mb-5 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to history
+        <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to history
       </Link>
 
       <div className="card p-6 mb-6">
-        <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-ink-900 mb-1">{attempt.topicTitle}</h1>
-            <p className="text-xs text-ink-400">{dateStr} at {timeStr}</p>
+            <p className="text-xs text-ink-400">
+              <time dateTime={attempt.createdAt}>{utcDay(attempt.createdAt)}</time>
+            </p>
           </div>
-          <div className="text-right">
-            <div className={`text-2xl font-bold font-mono ${pct >= 60 ? 'text-brand-700' : 'text-warning-700'}`}>
-              {attempt.score}/{attempt.total}
-            </div>
-            <Badge tone={pct >= 60 ? 'brand' : 'warning'}>{pct}%</Badge>
+          <div className="font-mono font-bold text-2xl text-brand-700">
+            {attempt.score}/{attempt.total}
           </div>
-        </div>
-        <div className="flex gap-2 text-xs text-ink-500">
-          <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-brand-600" /> {attempt.score} correct</span>
-          <span className="flex items-center gap-1"><XCircle className="w-3.5 h-3.5 text-error-500" /> {attempt.total - attempt.score} incorrect</span>
         </div>
       </div>
 
       <h2 className="text-sm font-semibold text-ink-500 uppercase tracking-wider mb-3">Answers</h2>
-      <div className="space-y-3">
-        {attempt.answers.map((a, i) => (
-          <div key={i} className="card p-5">
-            <div className="flex items-start gap-3 mb-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-mono ${
-                a.isCorrect ? 'bg-brand-600' : 'bg-error-500'
-              }`}>
-                {a.isCorrect ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-              </div>
-              <p className="text-sm font-medium text-ink-900 flex-1">{a.questionText}</p>
-            </div>
-            <div className="space-y-1.5 ml-9">
-              <div className="flex items-start gap-2 text-sm">
-                <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Your answer</span>
-                <span className={a.isCorrect ? 'text-brand-700' : 'text-error-700'}>
-                  {a.selectedOptionText || <span className="text-ink-400 italic">No answer selected</span>}
-                </span>
-              </div>
-              {!a.isCorrect && (
-                <div className="flex items-start gap-2 text-sm">
-                  <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Correct</span>
-                  <span className="text-brand-700 font-medium">{a.correctOptionText}</span>
-                </div>
-              )}
-              <div className="flex items-start gap-2 text-sm mt-2 pt-2 border-t border-ink-100">
-                <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Why</span>
-                <span className="text-ink-600 leading-relaxed">{a.explanation}</span>
-              </div>
-            </div>
-          </div>
+      <ul className="space-y-3">
+        {attempt.answers.map((answer) => (
+          <AnswerCard key={answer.questionId} answer={answer} />
         ))}
-      </div>
+      </ul>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6">
         <Link to={{ name: 'history', params: {} }} className="btn-secondary">Back to history</Link>
       </div>
     </div>
+  );
+}
+
+function AnswerCard({ answer }: { answer: QuizAnswerResult }) {
+  return (
+    <li className="card p-5">
+      <div className="flex items-start gap-3 mb-3">
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-mono ${
+          answer.isCorrect ? 'bg-brand-600' : 'bg-error-500'
+        }`}>
+          {answer.isCorrect
+            ? <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+            : <XCircle className="w-3.5 h-3.5" aria-hidden="true" />}
+        </div>
+        <p className="text-sm font-medium text-ink-900 flex-1">{answer.questionText}</p>
+      </div>
+      <dl className="space-y-1.5 ml-9">
+        <div className="flex items-start gap-2 text-sm">
+          <dt className="text-ink-400 w-24 shrink-0 text-xs mt-0.5">Your answer</dt>
+          <dd className={answer.isCorrect ? 'text-brand-700' : 'text-error-700'}>
+            {answer.selectedOptionText || <span className="text-ink-400 italic">No answer selected</span>}
+          </dd>
+        </div>
+        <div className="flex items-start gap-2 text-sm">
+          <dt className="text-ink-400 w-24 shrink-0 text-xs mt-0.5">Correct answer</dt>
+          <dd className="text-brand-700 font-medium">{answer.correctOptionText}</dd>
+        </div>
+      </dl>
+    </li>
+  );
+}
+
+function SignInPrompt() {
+  return (
+    <EmptyState
+      icon={History}
+      title="Log in to see your quiz history"
+      description="Quiz attempts are only saved for registered users. Log in to see your past attempts."
+      action={
+        <div className="flex gap-2">
+          <Link to={{ name: 'login', params: {} }} className="btn-primary">Log in</Link>
+          <Link to={{ name: 'register', params: {} }} className="btn-secondary">Sign up</Link>
+        </div>
+      }
+    />
   );
 }
 
@@ -240,9 +232,6 @@ function HistorySkeleton() {
     <div>
       <div className="skeleton h-7 w-48 mb-2" />
       <div className="skeleton h-4 w-72 mb-6" />
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        {Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton h-20 rounded-xl" />)}
-      </div>
       <div className="space-y-2.5">
         {Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton h-16 rounded-xl" />)}
       </div>

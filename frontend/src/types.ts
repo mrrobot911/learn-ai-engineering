@@ -38,27 +38,6 @@ export interface Topic {
   lessons: Lesson[];
 }
 
-export interface QuizResultAnswer {
-  questionId: ID;
-  questionText: string;
-  selectedOptionId: ID | null;
-  selectedOptionText: string;
-  correctOptionId: ID;
-  correctOptionText: string;
-  isCorrect: boolean;
-  explanation: string;
-}
-
-export interface QuizAttempt {
-  id: ID;
-  topicId: ID;
-  topicTitle: string;
-  score: number;
-  total: number;
-  createdAt: number;
-  answers: QuizResultAnswer[];
-}
-
 export interface Route {
   name: 'topics' | 'topic' | 'lesson' | 'quiz-start' | 'quiz' | 'quiz-result' | 'history' | 'history-detail' | 'login' | 'register';
   params: Record<string, string>;
