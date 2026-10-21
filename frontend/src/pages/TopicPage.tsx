@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, BookOpen, Clock, ListChecks, Trophy,
+  ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock, ListChecks, Trophy,
 } from 'lucide-react';
 import { api } from '@/api';
 import type { Lesson, Topic } from '@/api';
-import { Link, Spinner, EmptyState, ErrorState } from '@/components/ui';
+import { useSession } from '@/session';
+import { useProgress } from '@/hooks/useProgress';
+import { Link, Spinner, EmptyState, ErrorState, Badge, ProgressBar } from '@/components/ui';
 import { TopicIcon } from '@/components/TopicIcon';
 
 const colorMap: Record<string, { bg: string; text: string; ring: string }> = {
@@ -14,6 +16,8 @@ const colorMap: Record<string, { bg: string; text: string; ring: string }> = {
 };
 
 export function TopicPage({ slug }: { slug: string }) {
+  const { user } = useSession();
+  const { ids, failed: progressFailed } = useProgress(user?.id);
   const [topic, setTopic] = useState<Topic | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,6 +58,8 @@ export function TopicPage({ slug }: { slug: string }) {
     return () => { cancelled = true; };
   }, [slug, reloadKey]);
 
+  const completedIds = useMemo(() => new Set(ids ?? []), [ids]);
+
   if (loading) return <TopicSkeleton />;
 
   if (errored) {
@@ -72,6 +78,7 @@ export function TopicPage({ slug }: { slug: string }) {
   }
 
   const c = colorMap[topic.color] ?? colorMap.brand;
+  const completedCount = topic.lessons.filter((l) => completedIds.has(l.id)).length;
 
   return (
     <div className="animate-fade-in">
@@ -110,6 +117,27 @@ export function TopicPage({ slug }: { slug: string }) {
         </div>
       </div>
 
+      {/* Progress for logged-in users */}
+      {user && ids && (
+        <div className="card p-4 mb-6">
+          <div className="flex items-center justify-between mb-2 text-sm">
+            <span className="text-ink-700 font-medium flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-brand-600" aria-hidden="true" /> Your progress
+            </span>
+            <span className="text-ink-500 text-xs">
+              <span className="font-mono font-semibold text-ink-700">{completedCount} of {topic.lessons.length}</span> lessons done
+            </span>
+          </div>
+          <ProgressBar value={completedCount} total={topic.lessons.length} />
+        </div>
+      )}
+
+      {user && progressFailed && (
+        <p role="status" className="card p-4 mb-6 text-sm text-ink-500">
+          Your progress is unavailable right now. Reload the page to try again.
+        </p>
+      )}
+
       <h2 className="text-sm font-semibold text-ink-500 uppercase tracking-wider mb-3 flex items-center gap-2">
         <ListChecks className="w-4 h-4" /> Lessons
       </h2>
@@ -123,7 +151,12 @@ export function TopicPage({ slug }: { slug: string }) {
       ) : (
         <div className="space-y-2.5">
           {topic.lessons.map((lesson, idx) => (
-            <LessonRow key={lesson.id} lesson={lesson} index={idx + 1} />
+            <LessonRow
+              key={lesson.id}
+              lesson={lesson}
+              index={idx + 1}
+              completed={completedIds.has(lesson.id)}
+            />
           ))}
         </div>
       )}
@@ -131,14 +164,18 @@ export function TopicPage({ slug }: { slug: string }) {
   );
 }
 
-function LessonRow({ lesson, index }: { lesson: Lesson; index: number }) {
+function LessonRow({ lesson, index, completed }: { lesson: Lesson; index: number; completed: boolean }) {
   return (
     <Link
       to={{ name: 'lesson', params: { id: lesson.id } }}
       className="card p-4 hover:shadow-card-hover hover:border-ink-300/80 transition-all duration-200 group flex items-center gap-4"
     >
-      <div className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-mono shrink-0 bg-ink-100 text-ink-500">
-        {index}
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-mono shrink-0 ${
+        completed ? 'bg-brand-50 text-brand-700' : 'bg-ink-100 text-ink-500'
+      }`}>
+        {completed
+          ? <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
+          : <span>{index}</span>}
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="text-sm sm:text-base font-medium text-ink-900 group-hover:text-ink-950 truncate">{lesson.title}</h3>
@@ -148,6 +185,11 @@ function LessonRow({ lesson, index }: { lesson: Lesson; index: number }) {
         <span className="hidden sm:flex items-center gap-1 text-xs text-ink-400">
           <Clock className="w-3 h-3" /> {lesson.durationMin}m
         </span>
+        {completed && (
+          <Badge tone="brand" aria-label="Completed">
+            <CheckCircle2 className="w-3 h-3" aria-hidden="true" /> Completed
+          </Badge>
+        )}
         <ArrowRight className="w-4 h-4 text-ink-300 group-hover:text-ink-600 group-hover:translate-x-0.5 transition-all" />
       </div>
     </Link>

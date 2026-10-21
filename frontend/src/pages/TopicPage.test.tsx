@@ -3,18 +3,44 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { api } from '@/api';
-import type { Lesson, Topic, TopicSummary } from '@/api';
+import type { Lesson, Topic, TopicSummary, User } from '@/api';
+import { useSession } from '@/session';
 import { TopicPage } from './TopicPage';
 
 vi.mock('@/api', () => ({
   api: {
     listTopics: vi.fn(),
     getTopic: vi.fn(),
+    getProgress: vi.fn(),
   },
+}));
+
+vi.mock('@/session', () => ({
+  useSession: vi.fn(),
 }));
 
 const listTopics = vi.mocked(api.listTopics);
 const getTopic = vi.mocked(api.getTopic);
+const getProgress = vi.mocked(api.getProgress);
+const useSessionMock = vi.mocked(useSession);
+
+const loggedInUser: User = {
+  id: 'u1',
+  email: 'user@example.com',
+  isMaintainer: false,
+  createdAt: '2024-01-01T00:00:00.000Z',
+};
+
+/** The visitor of the page: anonymous by default, logged in on demand. */
+function setSession(user: User | null) {
+  useSessionMock.mockReturnValue({
+    user,
+    authReady: true,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+  });
+}
 
 const summaryA: TopicSummary = {
   id: 'top-a',
@@ -53,7 +79,17 @@ const lessonTwo: Lesson = {
   position: 2,
   durationMin: 7,
 };
+const lessonThree: Lesson = {
+  id: 'les-3',
+  topicId: 'top-a',
+  title: 'Lesson Three',
+  summary: 'The third lesson',
+  body: 'Body three',
+  position: 3,
+  durationMin: 9,
+};
 const topicA: Topic = { ...summaryA, lessons: [lessonOne, lessonTwo] };
+const topicAThree: Topic = { ...summaryA, lessons: [lessonOne, lessonTwo, lessonThree] };
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -64,6 +100,7 @@ function deferred<T>() {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  setSession(null);
 });
 
 afterEach(cleanup);
@@ -149,5 +186,57 @@ describe('TopicPage', () => {
     expect(screen.queryAllByRole('link').filter(
       (a) => a.getAttribute('href')?.startsWith('#/lesson/'),
     )).toHaveLength(0);
+  });
+
+  it('shows the completed count and one Completed badge per completed lesson', async () => {
+    setSession(loggedInUser);
+    listTopics.mockResolvedValue([summaryA]);
+    getTopic.mockResolvedValue(topicAThree);
+    getProgress.mockResolvedValue(['les-1', 'les-2']);
+
+    render(<TopicPage slug="topic-a" />);
+
+    expect(await screen.findByText('2 of 3')).toBeInTheDocument();
+    expect(screen.getAllByText('Completed')).toHaveLength(2);
+    expect(screen.getAllByLabelText('Completed')).toHaveLength(2);
+    expect(getProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the count without a badge when no lesson of the topic is completed', async () => {
+    setSession(loggedInUser);
+    listTopics.mockResolvedValue([summaryA]);
+    getTopic.mockResolvedValue(topicAThree);
+    getProgress.mockResolvedValue([]);
+
+    render(<TopicPage slug="topic-a" />);
+
+    expect(await screen.findByText('0 of 3')).toBeInTheDocument();
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
+  });
+
+  it('shows no count and no badge for an anonymous visitor and never reads the progress', async () => {
+    listTopics.mockResolvedValue([summaryA]);
+    getTopic.mockResolvedValue(topicAThree);
+
+    render(<TopicPage slug="topic-a" />);
+
+    expect(await screen.findByRole('heading', { name: 'Topic A', level: 1 })).toBeInTheDocument();
+    expect(screen.queryByText('0 of 3')).not.toBeInTheDocument();
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
+    expect(getProgress).not.toHaveBeenCalled();
+  });
+
+  it('shows no count and no badge when the progress rejects', async () => {
+    setSession(loggedInUser);
+    listTopics.mockResolvedValue([summaryA]);
+    getTopic.mockResolvedValue(topicAThree);
+    getProgress.mockRejectedValue(new Error('network down'));
+
+    render(<TopicPage slug="topic-a" />);
+
+    expect(await screen.findByRole('heading', { name: 'Topic A', level: 1 })).toBeInTheDocument();
+    expect(screen.getByText('The first lesson')).toBeInTheDocument();
+    expect(screen.queryByText('0 of 3')).not.toBeInTheDocument();
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
   });
 });

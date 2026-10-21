@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Clock, ChevronLeft, ChevronRight,
+  ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, ChevronLeft, ChevronRight,
   BookOpen, ListChecks,
 } from 'lucide-react';
 import { api } from '@/api';
 import type { Lesson, Topic } from '@/api';
+import { useSession } from '@/session';
+import { useProgress } from '@/hooks/useProgress';
 import { Link, Spinner, EmptyState, ErrorState, Badge } from '@/components/ui';
 import { Markdown } from '@/components/Markdown';
 
@@ -16,11 +18,15 @@ function isNotFound(error: unknown): boolean {
 }
 
 export function LessonPage({ id }: { id: string }) {
+  const { user } = useSession();
+  const { ids, failed: progressFailed, setComplete } = useProgress(user?.id);
   const [record, setRecord] = useState<{ lesson: Lesson; topic: Topic } | undefined>(undefined);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // The lesson and its topic both arrive through the API client: getLesson()
   // first, then getTopic() for the lesson's topicId. No fake latency — the
@@ -78,6 +84,20 @@ export function LessonPage({ id }: { id: string }) {
 
   const { lesson, topic } = record;
   const idxInTopic = topic.lessons.findIndex((l) => l.id === lesson.id) + 1;
+  const completed = ids?.includes(lesson.id) ?? false;
+
+  async function handleToggle() {
+    if (saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await setComplete(lesson.id, !completed);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'The request failed.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="animate-fade-in max-w-3xl mx-auto">
@@ -103,6 +123,53 @@ export function LessonPage({ id }: { id: string }) {
 
         <Markdown source={lesson.body} />
       </article>
+
+      {/* Completion toggle: only for a logged-in visitor, and only when the
+          progress could be read. */}
+      {user && ids && (
+        <div className="mt-8 card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {completed
+              ? <CheckCircle2 className="w-5 h-5 text-brand-600 shrink-0" aria-hidden="true" />
+              : <Circle className="w-5 h-5 text-ink-300 shrink-0" aria-hidden="true" />}
+            <div>
+              <p className="text-sm font-medium text-ink-900">
+                {completed ? 'You finished this lesson' : 'Finished reading?'}
+              </p>
+              <p className="text-xs text-ink-500">
+                {completed
+                  ? 'Your progress is saved. Activate the button to undo it.'
+                  : 'Mark this lesson as done to track your progress.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => { void handleToggle(); }}
+            disabled={saving}
+            aria-pressed={completed}
+            className={completed ? 'btn-secondary' : 'btn-brand'}
+          >
+            {saving
+              ? <Spinner className="w-4 h-4" />
+              : <CheckCircle2 className="w-4 h-4" aria-hidden="true" />}
+            Mark as complete
+          </button>
+        </div>
+      )}
+
+      {user && progressFailed && (
+        <p role="status" className="mt-8 text-sm text-ink-500">
+          Your progress is unavailable right now. Reload the page to try again.
+        </p>
+      )}
+
+      {saveError && (
+        <p role="alert" className="mt-3 text-sm text-error-700">
+          Something went wrong — your progress was not saved. Try again.
+          <span className="block text-xs text-ink-500">{saveError}</span>
+        </p>
+      )}
 
       {/* Prev / Next */}
       <nav className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">

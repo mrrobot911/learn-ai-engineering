@@ -121,7 +121,7 @@ function toSummary(attempt: StoredAttempt): QuizAttemptSummary {
   return { id, topicId, topicTitle, score, total, createdAt };
 }
 
-function completedLessonsOf(userId: string): Set<string> {
+function progressOf(userId: string): Set<string> {
   const done = progress.get(userId) ?? new Set<string>();
   progress.set(userId, done);
   return done;
@@ -209,11 +209,11 @@ export const mockClient: ApiClient = {
   },
 
   async markLessonComplete(lessonId) {
-    completedLessonsOf(requireSession()).add(lessonId);
+    progressOf(requireSession()).add(lessonId);
   },
 
   async undoLessonComplete(lessonId) {
-    completedLessonsOf(requireSession()).delete(lessonId);
+    progressOf(requireSession()).delete(lessonId);
   },
 
   async listAttempts() {
