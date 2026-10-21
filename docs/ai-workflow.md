@@ -311,4 +311,4 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
   - `rg -n "forge\.progress|completedLessons|toggleLessonComplete|isLessonComplete" frontend/src` returns nothing; `rg -n "localStorage|sessionStorage" frontend/src` returns only the quiz-history read/write in `frontend/src/store/StoreProvider.tsx` and the assertion in the quiz test.
   - The pages, the hook and the tests were read back after writing; the diff touches only the two pages, the new hook, the two test files, the integration test, the shared `Badge`, the store's two files, the mock's helper name and the typecheck include.
 - **Artifacts:** `frontend/src/hooks/useProgress.ts`, `frontend/src/pages/LessonPage.tsx`, `frontend/src/pages/TopicPage.tsx` and their tests — issues #9 and #12 build on these.
-- **Links:** issue #8; branch `issue-8`; the commit is referenced in the issue comment.
+- **Links:** issue #8, branch `issue-8`; the commits are referenced in the issue comment; QA verdict [PASS](https://github.com/mrrobot911/learn-ai-engineering/issues/8#issuecomment-6317278988); pull request #21, opened by the orchestrator after that verdict.
