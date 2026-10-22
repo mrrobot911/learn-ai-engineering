@@ -236,6 +236,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '401':
+          description: No valid session when the session cookie is present but invalid (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: CSRF protection failed when the session cookie is present (`forbidden`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           description: Not found. No published topic has this slug.
           content:
@@ -365,7 +377,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/LogoutResponse'
         '401':
-          description: No valid session.
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: CSRF protection failed (`forbidden`).
           content:
             application/json:
               schema:
@@ -384,8 +402,9 @@ paths:
       summary: Get current session
       operationId: getSession
       description: |
-        Returns the current session if valid. Answers 401 when there is no valid session.
-        `GET` does not require CSRF protection.
+        Returns the current session if valid, including the CSRF token so a client with a
+        session cookie (for example after a page reload) can send state-changing requests.
+        Answers 401 when there is no valid session. `GET` does not require CSRF protection.
       security:
         - sessionCookie: []
       responses:
@@ -396,7 +415,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SessionResponse'
         '401':
-          description: No valid session.
+          description: No valid session (`authentication_error`).
           content:
             application/json:
               schema:
@@ -444,10 +463,11 @@ components:
         The error object every error response carries.
 
         `code` is the value the client branches on: `validation_error` for the status 400
-        (the request is invalid), `not_found` for the status 404 (the topic, the lesson or
-        the question does not exist or is not published), `conflict` for the status 409 (the
-        request conflicts with the current state) and `internal_error` for the status 500
-        (the server failed).
+        (the request is invalid), `authentication_error` for the status 401 (no valid
+        session or authentication failed), `forbidden` for the status 403 (CSRF protection
+        failed), `not_found` for the status 404 (the topic, the lesson or the question does
+        not exist or is not published), `conflict` for the status 409 (the request conflicts
+        with the current state) and `internal_error` for the status 500 (the server failed).
 
         `message` is safe to show to the user. `details` is optional and carries extra
         information about the failure.
@@ -749,9 +769,13 @@ components:
       description: Current session.
       required:
         - user
+        - csrf_token
       properties:
         user:
           $ref: '#/components/schemas/UserSummary'
+        csrf_token:
+          type: string
+          description: CSRF token to send in `X-CSRF-Token` header on state-changing requests that carry the session cookie.
 
     LogoutResponse:
       type: object

@@ -370,12 +370,14 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
     - Updated `info.description` to include authentication and session and CSRF rules; removed the note saying they are added later.
     - Added tag `auth` and added operations `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/session`.
     - Added security schemes `sessionCookie` (apiKey in cookie named `session`) and `csrfToken` (apiKey in header named `X-CSRF-Token`).
-    - `/auth/logout` requires both `sessionCookie` and `csrfToken` (state-changing with session cookie). `/auth/session` requires `sessionCookie` only and returns 401 when no valid session (`GET` does not require CSRF). Register/login are unauthenticated but set the session cookie and return `csrf_token`.
-    - Added schemas `RegisterRequest` (email, password with `minLength: 8`, `maxLength: 128`), `LoginRequest`, `UserSummary`, `AuthResponse` (user + `csrf_token`), `SessionResponse` (user), `LogoutResponse` (`ok`). No schema contains `password_hash` or a session token.
+    - `/auth/logout` requires both `sessionCookie` and `csrfToken` (state-changing with session cookie) and declares a 403 (CSRF failure) response. `/auth/session` requires `sessionCookie` only and returns 401 when no valid session (`GET` does not require CSRF). Register/login are unauthenticated but set the session cookie and return `csrf_token`.
+    - Added schemas `RegisterRequest` (email, password with `minLength: 8`, `maxLength: 128`), `LoginRequest`, `UserSummary`, `AuthResponse` (user + `csrf_token`), `SessionResponse` (user + `csrf_token`), `LogoutResponse` (`ok`). No schema contains `password_hash` or any session token other than the documented CSRF token.
+    - The shared `Error` schema documents the error codes for the status 401 (`authentication_error`) and the status 403 (`forbidden`); `/auth/session`, `/auth/logout` and `POST /topics/{topicSlug}/quiz/submissions` declare the matching 401/403 responses, the quiz submission describing the conditions (session cookie present but invalid; CSRF token missing or invalid).
     - Updated `POST /topics/{topicSlug}/quiz/submissions` description to document CSRF requirement when carrying a session cookie and that anonymous submissions without a session cookie are accepted without it; the request/response schemas unchanged.
   - No runtime code, tests, dependencies, or other files changed.
+  - Rework after the first QA PASS (2026-10-22), requested by the maintainer: (1) `GET /auth/session` now returns the CSRF token, so a client that keeps the session cookie across a page reload can send state-changing requests without re-authenticating; (2) the 401/403 error codes are now documented in the `Error` schema and the operations that can fail with them declare the matching responses. The T11 acceptance criteria and issue body were updated by the maintainer to match.
 - **Accepted / rejected / changed by hand, and why:** left for the maintainer. Contract-first rule followed.
 - **Verification:**
-  - `bunx @redocly/cli lint openapi.yaml`: exit 0, valid with warnings only (no errors).
+  - `bunx @redocly/cli lint openapi.yaml`: exit 0, valid with warnings only (no errors), also after the rework.
 - **Artifacts:** `openapi.yaml` — updated for issue #11; issues #12 and #13 will extend it further.
-- **Links:** issue #11, branch `issue-11`.
+- **Links:** issue #11, branch `issue-11`, pull request #24.
