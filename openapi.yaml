@@ -1,0 +1,500 @@
+openapi: 3.1.0
+
+info:
+  title: AI Engineering Learning Platform API
+  version: "1.0.0"
+  description: |
+    The public interface of version 1 for the content and quiz endpoints: the topics, the
+    lessons of a topic, the quiz of a topic and the health check the containers use.
+
+    Topics are addressed by their slug, lessons by their id. Only published content is
+    returned: a draft topic, lesson or question never appears in a response. Every operation
+    described here is public and works without a session.
+
+    Registration, the session, the lesson progress, the quiz history and the maintainer
+    operations are added to this contract later; they are not described here.
+
+servers:
+  - url: http://localhost:8080
+    description: The API server of the local development stack.
+
+tags:
+  - name: content
+    description: The published topics and the lessons of a topic.
+  - name: quiz
+    description: The quiz of a topic, starting it and submitting the answers.
+  - name: health
+    description: The health check of the service.
+
+security: []
+
+paths:
+  /topics:
+    get:
+      tags:
+        - content
+      summary: List the published topics
+      operationId: listTopics
+      description: |
+        Returns every published topic, ordered by `position`. Only published content is
+        returned: a draft topic is never part of the response.
+
+        A topic is addressed by its slug in the other operations; the `id` is part of the
+        response so a client can refer to the topic it has read.
+      responses:
+        '200':
+          description: The published topics, in `position` order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicList'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}:
+    get:
+      tags:
+        - content
+      summary: Get one topic with its lessons
+      operationId: getTopic
+      description: |
+        Returns the published topic addressed by its slug with its published lessons, in
+        `position` order. Only published content is returned: a draft topic or a draft lesson
+        is never part of the response.
+
+        A topic is addressed by its slug; no endpoint looks a topic up by id.
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The published topic with its lessons, in `position` order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicDetail'
+        '404':
+          description: Not found. No published topic has this slug.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lessons/{lessonId}:
+    get:
+      tags:
+        - content
+      summary: Get one lesson
+      operationId: getLesson
+      description: |
+        Returns the published lesson addressed by its id, with its body in Markdown. Only
+        published content is returned: a draft lesson is never part of the response. The
+        lessons of a topic come in `position` order.
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: The id of the lesson.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The published lesson.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+        '404':
+          description: Not found. No published lesson has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}/quiz:
+    post:
+      tags:
+        - quiz
+      summary: Start a quiz on a topic
+      operationId: startQuiz
+      description: |
+        Starts a quiz on the topic. The response holds 5 questions, or all published
+        questions of the topic when the topic has fewer than 5. The client cannot choose the
+        number of questions.
+
+        The questions are drawn at random from the published questions of the topic, so two
+        calls can return different questions. Only published content is returned: a draft
+        question is never part of a quiz.
+
+        The response holds no property that reveals the correct option or the explanation:
+        the server grades the submission. No authentication is required.
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The questions of the quiz, with their options and no answer revealed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizQuestionList'
+        '404':
+          description: Not found. No published topic has this slug.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}/quiz/submissions:
+    post:
+      tags:
+        - quiz
+      summary: Submit a quiz on a topic
+      operationId: submitQuiz
+      description: |
+        Submits the answers of a quiz and returns the graded result. A submission lists the
+        quiz questions and the chosen option for each; the chosen option may be empty
+        (`null`). The body carries no user id and no session token.
+
+        A submission without a session is answered normally: the result is returned and
+        nothing is stored. No authentication is required.
+
+        A question with no chosen option, or with an option that does not belong to it,
+        counts as incorrect. A submission that contains a question which does not belong to
+        the topic is rejected with a validation error.
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: The answers of the quiz, one entry per question.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuizSubmissionRequest'
+      responses:
+        '200':
+          description: The graded result of the submission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizSubmissionResult'
+        '400':
+          description: |
+            Validation error. The submission contains a question that does not belong to the
+            topic, so nothing is graded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No published topic has this slug.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      tags:
+        - health
+      summary: Check that the service is up
+      operationId: getHealth
+      description: |
+        Answers with the health of the service. It is used by the container health check and
+        by the deployment check.
+      responses:
+        '200':
+          description: The service is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+components:
+  schemas:
+    Error:
+      type: object
+      description: |
+        The error object every error response carries.
+
+        `code` is the value the client branches on: `validation_error` for the status 400
+        (the request is invalid), `not_found` for the status 404 (the topic, the lesson or
+        the question does not exist or is not published), `conflict` for the status 409 (the
+        request conflicts with the current state) and `internal_error` for the status 500
+        (the server failed).
+
+        `message` is safe to show to the user. `details` is optional and carries extra
+        information about the failure.
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: The machine-readable error code the client branches on.
+        message:
+          type: string
+          description: A message that is safe to show to the user.
+        details:
+          type: object
+          additionalProperties: true
+          description: |
+            Optional details about the failure, for example the fields that failed the
+            validation.
+
+    TopicSummary:
+      type: object
+      description: A published topic of the platform.
+      required:
+        - id
+        - slug
+        - title
+        - description
+        - position
+      properties:
+        id:
+          type: string
+          description: The id of the topic.
+        slug:
+          type: string
+          description: The slug of the topic; the operations address the topic by it.
+        title:
+          type: string
+          description: The title of the topic.
+        description:
+          type: string
+          description: The description of the topic.
+        position:
+          type: integer
+          description: The position of the topic; the topics come in `position` order.
+
+    TopicList:
+      type: array
+      description: The published topics, in `position` order.
+      items:
+        $ref: '#/components/schemas/TopicSummary'
+
+    TopicDetail:
+      type: object
+      description: A published topic with its published lessons.
+      required:
+        - id
+        - slug
+        - title
+        - description
+        - position
+        - lessons
+      properties:
+        id:
+          type: string
+          description: The id of the topic.
+        slug:
+          type: string
+          description: The slug of the topic; the operations address the topic by it.
+        title:
+          type: string
+          description: The title of the topic.
+        description:
+          type: string
+          description: The description of the topic.
+        position:
+          type: integer
+          description: The position of the topic; the topics come in `position` order.
+        lessons:
+          type: array
+          description: The published lessons of the topic, in `position` order.
+          items:
+            $ref: '#/components/schemas/Lesson'
+
+    Lesson:
+      type: object
+      description: A published lesson of a topic.
+      required:
+        - id
+        - topic_id
+        - title
+        - body
+        - position
+      properties:
+        id:
+          type: string
+          description: The id of the lesson.
+        topic_id:
+          type: string
+          description: The id of the topic the lesson belongs to.
+        title:
+          type: string
+          description: The title of the lesson.
+        body:
+          type: string
+          description: The body of the lesson, in Markdown.
+        position:
+          type: integer
+          description: The position of the lesson in its topic; the lessons come in `position` order.
+
+    QuizOption:
+      type: object
+      description: One answer option of a question, in the order the server returns it.
+      required:
+        - id
+        - text
+      properties:
+        id:
+          type: string
+          description: The id of the option.
+        text:
+          type: string
+          description: The text of the option.
+
+    QuizQuestion:
+      type: object
+      description: |
+        One question of a quiz with its options. It holds no correct answer and no
+        explanation: the server grades the submission.
+      required:
+        - id
+        - text
+        - options
+      properties:
+        id:
+          type: string
+          description: The id of the question.
+        text:
+          type: string
+          description: The text of the question.
+        options:
+          type: array
+          description: The options of the question, in a stable order.
+          items:
+            $ref: '#/components/schemas/QuizOption'
+
+    QuizQuestionList:
+      type: array
+      description: |
+        The questions of the quiz: 5 of them, or all published questions of the topic when
+        the topic has fewer than 5.
+      items:
+        $ref: '#/components/schemas/QuizQuestion'
+
+    QuizSubmissionAnswer:
+      type: object
+      description: The answer of one question of the quiz.
+      required:
+        - question_id
+        - option_id
+      properties:
+        question_id:
+          type: string
+          description: The id of the question the answer belongs to.
+        option_id:
+          type:
+            - string
+            - "null"
+          description: The id of the chosen option, or `null` when the question is unanswered.
+
+    QuizSubmissionRequest:
+      type: object
+      description: |
+        The answers of a submission, one entry per question of the quiz. It carries no user
+        id and no session token.
+      required:
+        - answers
+      properties:
+        answers:
+          type: array
+          description: The answers of the quiz, one entry per question.
+          items:
+            $ref: '#/components/schemas/QuizSubmissionAnswer'
+
+    QuizSubmissionResultAnswer:
+      type: object
+      description: The graded answer of one question of the quiz.
+      required:
+        - question_id
+        - is_correct
+        - correct_option_text
+        - explanation
+      properties:
+        question_id:
+          type: string
+          description: The id of the question.
+        is_correct:
+          type: boolean
+          description: Whether the answer was correct.
+        correct_option_text:
+          type: string
+          description: The text of the correct option.
+        explanation:
+          type: string
+          description: A short explanation of the correct answer.
+
+    QuizSubmissionResult:
+      type: object
+      description: The graded result of a submission.
+      required:
+        - score
+        - total
+        - answers
+      properties:
+        score:
+          type: integer
+          description: The number of correct answers.
+        total:
+          type: integer
+          description: The number of questions of the quiz.
+        answers:
+          type: array
+          description: The graded answer of every question of the quiz.
+          items:
+            $ref: '#/components/schemas/QuizSubmissionResultAnswer'
+
+    HealthStatus:
+      type: object
+      description: The health of the service.
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: The status of the service, for example `ok`.

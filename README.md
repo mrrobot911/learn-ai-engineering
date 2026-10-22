@@ -17,7 +17,7 @@ A web application where developers learn AI engineering through structured lesso
 | Project instructions (`AGENTS.md`) | done |
 | Task tracker (GitHub Issues with acceptance criteria) | planned |
 | Frontend prototype with mock API client | planned |
-| OpenAPI contract | planned |
+| OpenAPI contract | done (content and quiz endpoints) |
 | Backend and tests | planned |
 | Database and integration tests | planned |
 | Docker Compose | planned |
@@ -107,7 +107,7 @@ Directories for the agent extension pack (`agent-capabilities/`, `agent-hooks/`,
 
 ## 6. API contract
 
-The API contract will be defined in `openapi.yaml` before any real API call is implemented. The frontend and the backend will communicate only through this interface, and the backend will follow it. _Planned._
+The API contract is defined in [`openapi.yaml`](openapi.yaml) before any real API call is implemented. The frontend and the backend communicate only through this interface, and the backend follows it. The content and quiz endpoints are described; registration, the session, the progress, the history and the maintainer operations are added to the contract in the issues that follow.
 
 ## 7. Database
 
