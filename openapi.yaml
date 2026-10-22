@@ -5,14 +5,22 @@ info:
   version: "1.0.0"
   description: |
     The public interface of version 1 for the content and quiz endpoints: the topics, the
-    lessons of a topic, the quiz of a topic and the health check the containers use.
+    lessons of a topic, the quiz of a topic, authentication and session, and the health
+    check the containers use.
 
     Topics are addressed by their slug, lessons by their id. Only published content is
-    returned: a draft topic, lesson or question never appears in a response. Every operation
-    described here is public and works without a session.
+    returned: a draft topic, lesson or question never appears in a response.
 
-    Registration, the session, the lesson progress, the quiz history and the maintainer
-    operations are added to this contract later; they are not described here.
+    The session is kept in a cookie that is `HttpOnly` and `SameSite`, `Secure` in
+    production, path `/`, with a fixed expiry of 7 days. Cross-site request forgery
+    protection is required: the token is issued at registration and log in and must be
+    sent back in a header on every state-changing request that carries a session cookie.
+    `GET` does not require it. A quiz submission that carries a session cookie is
+    state-changing and needs the token; an anonymous submission without a session cookie
+    is accepted without it.
+
+    The lesson progress, the quiz history and the maintainer operations are added to this
+    contract later; they are not described here.
 
 servers:
   - url: http://localhost:8080
@@ -23,6 +31,8 @@ tags:
     description: The published topics and the lessons of a topic.
   - name: quiz
     description: The quiz of a topic, starting it and submitting the answers.
+  - name: auth
+    description: Registration, authentication, session and logout.
   - name: health
     description: The health check of the service.
 
@@ -184,10 +194,15 @@ paths:
       description: |
         Submits the answers of a quiz and returns the graded result. A submission lists the
         quiz questions and the chosen option for each; the chosen option may be empty
-        (`null`). The body carries no user id and no session token.
+        (`null`). The body carries no user id.
 
-        A submission without a session is answered normally: the result is returned and
-        nothing is stored. No authentication is required.
+        A submission without a session cookie is answered normally: the result is returned
+        and nothing is stored. An anonymous submission without a session cookie is accepted
+        without CSRF protection.
+
+        A submission that carries a session cookie is state-changing and requires CSRF
+        protection: the token must be sent in the `X-CSRF-Token` header. When a valid
+        session is present, the attempt is stored for that user.
 
         A question with no chosen option, or with an option that does not belong to it,
         counts as incorrect. A submission that contains a question which does not belong to
@@ -234,6 +249,165 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: Register a new user
+      operationId: register
+      description: |
+        Creates a new account. On success a session cookie is set and a CSRF token is
+        issued. The token must be sent back in a header on every state-changing request
+        that carries the session cookie.
+      requestBody:
+        required: true
+        description: Registration details.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Account created and session started.
+          headers:
+            Set-Cookie:
+              description: Session cookie (`HttpOnly`, `SameSite`, `Secure` in production, path `/`, expires in 7 days).
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error for invalid input.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict for a duplicate email.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Log in
+      operationId: login
+      description: |
+        Authenticates with email and password. On success a session cookie is set and a
+        CSRF token is issued. The token must be sent back in a header on every
+        state-changing request that carries the session cookie.
+      requestBody:
+        required: true
+        description: Login credentials.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated and session started.
+          headers:
+            Set-Cookie:
+              description: Session cookie (`HttpOnly`, `SameSite`, `Secure` in production, path `/`, expires in 7 days).
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Authentication error for wrong credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Validation error for invalid input.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      summary: Log out
+      operationId: logout
+      description: |
+        Ends the current session. State-changing request that carries a session cookie
+        requires CSRF protection (token sent in header).
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        '200':
+          description: Logged out.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '401':
+          description: No valid session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/session:
+    get:
+      tags:
+        - auth
+      summary: Get current session
+      operationId: getSession
+      description: |
+        Returns the current session if valid. Answers 401 when there is no valid session.
+        `GET` does not require CSRF protection.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Current session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          description: No valid session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /health:
     get:
       tags:
@@ -252,6 +426,17 @@ paths:
                 $ref: '#/components/schemas/HealthStatus'
 
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Session cookie `HttpOnly`, `SameSite`, `Secure` in production, path `/`, expires in 7 days.
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: CSRF token issued at registration and log in; must be sent on state-changing requests that carry the session cookie.
   schemas:
     Error:
       type: object
@@ -498,3 +683,82 @@ components:
         status:
           type: string
           description: The status of the service, for example `ok`.
+
+    RegisterRequest:
+      type: object
+      description: Registration request.
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: The user's email address.
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: The user's password (8-128 characters).
+
+    LoginRequest:
+      type: object
+      description: Login request.
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: The user's email address.
+        password:
+          type: string
+          description: The user's password.
+
+    UserSummary:
+      type: object
+      description: Public user summary.
+      required:
+        - id
+        - email
+      properties:
+        id:
+          type: string
+          description: The user's id.
+        email:
+          type: string
+          format: email
+          description: The user's email address.
+
+    AuthResponse:
+      type: object
+      description: Authentication response with CSRF token.
+      required:
+        - user
+        - csrf_token
+      properties:
+        user:
+          $ref: '#/components/schemas/UserSummary'
+        csrf_token:
+          type: string
+          description: CSRF token to send in `X-CSRF-Token` header on state-changing requests that carry the session cookie.
+
+    SessionResponse:
+      type: object
+      description: Current session.
+      required:
+        - user
+      properties:
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    LogoutResponse:
+      type: object
+      description: Logout result.
+      required:
+        - ok
+      properties:
+        ok:
+          type: boolean
+          description: Whether logout succeeded.

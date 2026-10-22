@@ -359,3 +359,23 @@ Related: [`AGENTS.md`](../AGENTS.md) (instructions for AI tools), [`product-spec
   - No test was run and none was added: this change adds no runtime behaviour (criterion 17 of the issue).
 - **Artifacts:** `openapi.yaml` — the artifact of the contract stage. Issues #11 (authentication and session), #12 (progress and quiz history) and #13 (maintainer draft and publish operations) add to it; the backend of #14-#20 and the HTTP client of #27-#30 are written against it.
 - **Links:** issue #10, branch `issue-10`; the commit is referenced in the issue comment.
+
+## 2026-10-22 — Entry 16: authentication and session API contract (issue #11)
+
+- **Tool:** OpenCode (software engineer role) implementing groomed issue #11 (T11) on branch `issue-11`.
+- **Prompt / task given:** implement the groomed issue #11 (T11): extend `openapi.yaml` to define registration, log in, log out and the current session endpoints, including session cookie and CSRF protection; session endpoint returns 401 when no valid session; session cookie documented as `HttpOnly`, `SameSite`, `Secure` in production, path `/`, fixed expiry 7 days; CSRF token issued at registration and log in must be sent in header on every state-changing request that carries a session cookie (`GET` does not require it); quiz submission carrying a session cookie is state-changing and needs the token, anonymous submission without a session cookie accepted without it; register returns validation error for invalid input and conflict for duplicate email; log in returns authentication error for wrong credentials; registration rejects password shorter than 8 or longer than 128 characters with validation error, limits part of request schema; no response schema contains `password_hash` or any session token; `bunx @redocly/cli lint openapi.yaml` passes.
+- **Context given:** issue #11; `AGENTS.md` (Conventions, Gotchas); `product-spec.md` section 4 (US-4), section 7 (security), section 9 (data model); `openapi.yaml` (as of issue #10); `docs/process.md`, `docs/task-template.md`.
+- **Result:**
+  - Extended `openapi.yaml`:
+    - Updated `info.description` to include authentication and session and CSRF rules; removed the note saying they are added later.
+    - Added tag `auth` and added operations `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/session`.
+    - Added security schemes `sessionCookie` (apiKey in cookie named `session`) and `csrfToken` (apiKey in header named `X-CSRF-Token`).
+    - `/auth/logout` requires both `sessionCookie` and `csrfToken` (state-changing with session cookie). `/auth/session` requires `sessionCookie` only and returns 401 when no valid session (`GET` does not require CSRF). Register/login are unauthenticated but set the session cookie and return `csrf_token`.
+    - Added schemas `RegisterRequest` (email, password with `minLength: 8`, `maxLength: 128`), `LoginRequest`, `UserSummary`, `AuthResponse` (user + `csrf_token`), `SessionResponse` (user), `LogoutResponse` (`ok`). No schema contains `password_hash` or a session token.
+    - Updated `POST /topics/{topicSlug}/quiz/submissions` description to document CSRF requirement when carrying a session cookie and that anonymous submissions without a session cookie are accepted without it; the request/response schemas unchanged.
+  - No runtime code, tests, dependencies, or other files changed.
+- **Accepted / rejected / changed by hand, and why:** left for the maintainer. Contract-first rule followed.
+- **Verification:**
+  - `bunx @redocly/cli lint openapi.yaml`: exit 0, valid with warnings only (no errors).
+- **Artifacts:** `openapi.yaml` — updated for issue #11; issues #12 and #13 will extend it further.
+- **Links:** issue #11, branch `issue-11`.
