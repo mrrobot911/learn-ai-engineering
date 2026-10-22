@@ -848,6 +848,8 @@ Source: `product-spec.md` section 7 (one client module, contract), section 4 US-
 - [ ] HTTP failures, a 404 and a 500 map to the error and not-found states built in T04 and T05.
 - [ ] Unit tests for the client's status-to-error mapping pass, and the component tests still pass against a fake client.
 - [ ] No component contains a direct `fetch`.
+- [ ] The topics are addressed by slug, as the contract of T10 decides, so the client and the screens are reconciled with it: the prototype addressed the topics by id (`api.getTopic(topicId)`).
+- [ ] The four fields of the prototype that the data model of `product-spec.md` section 9 does not have (`icon`, `color`, `summary`, `durationMin`) are resolved: either the screens derive them or the data model changes. The contract of T10 does not carry them.
 
 ## Out of scope
 
@@ -878,6 +880,8 @@ Source: `product-spec.md` section 4 US-2, US-3.
 - [ ] A rejected submission (a question from another topic) is shown as a validation error, and an unanswered question is submitted as unanswered and marked incorrect.
 - [ ] The CSRF token is sent with the submission when a session cookie is present; an anonymous submission sends no token and is still answered.
 - [ ] The correct answer is never rendered before the submission response arrives.
+- [ ] The topic of the quiz is addressed by slug, as the contract of T10 decides, so `startQuiz` and `submitQuiz` of the client are reconciled with it: the prototype used the topic id.
+- [ ] The result screen of T06 renders the question text and the selected answer text as well; the submit response of the contract of T10 carries the question id, the correctness, the text of the correct option and the explanation (US-2), so it is decided here whether the client maps the two missing texts or the screen drops them.
 - [ ] Unit tests for the client mapping and the flow pass.
 
 ## Out of scope
