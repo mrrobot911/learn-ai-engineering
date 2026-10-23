@@ -352,11 +352,15 @@ Source: `product-spec.md` section 4 US-4, section 7 (security).
 ## Acceptance criteria
 
 - [ ] Register, log in, log out and "current session" endpoints are defined; the session endpoint answers 401 when there is no valid session.
+- [ ] The current-session endpoint returns the CSRF token in its response, so a client that keeps the session cookie across a page reload can send state-changing requests without re-authenticating.
 - [ ] The session is documented as a cookie that is `HttpOnly` and `SameSite`, `Secure` in production, path `/`, with a fixed expiry of 7 days.
-- [ ] Cross-site request forgery protection is documented: the token is issued at registration and log in and must be sent back in a header on every state-changing request that carries a session cookie. `GET` does not require it. A quiz submission that carries a session cookie is state-changing and needs the token; an anonymous submission without a session cookie is accepted without it.
+- [ ] Cross-site request forgery protection is documented: the token is issued at registration, log in and on every read of the current session, and must be sent back in a header on every state-changing request that carries a session cookie. `GET` does not require it. A quiz submission that carries a session cookie is state-changing and needs the token; an anonymous submission without a session cookie is accepted without it.
+- [ ] In `openapi.yaml`, the `POST /topics/{topicSlug}/quiz/submissions` operation declares no `401` response and states that a submission with a missing, invalid or expired session cookie is treated as anonymous: it is graded and answered normally and nothing is stored. The operation declares `403` only for a CSRF failure when the session is valid.
+- [ ] The shared `Error` schema documents the error codes for status `401` (`authentication_error`: no valid session or authentication failed), status `403` (`forbidden`: CSRF protection failed with a valid session) and status `403` (`authorization_error`: a valid session lacks the required permission, for example a user without `is_maintainer`); each operation that returns these statuses declares the matching response.
+- [ ] The 403 decision is recorded in the contract: a client retries a `forbidden` response after refreshing the CSRF token and does not retry an `authorization_error` response. T13 and T20 use the same `authorization_error` code for a valid session that lacks the required permission.
 - [ ] Register returns a validation error for invalid input and a conflict for a duplicate email; log in returns an authentication error for wrong credentials.
 - [ ] Registration rejects a password shorter than 8 or longer than 128 characters with a validation error; the limits are part of the request schema.
-- [ ] No response schema contains `password_hash` or any session token.
+- [ ] No response schema contains `password_hash` or any session token other than the documented CSRF token.
 - [ ] `bunx @redocly/cli lint openapi.yaml` passes.
 
 ## Out of scope
