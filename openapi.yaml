@@ -35,6 +35,10 @@ tags:
     description: The quiz of a topic, starting it and submitting the answers.
   - name: auth
     description: Registration, authentication, session and logout.
+  - name: progress
+    description: Lesson progress for the logged-in user.
+  - name: history
+    description: Quiz attempts for the logged-in user.
   - name: health
     description: The health check of the service.
 
@@ -426,6 +430,202 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /me/progress:
+    get:
+      tags:
+        - progress
+      summary: Get lesson progress
+      operationId: getMyProgress
+      description: |
+        Returns the lesson progress for the logged-in user. No user id is taken in the
+        request; ownership is enforced by the server from the session.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The lesson ids the user has marked complete.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressResponse'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /me/progress/lessons/{lessonId}:
+    put:
+      tags:
+        - progress
+      summary: Mark a lesson complete
+      operationId: markLessonComplete
+      description: |
+        Marks a lesson as completed for the logged-in user. No user id is taken in the
+        request; ownership is enforced by the server from the session. Marking a lesson
+        complete is idempotent.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: The id of the lesson.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lesson marked complete (idempotent).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressResponse'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: CSRF protection failed with a valid session (`forbidden`). Refresh the CSRF token and retry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - progress
+      summary: Undo lesson completion
+      operationId: unmarkLessonComplete
+      description: |
+        Removes completion for a lesson for the logged-in user. No user id is taken in
+        the request; ownership is enforced by the server from the session. Undoing an
+        unmarked lesson is not an error.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      parameters:
+        - name: lessonId
+          in: path
+          required: true
+          description: The id of the lesson.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lesson completion removed (no error if not marked).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressResponse'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: CSRF protection failed with a valid session (`forbidden`). Refresh the CSRF token and retry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /me/attempts:
+    get:
+      tags:
+        - history
+      summary: List quiz attempts
+      operationId: listMyAttempts
+      description: |
+        Returns the quiz attempts for the logged-in user, newest first. No user id is
+        taken in the request; ownership is enforced by the server from the session.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The quiz attempts, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizAttemptList'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /me/attempts/{attemptId}:
+    get:
+      tags:
+        - history
+      summary: Get quiz attempt details
+      operationId: getMyAttempt
+      description: |
+        Returns the details of a quiz attempt for the logged-in user. No user id is
+        taken in the request; ownership is enforced by the server from the session.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: attemptId
+          in: path
+          required: true
+          description: The id of the attempt.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The quiz attempt details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizAttemptDetail'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. The attempt does not exist or does not belong to the user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /health:
     get:
       tags:
@@ -792,3 +992,114 @@ components:
         ok:
           type: boolean
           description: Whether logout succeeded.
+
+    ProgressResponse:
+      type: array
+      description: The lesson ids the logged-in user has marked complete.
+      items:
+        type: string
+
+    QuizAttemptAnswer:
+      type: object
+      description: |
+        A snapshot of one answer in a stored quiz attempt. The snapshot keeps the question
+        text, the selected answer text and the correct answer text at the time of the
+        attempt so later edits or removal of a question do not change past attempts.
+      required:
+        - question_id
+        - question_text
+        - selected_option_text
+        - correct_option_text
+        - is_correct
+      properties:
+        question_id:
+          type:
+            - string
+            - "null"
+          description: The id of the question at the time of the attempt, or null if the question was removed.
+        question_text:
+          type: string
+          description: The text of the question at the time of the attempt.
+        selected_option_text:
+          type: string
+          description: The text of the selected option, or an empty string if the question was unanswered.
+        correct_option_text:
+          type: string
+          description: The text of the correct option at the time of the attempt.
+        is_correct:
+          type: boolean
+          description: Whether the answer was correct.
+
+    QuizAttemptListItem:
+      type: object
+      description: A quiz attempt summary for the list, newest first.
+      required:
+        - id
+        - topic_id
+        - topic_slug
+        - score
+        - total
+        - created_at
+      properties:
+        id:
+          type: string
+          description: The id of the attempt.
+        topic_id:
+          type: string
+          description: The id of the topic.
+        topic_slug:
+          type: string
+          description: The slug of the topic.
+        score:
+          type: integer
+          description: The number of correct answers.
+        total:
+          type: integer
+          description: The number of questions in the attempt.
+        created_at:
+          type: string
+          format: date-time
+          description: When the attempt was created.
+
+    QuizAttemptList:
+      type: array
+      description: Quiz attempts for the logged-in user, newest first.
+      items:
+        $ref: '#/components/schemas/QuizAttemptListItem'
+
+    QuizAttemptDetail:
+      type: object
+      description: The full details of a quiz attempt with per-question answers.
+      required:
+        - id
+        - topic_id
+        - topic_slug
+        - score
+        - total
+        - created_at
+        - answers
+      properties:
+        id:
+          type: string
+          description: The id of the attempt.
+        topic_id:
+          type: string
+          description: The id of the topic.
+        topic_slug:
+          type: string
+          description: The slug of the topic.
+        score:
+          type: integer
+          description: The number of correct answers.
+        total:
+          type: integer
+          description: The number of questions in the attempt.
+        created_at:
+          type: string
+          format: date-time
+          description: When the attempt was created.
+        answers:
+          type: array
+          description: The snapshot answers for each question in the attempt.
+          items:
+            $ref: '#/components/schemas/QuizAttemptAnswer'
