@@ -15,15 +15,15 @@ A web application where developers learn AI engineering through structured lesso
 |---|---|
 | Product specification | done (draft v0.2) |
 | Project instructions (`AGENTS.md`) | done |
-| Task tracker (GitHub Issues with acceptance criteria) | planned |
-| Frontend prototype with mock API client | planned |
-| OpenAPI contract | done (content and quiz endpoints) |
+| Task tracker (GitHub Issues with acceptance criteria) | in use (issues #2-#13; later tasks are created as their stage starts) |
+| Frontend prototype with mock API client | done (T02-T09) |
+| OpenAPI contract | done (content, quiz, authentication, progress, history and maintainer operations) |
 | Backend and tests | planned |
 | Database and integration tests | planned |
 | Docker Compose | planned |
 | CI/CD and deployment | planned |
 | Agent extension pack, security and audit | planned (course modules) |
-| Agent roles, task template and process | done (not yet tried on an issue) |
+| Agent roles, task template and process | done (used on issues #2-#13) |
 
 ## 1. Problem
 
@@ -107,7 +107,7 @@ Directories for the agent extension pack (`agent-capabilities/`, `agent-hooks/`,
 
 ## 6. API contract
 
-The API contract is defined in [`openapi.yaml`](openapi.yaml) before any real API call is implemented. The frontend and the backend communicate only through this interface, and the backend follows it. The content and quiz endpoints are described; registration, the session, the progress, the history and the maintainer operations are added to the contract in the issues that follow.
+The API contract is defined in [`openapi.yaml`](openapi.yaml) before any real API call is implemented. The frontend and the backend communicate only through this interface, and the backend follows it. It describes the content and quiz endpoints, authentication and the session, the lesson progress, the quiz history and the maintainer draft and publish operations.
 
 ## 7. Database
 

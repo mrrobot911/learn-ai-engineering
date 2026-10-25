@@ -159,7 +159,6 @@ paths:
       security:
         - sessionCookie: []
           csrfToken: []
-          maintainerAuth: []
       parameters:
         - name: topicSlug
           in: path
@@ -173,7 +172,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DraftLesson'
+              $ref: '#/components/schemas/DraftLessonRequest'
       responses:
         '201':
           description: Draft lesson created.
@@ -224,7 +223,6 @@ paths:
       security:
         - sessionCookie: []
           csrfToken: []
-          maintainerAuth: []
       parameters:
         - name: topicSlug
           in: path
@@ -244,7 +242,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DraftLesson'
+              $ref: '#/components/schemas/DraftLessonRequest'
       responses:
         '200':
           description: Draft lesson updated.
@@ -295,7 +293,6 @@ paths:
       security:
         - sessionCookie: []
           csrfToken: []
-          maintainerAuth: []
       parameters:
         - name: topicSlug
           in: path
@@ -353,7 +350,6 @@ paths:
       security:
         - sessionCookie: []
           csrfToken: []
-          maintainerAuth: []
       parameters:
         - name: topicSlug
           in: path
@@ -412,7 +408,6 @@ paths:
       security:
         - sessionCookie: []
           csrfToken: []
-          maintainerAuth: []
       parameters:
         - name: topicSlug
           in: path
@@ -426,7 +421,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DraftQuestion'
+              $ref: '#/components/schemas/DraftQuestionRequest'
       responses:
         '201':
           description: Draft question created.
@@ -478,7 +473,6 @@ paths:
       security:
         - sessionCookie: []
           csrfToken: []
-          maintainerAuth: []
       parameters:
         - name: topicSlug
           in: path
@@ -498,7 +492,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DraftQuestion'
+              $ref: '#/components/schemas/DraftQuestionRequest'
       responses:
         '200':
           description: Draft question updated.
@@ -549,7 +543,6 @@ paths:
       security:
         - sessionCookie: []
           csrfToken: []
-          maintainerAuth: []
       parameters:
         - name: topicSlug
           in: path
@@ -607,7 +600,6 @@ paths:
       security:
         - sessionCookie: []
           csrfToken: []
-          maintainerAuth: []
       parameters:
         - name: topicSlug
           in: path
@@ -1161,11 +1153,6 @@ components:
       in: header
       name: X-CSRF-Token
       description: CSRF token issued at registration, log in and on every read of the current session; must be sent on state-changing requests that carry the session cookie.
-    maintainerAuth:
-      type: apiKey
-      in: header
-      name: X-Maintainer-Token
-      description: Token issued to maintainers with is_maintainer flag; required for draft and publish operations.
   schemas:
     ContentStatus:
       type: string
@@ -1428,6 +1415,71 @@ components:
         status:
           $ref: '#/components/schemas/ContentStatus'
           description: The status of the question; only published questions are visible to users.
+
+    DraftLessonRequest:
+      type: object
+      description: |
+        The body to create or update a draft lesson. It carries no id, no topic id and no
+        status: the server assigns the id, the topic comes from the path and the lesson is
+        always a draft. Only the publish operation changes the status.
+      required:
+        - title
+        - body
+        - position
+      properties:
+        title:
+          type: string
+          description: The title of the lesson.
+        body:
+          type: string
+          description: The body of the lesson, in Markdown.
+        position:
+          type: integer
+          description: The position of the lesson in its topic.
+
+    DraftQuestionOptionInput:
+      type: object
+      description: One answer option in a draft question request; the server assigns the id.
+      required:
+        - text
+        - is_correct
+      properties:
+        text:
+          type: string
+          description: The text of the option.
+        is_correct:
+          type: boolean
+          description: Whether this option is the correct answer.
+
+    DraftQuestionRequest:
+      type: object
+      description: |
+        The body to create or update a draft question. It carries no id, no topic id and no
+        status: the server assigns the id, the topic comes from the path and the question is
+        always a draft. Only the publish operation changes the status.
+      required:
+        - text
+        - options
+      properties:
+        text:
+          type: string
+          description: The text of the question.
+        options:
+          type: array
+          description: The options of the question, 2 to 6, with exactly one marked as correct.
+          minItems: 2
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/DraftQuestionOptionInput'
+          contains:
+            type: object
+            required:
+              - is_correct
+            properties:
+              is_correct:
+                const: true
+          minContains: 1
+          maxContains: 1
 
     QuizQuestionList:
       type: array
