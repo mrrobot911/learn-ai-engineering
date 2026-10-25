@@ -46,6 +46,9 @@ The maintainer reviews once, at the end. This keeps the manual review that [`ai-
 ## Changes to the backlog
 When the product manager reports that part of the issue belongs to another task, the orchestrator updates `docs/artifacts/backlog/tasks.md` before it continues: the receiving task gets the criteria.
 
+## Context size
+Do not read `docs/ai-workflow.md`, `docs/artifacts/backlog/tasks.md` or `openapi.yaml` whole, in the main session or in a role. Find the entry for the issue with `rg -n "issue #<N>"` in `ai-workflow.md` and read only it (or the last one when adding a new entry); read only the section of the task in `tasks.md`; read only the paths and schemas of `openapi.yaml` that the issue touches. One issue per session: after the pull request is opened the maintainer starts a new session, and the next stage gets its context from the artifacts by path, not from the conversation.
+
 ## Notes
 - Each role works on one issue per run and leaves its result as an issue comment.
 - Role permissions in the agent files are guard rails, not a guarantee. Review what each run did.
