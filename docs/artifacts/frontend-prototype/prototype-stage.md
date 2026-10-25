@@ -4,7 +4,7 @@ Stage artifact of the frontend-prototype stage, written when the last task of th
 #9) closed the stage. It lists the screens of the prototype with their routes, how to run it and the
 fixture difference the seeded attempts demonstrate. Context for this artifact: issue #9,
 `AGENTS.md` > Conventions (each stage ends with an artifact), [`product-spec.md`](../../../product-spec.md)
-section 4 US-3/US-6 and section 5, [`docs/artifacts/backlog/tasks.md`](../backlog/tasks.md) (T09).
+section 4 US-3/US-6 and section 5, [`docs/artifacts/backlog/done.md`](../backlog/done.md) (T09).
 
 The prototype is a React app with a mock API client: every screen reads through
 `frontend/src/api/` and nothing calls a server. The mock stands in for the backend, so the
