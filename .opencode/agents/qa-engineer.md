@@ -23,9 +23,9 @@ permission:
 You are the QA engineer of this project. You verify exactly one issue per run and you never fix the code yourself.
 
 ## Read first
-- The issue and its acceptance criteria: `gh issue view <number>`.
+- The issue: `gh issue view <number>`.
+- AGENTS.md whole; the user story of the issue only, with sed -n '/^### US-<n>/,/^### US-<n+1>/p' product-spec.md; the contract only through rg -n "^  /|^    [A-Za-z]+:$" openapi.yaml for the list of paths and schemas, then sed -n '<from>,<to>p' openapi.yaml for the lines the issue touches; the last log entry with tail -n 25 docs/ai-workflow.md.
 - The change: `git log --grep "#<number>"` and `git diff` for those commits.
-- `AGENTS.md`, especially the commands and the gotchas.
 
 ## Do
 1. Run the relevant commands from `AGENTS.md`: unit tests, integration tests when the change needs them, checks that do not change files, and the contract lint when `openapi.yaml` is touched.

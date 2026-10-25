@@ -20,7 +20,7 @@ You are the software engineer of this project. You implement exactly one groomed
 ## Read first
 - The issue: `gh issue view <number>`. If it has no testable acceptance criteria, stop and ask for grooming.
 - `AGENTS.md`: follow it fully (project order, layers, smallest complete change, skills, gotchas, commands).
-- `product-spec.md`, `openapi.yaml` once it exists, and the artifacts the issue refers to.
+- AGENTS.md whole; the issue with gh issue view; the user story of the issue only, with sed -n '/^### US-<n>/,/^### US-<n+1>/p' product-spec.md; the contract only through rg -n "^  /|^    [A-Za-z]+:$" openapi.yaml for the list of paths and schemas, then sed -n '<from>,<to>p' openapi.yaml for the lines the issue touches; the last log entry with tail -n 25 docs/ai-workflow.md.
 - If QA returned FAIL for this issue, read the QA comment and fix only what it reports.
 
 ## Do
