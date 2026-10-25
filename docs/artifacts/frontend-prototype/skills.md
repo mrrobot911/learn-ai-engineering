@@ -77,3 +77,7 @@ React app apply and the Next.js-specific ones are ignored. A skill never overrid
   loading could not be confirmed there; a session started after this commit sees them. Criterion 4
   of issue #2 now states that precondition, because the QA session hit the same limit.
 - No test was run and none was added: this change adds no behaviour (criterion 11 of issue #2).
+
+## Issue #30 renaming
+
+On 2026-10-25, issue #30 renamed `.agents/skills/react-best-practices/AGENTS.md` to `.agents/skills/react-best-practices/reference.md` and `.agents/skills/composition-patterns/AGENTS.md` to `.agents/skills/composition-patterns/reference.md` with `git mv`. The content remains unchanged; the files are no longer loaded automatically as instructions by OpenCode.
