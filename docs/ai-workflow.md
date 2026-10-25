@@ -188,9 +188,9 @@ Entries 0-12 are kept unchanged in [`ai-workflow-archive.md`](ai-workflow-archiv
 - **Result:** renamed `.agents/skills/react-best-practices/AGENTS.md` to `.agents/skills/react-best-practices/reference.md` and `.agents/skills/composition-patterns/AGENTS.md` to `.agents/skills/composition-patterns/reference.md`; updated documentation in `docs/artifacts/frontend-prototype/skills.md` to reflect the changes; restored two rules in AGENTS.md that were accidentally removed; added gopls note to docs/process.md.
 - **Accepted / rejected / changed by hand, and why:** left for the maintainer.
 - **Verification:**
-  - `git diff`: exit 0, changes are to docs/artifacts/frontend-prototype/skills.md, AGENTS.md and docs/process.md
+  - `git diff`: exit 0, changes are to the skills, docs/artifacts/frontend-prototype/skills.md, docs/process.md and opencode.jsonc
   - `git status`: exit 0, working tree clean
   - Frontend checks: `bun run lint && bun run typecheck && bun run test`: exit 0
   - Redocly lint: `bunx @redocly/cli lint openapi.yaml`: exit 0, 4 warnings, no error
-- **Artifacts:** docs/artifacts/frontend-prototype/skills.md updated with Issue #30 renaming note; AGENTS.md restored with acceptance criteria and direct change rules; docs/process.md updated with gopls note.
+- **Artifacts:** docs/artifacts/frontend-prototype/skills.md (renaming note); docs/process.md (gopls note). Root `AGENTS.md` was not changed in this issue.
 - **Links:** issue #30.
