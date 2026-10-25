@@ -30,7 +30,7 @@ servers:
 
 tags:
   - name: content
-    description: The published topics and the lessons of a topic.
+    description: The published topics, lessons, and questions of a topic.
   - name: quiz
     description: The quiz of a topic, starting it and submitting the answers.
   - name: auth
@@ -136,6 +136,512 @@ paths:
                 $ref: '#/components/schemas/Lesson'
         '404':
           description: Not found. No published lesson has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}/lessons:
+    post:
+      tags:
+        - content
+      summary: Create a draft lesson
+      operationId: createDraftLesson
+      description: |
+        Creates a new draft lesson for the topic. Requires a maintainer session.
+        The lesson is not visible to users until published.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+          maintainerAuth: []
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: Lesson details for the draft.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftLesson'
+      responses:
+        '201':
+          description: Draft lesson created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DraftLesson'
+        '400':
+          description: Validation error for invalid input.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization error for non-maintainer user (`authorization_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No topic has this slug.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}/lessons/{lessonId}:
+    put:
+      tags:
+        - content
+      summary: Update a draft lesson
+      operationId: updateDraftLesson
+      description: |
+        Updates an existing draft lesson. Requires a maintainer session.
+        Only draft lessons can be updated.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+          maintainerAuth: []
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+        - name: lessonId
+          in: path
+          required: true
+          description: The id of the lesson.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: Updated lesson details.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftLesson'
+      responses:
+        '200':
+          description: Draft lesson updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DraftLesson'
+        '400':
+          description: Validation error for invalid input.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization error for non-maintainer user (`authorization_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No topic has this slug or no lesson has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}/lessons/{lessonId}/publish:
+    put:
+      tags:
+        - content
+      summary: Publish a lesson
+      operationId: publishLesson
+      description: |
+        Publishes a draft lesson, making it visible to users. Requires a maintainer session.
+        This operation only changes the status from draft to published.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+          maintainerAuth: []
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+        - name: lessonId
+          in: path
+          required: true
+          description: The id of the lesson.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lesson published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization error for non-maintainer user (`authorization_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No topic has this slug or no lesson has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}/lessons/{lessonId}/unpublish:
+    put:
+      tags:
+        - content
+      summary: Unpublish a lesson
+      operationId: unpublishLesson
+      description: |
+        Unpublishes a lesson, returning it to draft status. Requires a maintainer session.
+        This operation only changes the status from published to draft.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+          maintainerAuth: []
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+        - name: lessonId
+          in: path
+          required: true
+          description: The id of the lesson.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lesson unpublished.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DraftLesson'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization error for non-maintainer user (`authorization_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No topic has this slug or no lesson has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}/questions:
+    post:
+      tags:
+        - content
+      summary: Create a draft question
+      operationId: createDraftQuestion
+      description: |
+        Creates a new draft question for the topic. Requires a maintainer session.
+        The question is not visible to users until published.
+        Validation: 2-6 options, exactly one correct.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+          maintainerAuth: []
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: Question details for the draft.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftQuestion'
+      responses:
+        '201':
+          description: Draft question created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DraftQuestion'
+        '400':
+          description: Validation error for invalid input.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization error for non-maintainer user (`authorization_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No topic has this slug.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}/questions/{questionId}:
+    put:
+      tags:
+        - content
+      summary: Update a draft question
+      operationId: updateDraftQuestion
+      description: |
+        Updates an existing draft question. Requires a maintainer session.
+        Only draft questions can be updated.
+        Validation: 2-6 options, exactly one correct.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+          maintainerAuth: []
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+        - name: questionId
+          in: path
+          required: true
+          description: The id of the question.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: Updated question details.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftQuestion'
+      responses:
+        '200':
+          description: Draft question updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DraftQuestion'
+        '400':
+          description: Validation error for invalid input.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization error for non-maintainer user (`authorization_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No topic has this slug or no question has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}/questions/{questionId}/publish:
+    put:
+      tags:
+        - content
+      summary: Publish a question
+      operationId: publishQuestion
+      description: |
+        Publishes a draft question, making it visible to users. Requires a maintainer session.
+        This operation only changes the status from draft to published.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+          maintainerAuth: []
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+        - name: questionId
+          in: path
+          required: true
+          description: The id of the question.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Question published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizQuestion'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization error for non-maintainer user (`authorization_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No topic has this slug or no question has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error. The request could not be answered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /topics/{topicSlug}/questions/{questionId}/unpublish:
+    put:
+      tags:
+        - content
+      summary: Unpublish a question
+      operationId: unpublishQuestion
+      description: |
+        Unpublishes a question, returning it to draft status. Requires a maintainer session.
+        This operation only changes the status from published to draft.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+          maintainerAuth: []
+      parameters:
+        - name: topicSlug
+          in: path
+          required: true
+          description: The slug of the topic.
+          schema:
+            type: string
+        - name: questionId
+          in: path
+          required: true
+          description: The id of the question.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Question unpublished.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DraftQuestion'
+        '401':
+          description: No valid session (`authentication_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization error for non-maintainer user (`authorization_error`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No topic has this slug or no question has this id.
           content:
             application/json:
               schema:
@@ -655,7 +1161,18 @@ components:
       in: header
       name: X-CSRF-Token
       description: CSRF token issued at registration, log in and on every read of the current session; must be sent on state-changing requests that carry the session cookie.
+    maintainerAuth:
+      type: apiKey
+      in: header
+      name: X-Maintainer-Token
+      description: Token issued to maintainers with is_maintainer flag; required for draft and publish operations.
   schemas:
+    ContentStatus:
+      type: string
+      enum:
+        - draft
+        - published
+      description: The status of content; only published content is visible to users.
     Error:
       type: object
       description: |
@@ -703,6 +1220,7 @@ components:
         - title
         - description
         - position
+        - status
       properties:
         id:
           type: string
@@ -719,6 +1237,9 @@ components:
         position:
           type: integer
           description: The position of the topic; the topics come in `position` order.
+        status:
+          $ref: '#/components/schemas/ContentStatus'
+          description: The status of the topic; only published topics are visible to users.
 
     TopicList:
       type: array
@@ -735,6 +1256,7 @@ components:
         - title
         - description
         - position
+        - status
         - lessons
       properties:
         id:
@@ -752,6 +1274,9 @@ components:
         position:
           type: integer
           description: The position of the topic; the topics come in `position` order.
+        status:
+          $ref: '#/components/schemas/ContentStatus'
+          description: The status of the topic; only published topics are visible to users.
         lessons:
           type: array
           description: The published lessons of the topic, in `position` order.
@@ -767,6 +1292,7 @@ components:
         - title
         - body
         - position
+        - status
       properties:
         id:
           type: string
@@ -783,6 +1309,39 @@ components:
         position:
           type: integer
           description: The position of the lesson in its topic; the lessons come in `position` order.
+        status:
+          $ref: '#/components/schemas/ContentStatus'
+          description: The status of the lesson; only published lessons are visible to users.
+
+    DraftLesson:
+      type: object
+      description: A lesson draft that can be edited and published.
+      required:
+        - id
+        - topic_id
+        - title
+        - body
+        - position
+        - status
+      properties:
+        id:
+          type: string
+          description: The id of the lesson.
+        topic_id:
+          type: string
+          description: The id of the topic the lesson belongs to.
+        title:
+          type: string
+          description: The title of the lesson.
+        body:
+          type: string
+          description: The body of the lesson, in Markdown.
+        position:
+          type: integer
+          description: The position of the lesson in its topic; the lessons come in `position` order.
+        status:
+          $ref: '#/components/schemas/ContentStatus'
+          description: The status of the lesson; only published lessons are visible to users.
 
     QuizOption:
       type: object
@@ -797,6 +1356,24 @@ components:
         text:
           type: string
           description: The text of the option.
+
+    DraftQuestionOption:
+      type: object
+      description: One answer option of a draft question, with correct flag.
+      required:
+        - id
+        - text
+        - is_correct
+      properties:
+        id:
+          type: string
+          description: The id of the option.
+        text:
+          type: string
+          description: The text of the option.
+        is_correct:
+          type: boolean
+          description: Whether this option is the correct answer.
 
     QuizQuestion:
       type: object
@@ -819,6 +1396,38 @@ components:
           description: The options of the question, in a stable order.
           items:
             $ref: '#/components/schemas/QuizOption'
+
+    DraftQuestion:
+      type: object
+      description: |
+        A draft question with its options and correct answer. Only published questions
+        appear in quizzes and user interfaces.
+      required:
+        - id
+        - topic_id
+        - text
+        - options
+        - status
+      properties:
+        id:
+          type: string
+          description: The id of the question.
+        topic_id:
+          type: string
+          description: The id of the topic the question belongs to.
+        text:
+          type: string
+          description: The text of the question.
+        options:
+          type: array
+          description: The options of the question, with exactly one marked as correct.
+          minItems: 2
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/DraftQuestionOption'
+        status:
+          $ref: '#/components/schemas/ContentStatus'
+          description: The status of the question; only published questions are visible to users.
 
     QuizQuestionList:
       type: array
