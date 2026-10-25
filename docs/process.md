@@ -53,3 +53,6 @@ Do not read `docs/ai-workflow.md`, `docs/artifacts/backlog/tasks.md` or `openapi
 - Each role works on one issue per run and leaves its result as an issue comment.
 - Role permissions in the agent files are guard rails, not a guarantee. Review what each run did.
 - More roles cost more time and tokens. For a small change a direct request to the main session is enough; record it in the log in the same way.
+
+## gopls
+- gopls is disabled by default in opencode.jsonc to reduce agent reads. Enable it before Go work (T14a) by setting `mcp.gopls.enabled` to true.
