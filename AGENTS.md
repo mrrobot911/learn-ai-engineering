@@ -8,7 +8,7 @@ Web app where developers learn AI engineering through lessons and multiple-choic
 - backend test: `(cd backend && go test ./...)` (single test: `(cd backend && go test ./... -run TestName)`)
 - backend integration test: `(cd backend && go test -tags=integration ./...)` (needs Postgres from `docker compose up -d db`)
 - frontend test: `(cd frontend && bun run test)` (single test: `(cd frontend && bun run test <file-or-pattern>)`); use `bun run test`, not `bun test`, which starts Bun's own runner instead of the project's
-- checks that do not change files: `(cd backend && gofmt -l . && go vet ./...)`; `(cd frontend && bun run lint && bun run format:check)`
+- checks that do not change files: `(cd backend && gofmt -l . && go vet ./...)`; `(cd frontend && bun run lint && bun run typecheck && bun run format:check)`
 - apply formatting (changes files): `(cd backend && gofmt -w .)`; `(cd frontend && bun run format)`
 - validate API contract: `bunx @redocly/cli lint openapi.yaml`
 - JavaScript tooling is Bun only: do not use `npm`, `npx`, `yarn` or `pnpm`; install with `bun install` / `bun add`
@@ -45,7 +45,7 @@ Web app where developers learn AI engineering through lessons and multiple-choic
 - Follow `docs/process.md` for the issue lifecycle and the roles. When acting as a role from `.opencode/agents/`, do only what that role's file allows. Acceptance criteria are changed only by the product manager role or the maintainer. A request to work on, do or implement issue #N means the full cycle in `docs/process.md` with the main session as orchestrator; implement it directly only when the maintainer explicitly asks for a direct change.
 - Each stage ends with an artifact committed to the repository and linked to its issue (for example the specification, prototype screenshots or notes, `openapi.yaml`, test results). The next stage receives the artifact as context by path, not by pasting the whole file. Note the artifact and where it was used in `docs/ai-workflow.md`. Documents, screenshots and reports go in `docs/artifacts/<stage>/` (create it with the first file); the specification and the API contract stay where Layout puts them.
 - Versions: pin runtime and tool versions in the files that use them: Go in `go.mod`, Bun and base images in the Dockerfiles, the PostgreSQL major version as an image tag in `docker-compose.yml`, action versions in the workflows. Never use `latest`. Commit the lockfiles (`go.sum`, the Bun lockfile). Do not upgrade a version or add a dependency at another version unless the task asks for it, and read library docs for the pinned version.
-- Log notable AI-assisted steps (issue and its acceptance criteria, instructions and context files given, what was generated, tests run and their result, manual review and changes made) in `docs/ai-workflow.md`.
+- Log notable AI-assisted steps (issue and its acceptance criteria, instructions and context files given, what was generated, tests run and their result, manual review and changes made) in `docs/ai-workflow.md`. Keep entries short: the task, the context files by name, the result in five to eight lines, the verification commands with their exit codes, the maintainer decision, and the links; no list of every changed file and no repeated diff.
 
 ## Skills
 - Project skills live in `.agents/skills/` and are committed to the repository. Install or update them only when asked, read their `SKILL.md` before committing, and record the source and commit in `docs/ai-workflow.md`.

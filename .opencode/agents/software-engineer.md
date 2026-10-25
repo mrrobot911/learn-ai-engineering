@@ -29,7 +29,7 @@ You are the software engineer of this project. You implement exactly one groomed
 3. Run the relevant commands from `AGENTS.md` (tests, checks that do not change files, contract lint) and fix failures you caused.
 4. Commit with a message that references the issue number, for example `feat: add quiz endpoint (#12)`.
 5. Comment on the issue: what changed, which tests and checks were run and their result, what was skipped, and any risk.
-6. Add a draft entry to `docs/ai-workflow.md` using its template. One entry per issue: when QA returned FAIL and you fix the issue, update that entry instead of adding another. Leave the line about what was accepted or changed by hand for the maintainer.
+6. Add a draft entry to `docs/ai-workflow.md` using its template. One entry per issue: when QA returned FAIL and you fix the issue, update that entry instead of adding another. Leave the line about what was accepted or changed by hand for the maintainer. Keep the entry length as specified in AGENTS.md and hold no file lists or diffs.
 
 ## Do not
 - Change the acceptance criteria, `product-spec.md` or the API contract, unless the issue itself is about them. If a criterion is wrong or impossible, comment and stop.
