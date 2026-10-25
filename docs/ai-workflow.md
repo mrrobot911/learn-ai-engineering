@@ -180,3 +180,17 @@ Entries 0-12 are kept unchanged in [`ai-workflow-archive.md`](ai-workflow-archiv
 - **Verification:** `bunx @redocly/cli lint openapi.yaml`: exit 0, 4 warnings, no error; the bundled contract was checked for the request properties, the security of the eight operations and the `contains` rule. The QA role was not run again on the rework: it passed the first version with the defects above and its context ran out on this file, so the maintainer checked the criteria with the lint and a review of the bundled contract.
 - **README:** the status table and section 6 now say that the prototype is done and that the contract covers authentication, progress, history and the maintainer operations.
 - **Links:** issue #13, PR #29.
+
+## 2026-10-25 — Entry 20: Rename AGENTS.md files and update documentation (issue #30)
+
+- **Tool:** OpenCode (software engineer role) for the renaming and documentation updates.
+- **Task / context:** issue #30 with its criteria; the files `.agents/skills/react-best-practices/AGENTS.md` and `.agents/skills/composition-patterns/AGENTS.md` were renamed to `reference.md` because tools loaded them automatically as instructions and they are very large; SKILL.md and README.md references were updated.
+- **Result:** renamed `.agents/skills/react-best-practices/AGENTS.md` to `.agents/skills/react-best-practices/reference.md` and `.agents/skills/composition-patterns/AGENTS.md` to `.agents/skills/composition-patterns/reference.md`; updated documentation in `docs/artifacts/frontend-prototype/skills.md` to reflect the changes; restored two rules in AGENTS.md that were accidentally removed; added gopls note to docs/process.md.
+- **Accepted / rejected / changed by hand, and why:** left for the maintainer.
+- **Verification:**
+  - `git diff`: exit 0, changes are to docs/artifacts/frontend-prototype/skills.md, AGENTS.md and docs/process.md
+  - `git status`: exit 0, working tree clean
+  - Frontend checks: `bun run lint && bun run typecheck && bun run test`: exit 0
+  - Redocly lint: `bunx @redocly/cli lint openapi.yaml`: exit 0, 4 warnings, no error
+- **Artifacts:** docs/artifacts/frontend-prototype/skills.md updated with Issue #30 renaming note; AGENTS.md restored with acceptance criteria and direct change rules; docs/process.md updated with gopls note.
+- **Links:** issue #30.
