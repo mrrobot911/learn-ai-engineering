@@ -3,7 +3,7 @@
 Stage artifact of the frontend-prototype stage, task T02. It records what was installed in
 `.agents/skills/`, from where, at which commit, under which licence, so that the tasks that follow
 (#3 to #9) load the skills by name and know what is vendored. Context for this artifact: issue #2,
-`AGENTS.md` > Skills, [`docs/artifacts/backlog/tasks.md`](../backlog/tasks.md) (T02).
+`AGENTS.md` > Skills, [`docs/artifacts/backlog/done.md`](../backlog/done.md) (T02).
 
 Installed per project only, never globally: `~/.config/opencode/skills`, `~/.claude/skills` and
 `~/.agents/skills` do not hold any of them, and `.gitignore` does not exclude `.agents/`.
