@@ -998,6 +998,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No published lesson has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           description: Server error. The request could not be answered.
           content:
@@ -1038,6 +1044,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '403':
           description: CSRF protection failed with a valid session (`forbidden`). Refresh the CSRF token and retry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found. No published lesson has this id.
           content:
             application/json:
               schema:
