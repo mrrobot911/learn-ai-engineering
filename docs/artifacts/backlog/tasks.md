@@ -63,28 +63,30 @@ Source: `product-spec.md` section 4 US-7, section 6.
 
 ---
 
-## T14 - Backend foundation: server, configuration and error mapping
 
-**User story:** none - supports US-1 to US-7
+**Note:** Contract issue #32 (404 for progress operations) created. T18 depends on #32.
+
+## T14a - Backend foundation: server, configuration and /health (#34)
+
+**User story:** none - supports US-1 to US-7  
 **Depends on:** T10, T11, T12, T13
 
 ## Goal
 
-The Go service starts, reads its configuration from the environment, and maps domain errors to the error shape of the contract, so later backend tasks only add handlers and services.
-Source: `product-spec.md` section 7 (security, configuration), `AGENTS.md` "Conventions".
+The Go service starts, reads its configuration from the environment, and answers `GET /health` with 200, so later backend tasks have a running server to build on.
 
 ## Acceptance criteria
 
 - [ ] `backend/cmd/api` starts an HTTP server on the address from the environment and answers `GET /health` with 200.
 - [ ] Configuration is read from environment variables with development defaults; a missing required variable stops the server with a clear message, and every variable is documented in `.env.example`.
-- [ ] One domain error type maps to 400, 401, 403, 404, 409 and 500 and always writes the error object defined in the contract.
 - [ ] Requests are logged with method, path, status and duration, without request bodies, cookies, passwords or hashes.
-- [ ] Handlers are thin and the repository interfaces of the layers exist next to the services, with an in-memory implementation used by unit tests.
-- [ ] Tests for the new behaviour exist and pass: the health endpoint, each status mapping, and a handler that returns a service error.
+- [ ] Handlers are thin and repository interfaces exist next to services, with an in-memory implementation used by unit tests.
+- [ ] Tests for the new behaviour exist and pass.
 
 ## Out of scope
 
 - Any domain endpoint other than `/health`.
+- Error mapping details (T14b).
 - The database, migrations and the real repositories (T21-T22).
 
 ## Constraints
@@ -94,15 +96,40 @@ Source: `product-spec.md` section 7 (security, configuration), `AGENTS.md` "Conv
 
 ---
 
-## T15 - Backend: public content endpoints
+## T14b - Backend foundation: error type and mapping (#35)
 
-**User story:** US-1
-**Depends on:** T14
+**User story:** none - supports US-1 to US-7  
+**Depends on:** T14a
 
 ## Goal
 
-The API serves published topics, their lessons in order, and a single lesson, so the content screens have something real to call.
-Source: `product-spec.md` section 4 US-1.
+One domain error type maps to the contract error object with correct codes, so later backend tasks only add handlers and services.
+
+## Acceptance criteria
+
+- [ ] One domain error type maps to 400 (validation_error), 401 (authentication_error), 403 (forbidden for CSRF failure with valid session; authorization_error for valid session without is_maintainer), 404 (not_found), 409 (conflict), and 500 (internal_error) and always writes the error object defined in the contract.
+- [ ] A handler that returns a service error produces the correct status and error shape.
+- [ ] Tests for each status mapping exist and pass.
+
+## Out of scope
+
+- Any domain endpoint logic beyond error mapping.
+- Database, migrations and real repositories (T21-T22).
+
+## Constraints
+
+- Errors must follow the contract shape exactly.
+- Depends on: T14a.
+
+---
+## T15 - Backend: public content endpoints (#36)
+
+**User story:** US-1  
+**Depends on:** T14b
+
+## Goal
+
+The API serves published topics, their lessons in order, and a single lesson, so the content screens have something real to call. Topics are addressed by slug, lessons by id.
 
 ## Acceptance criteria
 
@@ -120,113 +147,149 @@ Source: `product-spec.md` section 4 US-1.
 
 ## Constraints
 
-- Handlers stay thin; responses match `openapi.yaml` exactly.
-- Depends on: T14.
+- Handlers stay thin; responses match `openapi.yaml` exactly. JSON is snake_case.
+- Depends on: T14b.
 
 ---
+## T16a - Backend: start quiz (#37)
 
-## T16 - Backend: start a quiz and grade a submission
-
-**User story:** US-2, US-3
-**Depends on:** T14
+**User story:** US-2  
+**Depends on:** T14b
 
 ## Goal
 
-The API picks 5 random published questions for a topic and grades a submission on the server, so the browser never decides the score.
-Source: `product-spec.md` section 4 US-2, US-3.
+The API picks 5 random published questions for a topic, so quiz start is available without revealing answers.
 
 ## Acceptance criteria
 
 - [ ] Starting a quiz returns exactly 5 published questions of that topic, or all of them when the topic has fewer; two calls can return different question sets.
 - [ ] The start response contains no field that reveals the correct option or the explanation.
+- [ ] Topics are addressed by slug. The contract has no quiz id.
+- [ ] Unit tests exist and pass for the count and random selection.
+
+## Out of scope
+
+- Grading and submission (T16b).
+- Storing attempts (T19).
+
+## Constraints
+
+- Quiz is stateless. Depends on: T14b.
+
+---
+
+## T16b - Backend: grade and submit quiz (#38)
+
+**User story:** US-2, US-3  
+**Depends on:** T16a
+
+## Goal
+
+The server grades submissions on the server, so the browser never decides the score. Quiz submission works without a session; anonymous is preserved.
+
+## Acceptance criteria
+
 - [ ] Grading is done server-side: an unanswered question is incorrect, an option that does not belong to the question is incorrect, and the submission still succeeds.
-- [ ] A submission containing a question that does not belong to the topic is rejected with a 400 validation error and nothing is graded.
+- [ ] A submission containing a question that does not belong to the topic is rejected with a 400 validation_error and nothing is graded.
 - [ ] The result contains the score, the total and, per question, the correctness, the correct option text and the explanation.
-- [ ] A submission without a session is graded and answered normally.
-- [ ] Unit tests exist and pass for the count, the random selection, both incorrect cases, the rejected submission and the result shape.
+- [ ] A submission without a session is graded and answered normally (no 401). An invalid or expired cookie means anonymous.
+- [ ] The first occurrence of a question id counts; later duplicates are ignored. An empty answer list is a validation_error.
+- [ ] Unit tests exist and pass for incorrect cases, rejected submission, duplicates handling, empty list, and anonymous submission.
 
 ## Out of scope
 
 - Storing attempts (T19).
-- Question or option selection by the client (quiz size is fixed).
+- Session-required behavior for submission.
 
 ## Constraints
 
-- A quiz is stateless: the submission carries the question and chosen option ids and the server checks they belong to the topic.
-- Depends on: T14.
+- The submission carries question and chosen option ids and the server checks they belong to the topic. Depends on: T16a.
 
 ---
+## T17a - Backend: registration, login, logout, current session (#39)
 
-## T17 - Backend: registration, log in, log out and session
-
-**User story:** US-4
-**Depends on:** T14
+**User story:** US-4  
+**Depends on:** T14b
 
 ## Goal
 
-A visitor can create an account, log in with a session cookie, log out, and is recognised as anonymous afterwards, so progress and history can be protected.
-Source: `product-spec.md` section 4 US-4, section 7 (security).
+A visitor can create an account, log in with a session cookie, log out, and be recognised as anonymous afterwards. Passwords stored as Argon2id.
 
 ## Acceptance criteria
 
-- [ ] Register validates the input and rejects a duplicate email with 409; the password is stored only as a salted hash, and no plain password is kept anywhere.
-- [ ] Log in verifies the hash, creates a session that expires after 7 days, and sets the session cookie with the attributes defined in the contract; a wrong password returns an authentication error.
+- [ ] Register validates the input and rejects a duplicate email with 409 conflict; the password is stored only as a salted Argon2id hash (8-128 characters), no plain password kept anywhere.
+- [ ] Log in verifies the hash, creates a session that expires after 7 days, and sets the session cookie with attributes: HttpOnly, SameSite=Lax, Secure in production, path /, 7 days; a wrong password returns an authentication_error (401).
 - [ ] Log out deletes the session and clears the cookie.
-- [ ] A missing or expired session is treated as not logged in: the current-session endpoint answers 401 and the state-changing endpoints do the same.
-- [ ] State-changing requests that carry a session cookie are refused without the CSRF token defined in the contract; a request without a session cookie is not checked for a token, because there is no session to protect.
+- [ ] A missing or expired session is treated as not logged in: the current-session endpoint answers 401 (authentication_error).
 - [ ] Passwords, hashes and session tokens never appear in a response or in a log.
-- [ ] Unit tests exist and pass for register, duplicate email, log in, wrong password, log out, an expired session and a missing CSRF token.
+- [ ] Unit tests exist and pass for register, duplicate email, log in, wrong password, log out, expired session.
 
 ## Out of scope
 
-- Password reset, email verification and roles other than `is_maintainer` (T20).
-- Rate limiting and password policy beyond the contract: see Decisions.
+- CSRF token issuing/checking (T17b).
+- Roles other than is_maintainer (T20).
 
 ## Constraints
 
-- Session state comes from the cookie, never from a request body or query parameter.
-- Depends on: T14.
+- Session state comes from the cookie, never from request body or query parameter. Depends on: T14b.
 
 ---
 
-## T18 - Backend: lesson progress
+## T17b - Backend: CSRF token issuing and checking (#40)
 
-**User story:** US-5
-**Depends on:** T17
+**User story:** US-4  
+**Depends on:** T17a
 
 ## Goal
 
-A logged-in user can mark a lesson complete and undo it, and read their own completion state, so the screens can show progress.
-Source: `product-spec.md` section 4 US-5.
+CSRF protection is implemented as specified: csrf_token issued by register, login and every GET /auth/session; header X-CSRF-Token required only for state-changing requests that carry a session cookie.
+
+## Acceptance criteria
+
+- [ ] csrf_token is issued by register, login and every GET /auth/session.
+- [ ] X-CSRF-Token header is required only for state-changing requests that carry a session cookie.
+- [ ] A request without a session cookie is not checked for a token (anonymous requests remain unaffected). Quiz submission without session cookie needs no token.
+- [ ] State-changing requests with a session cookie but missing/invalid CSRF token return 403 with code forbidden (CSRF failure). A valid session without is_maintainer gets 403 with code authorization_error.
+- [ ] Unit tests exist and pass for CSRF token issuing and checking.
+
+## Out of scope
+
+- Other auth flows.
+- Depends on: T17a.
+
+---
+## T18 - Backend: lesson progress (#41)
+
+**User story:** US-5  
+**Depends on:** T17b, #32
+
+## Goal
+
+A logged-in user can mark a lesson complete and undo it, and read their own completion state. PUT/DELETE /me/progress/lessons/{lessonId} return 404 for unknown or unpublished lesson.
 
 ## Acceptance criteria
 
 - [ ] Marking a lesson complete records the completion time and is idempotent; undoing removes it and is safe to repeat.
-- [ ] Reading progress returns only the current user's completed lessons.
-- [ ] Every one of the three endpoints answers 401 without a valid session.
+- [ ] Reading progress returns only the current user's completed lessons via GET /me/progress.
+- [ ] Every one of the three endpoints answers 401 without a valid session (authentication_error).
+- [ ] PUT and DELETE return 404 (not_found) for an unknown or unpublished lesson.
 - [ ] No request carries a user id, so one user cannot change or read another user's progress.
-- [ ] Unit tests exist and pass for mark, repeated mark, undo, read and the unauthenticated case.
+- [ ] Unit tests exist and pass for mark, repeated mark, undo, read, unauthenticated case, and 404 cases.
 
 ## Out of scope
 
-- Progress statistics and streaks: not in the specification.
-
-## Constraints
-
-- Ownership check in the protected path, not only in the client.
-- Depends on: T17.
+- Progress statistics and streaks.
+- Depends on: T17b, #32.
 
 ---
+## T19 - Backend: quiz attempt history (#42)
 
-## T19 - Backend: quiz attempt history
-
-**User story:** US-6, US-3
-**Depends on:** T16, T17
+**User story:** US-6, US-3  
+**Depends on:** T16b, T17b
 
 ## Goal
 
-Every submission from a logged-in user is stored with a snapshot of the questions and answers, so past attempts stay readable and cannot be changed by later content edits.
-Source: `product-spec.md` section 4 US-6, US-3.
+Every submission from a logged-in user is stored with a snapshot of the questions and answers. The server stores the question, selected option and correct option texts in the attempt snapshot. Attempt list has no topic_title; client maps from topics.
 
 ## Acceptance criteria
 
@@ -234,234 +297,254 @@ Source: `product-spec.md` section 4 US-6, US-3.
 - [ ] Every submission creates a new attempt; an earlier attempt is never overwritten.
 - [ ] Each stored answer keeps the question text, the selected option text (empty when unanswered) and the correct option text as they were at the time.
 - [ ] A submission without a session stores nothing and is answered normally.
-- [ ] Listing attempts returns only the current user's attempts, newest first; reading an attempt that belongs to another user answers 404.
-- [ ] Unit tests exist and pass for storage per submission, the snapshot wording, the anonymous case and the ownership case.
+- [ ] Listing attempts returns only the current user's attempts, newest first (no topic_title in list); reading an attempt that belongs to another user answers 404.
+- [ ] Unit tests exist and pass for storage per submission, snapshot wording, anonymous case and ownership case.
 
 ## Out of scope
 
 - Deleting attempts and exporting them.
-
-## Constraints
-
-- No attempt is ever edited after it is written.
-- Depends on: T16, T17.
+- Depends on: T16b, T17b.
 
 ---
+## T20a - Backend: maintainer create and edit drafts (#43)
 
-## T20 - Backend: maintainer draft and publish operations
-
-**User story:** US-7
-**Depends on:** T15, T16, T17
+**User story:** US-7  
+**Depends on:** T15, T16b, T17b
 
 ## Goal
 
-The maintainer can create and edit drafts and publish them explicitly, while other users cannot, so AI-assisted content is reviewed before anybody sees it.
-Source: `product-spec.md` section 4 US-7, section 6.
+Maintainer can create and edit draft lessons and questions; no endpoint to list drafts (maintainer gets id from create response).
 
 ## Acceptance criteria
 
-- [ ] A session without `is_maintainer` answers 403 and a missing session answers 401 on every draft and publish operation.
+- [ ] A session without `is_maintainer` answers 403 (authorization_error) and a missing session answers 401 (authentication_error) on every draft operation.
 - [ ] Creating and editing a lesson or a question stores it as a draft and never as published.
-- [ ] A question with fewer than 2 or more than 6 options, or without exactly one correct option, is rejected with a validation error.
-- [ ] Publishing sets the status to published and makes the content visible through the public endpoints of T15 and T16; unpublishing hides it again.
-- [ ] Unit tests exist and pass for the authorisation cases, the validation case, the draft visibility before publication and the visibility after publish and unpublish.
+- [ ] A question with fewer than 2 or more than 6 options, or without exactly one correct option, is rejected with a validation_error.
+- [ ] Topics/lessons addressed by slug/id as per contract; JSON snake_case.
+- [ ] Unit tests exist and pass for authorisation cases and validation cases.
 
 ## Out of scope
 
-- An admin UI, and any way for AI tooling to publish.
-- Bulk operations and content import.
+- Publish and unpublish (T20b).
+- Admin UI.
 
 ## Constraints
 
-- Publication is always a separate explicit action; nothing publishes as a side effect.
-- Depends on: T15, T16, T17.
+- Depends on: T15, T16b, T17b.
 
 ---
 
-## T21 - Persistence: content tables and repositories
+## T20b - Backend: maintainer publish and unpublish (#44)
 
-**User story:** US-1 (also serves US-2 and US-7)
-**Depends on:** T15, T16, T20
+**User story:** US-7  
+**Depends on:** T20a
 
 ## Goal
 
-Topics, lessons, questions and answer options live in PostgreSQL through numbered migrations, and the public and maintainer endpoints read and write them.
-Source: `product-spec.md` section 9 (data model), section 7 (persistence).
+Publishing and unpublishing are separate explicit endpoints that only change status; nothing publishes as a side effect.
 
 ## Acceptance criteria
 
-- [ ] Numbered migration files create `topics`, `lessons`, `questions` and `answer_options` with the fields of section 9; the topic slug is unique, positions are unique per parent, and every table has a status.
-- [ ] Migrations are applied in order and recorded, and applying them to an empty database twice leaves the same schema.
-- [ ] PostgreSQL implementations replace the in-memory content repositories behind the same interfaces, and the service layer is not changed to make them fit.
-- [ ] An integration test (build tag `integration`) proves the published filter and the position ordering against a test database.
-- [ ] `DATABASE_URL` and the test database variable are documented in `.env.example`, with separate values for development and test.
-- [ ] The existing unit tests still pass unchanged; the integration test passes against `docker compose up -d db`.
+- [ ] A session without `is_maintainer` answers 403 (authorization_error) and a missing session answers 401 (authentication_error) on publish/unpublish operations.
+- [ ] Publishing sets status to published and makes content visible through public endpoints of T15 and T16; unpublishing hides it again.
+- [ ] No draft operation can publish.
+- [ ] Unit tests exist and pass for publish/unpublish and visibility changes.
 
 ## Out of scope
 
-- Users, sessions, progress and attempts (T22).
-- Down migrations: migrations only move forward, and destructive ones need the maintainer's approval.
-
-## Constraints
-
-- Schema changes go through numbered migration files, never by editing the schema by hand.
-- Integration tests never point at the development database.
-- Depends on: T15, T16, T20.
+- Create/edit drafts (T20a).
+- Depends on: T20a.
 
 ---
+## T21a - Persistence: content tables and migrations (#45)
 
-## T22 - Persistence: users, sessions, progress and quiz attempt tables
-
-**User story:** US-4, US-5, US-6
-**Depends on:** T17, T18, T19, T21
+**User story:** US-1 (also serves US-2 and US-7)  
+**Depends on:** T15, T16b, T20b
 
 ## Goal
 
-Accounts, sessions, lesson completion and quiz attempts survive a restart, so a user stays logged in, keeps their progress, and a past attempt still reads exactly as it was graded.
-Source: `product-spec.md` section 9, section 4 US-4, US-5 and US-6.
+Topics, lessons, questions and answer options live in PostgreSQL through numbered migrations.
 
 ## Acceptance criteria
 
-- [ ] Migrations create `users` (unique email, password hash, `is_maintainer` default false, created at) and `sessions` (id, user id, created at, expires at, with indexes on user id and expires at).
-- [ ] Migrations create `lesson_progress` with the user and lesson as key and a completion timestamp.
+- [ ] Numbered migration files create `topics`, `lessons`, `questions` and `answer_options` with fields of section 9; topic slug unique, positions unique per parent, every table has status.
+- [ ] Migrations applied in order and recorded; applying twice leaves same schema.
+- [ ] `DATABASE_URL` and test database variable documented in `.env.example`.
+- [ ] Migration tests/checks pass.
+
+## Out of scope
+
+- Repository implementations (T21b).
+- Users/sessions/progress/attempts (T22a).
+
+## Constraints
+
+- Schema changes via numbered migration files only. Depends on: T15, T16b, T20b.
+
+---
+
+## T21b - Persistence: content repositories (#46)
+
+**User story:** US-1 (also serves US-2 and US-7)  
+**Depends on:** T21a
+
+## Goal
+
+PostgreSQL implementations replace in-memory content repositories behind same interfaces.
+
+## Acceptance criteria
+
+- [ ] PostgreSQL implementations replace in-memory content repositories behind the same interfaces; service layer unchanged.
+- [ ] An integration test (build tag `integration`) proves published filter and position ordering against test database.
+- [ ] Existing unit tests still pass unchanged; integration test passes against `docker compose up -d db`.
+- [ ] Integration tests never point at development database.
+
+## Out of scope
+
+- Other domain tables (T22a).
+- Depends on: T21a.
+
+---
+## T22a - Persistence: users, sessions, progress and attempt tables (#47)
+
+**User story:** US-4, US-5, US-6  
+**Depends on:** T17b, T18, T19, T21b
+
+## Goal
+
+Migrations for users, sessions, lesson_progress, quiz_attempts and quiz_attempt_answers.
+
+## Acceptance criteria
+
+- [ ] Migrations create `users` (unique email, password hash, `is_maintainer` default false, created at) and `sessions` (id, user id, created at, expires at, indexes on user id and expires at).
+- [ ] Migrations create `lesson_progress` with user and lesson as key and completion timestamp.
 - [ ] Migrations create `quiz_attempts` (user, topic, score, total, created at) and `quiz_attempt_answers` (attempt, nullable question reference, question text, selected option text, correct option text, correctness).
-- [ ] The migrations are numbered in that order, so `quiz_attempts` comes after `users` because it references it.
-- [ ] The repositories behind registration, log in, log out, progress, attempt storage and attempt reading use PostgreSQL behind the existing interfaces.
-- [ ] An integration test registers, logs in, finds the session, marks a lesson, restarts the connection and reads the state back; an expired session is refused after a restart.
-- [ ] An integration test stores two attempts for one user, then changes the question text in the database and reads both attempts again: the stored snapshot text is unchanged and the new attempt uses the new text.
-- [ ] Deleting a question does not break reading an old attempt.
-- [ ] The password hash is never selected into a response type or a log line.
+- [ ] Migrations numbered in order so quiz_attempts comes after users.
+- [ ] `DATABASE_URL`/test vars documented.
 
 ## Out of scope
 
-- Progress statistics, statistics over attempts and password reset.
-
-## Constraints
-
-- No migration drops or renames an existing table without asking the maintainer first.
-- The snapshot columns are written once and never updated.
-- Depends on: T17, T18, T19, T21.
+- Repository implementations (T22b).
+- Depends on: T17b, T18, T19, T21b.
 
 ---
 
-## T23 - Seed mechanism and content for the first topic
+## T22b - Persistence: users, sessions, progress and attempt repositories (#48)
 
-**User story:** US-8 (initial content)
-**Depends on:** T22
+**User story:** US-4, US-5, US-6  
+**Depends on:** T22a
 
 ## Goal
 
-Seed content is loaded from versioned files on first start and is safe to load again, and the first topic ships with a real lesson and a real question bank.
-Source: `product-spec.md` section 4 US-8.
+Postgres repos for auth, progress, attempts with snapshot behavior.
 
 ## Acceptance criteria
 
-- [ ] Seed content lives in versioned files under `backend/`, so it can be reviewed in a diff; no content is generated at runtime.
-- [ ] A documented command and the backend start both load the seed; the loader inserts what is missing and reports what it skipped.
-- [ ] Loading the seed twice on the same database creates no duplicate topic, lesson, question or option, and the second run reports nothing created.
-- [ ] The first topic (LLMs) has at least 1 published lesson and at least 6 published questions, each with 2 to 6 options, exactly one correct option and an explanation.
-- [ ] An integration test loads the seed into an empty test database, loads it again, and asserts the counts did not change.
+- [ ] Repositories behind registration, login, logout, progress, attempt storage and reading use PostgreSQL behind existing interfaces.
+- [ ] Integration test registers, logs in, finds session, marks lesson, restarts connection and reads state back; expired session refused after restart.
+- [ ] Integration test stores two attempts for one user, changes question text in DB, reads both: stored snapshot unchanged, new attempt uses new text.
+- [ ] Deleting a question does not break reading an old attempt.
+- [ ] Password hash never selected into response type or log line.
+- [ ] Integration tests never point at development database.
 
 ## Out of scope
 
-- The other six topics (T24).
-- AI-generated curriculum: a non-goal.
-
-## Constraints
-
-- Content is authored text in the repository, never produced by a tool at runtime.
-- Passwords and secrets never go into seed files.
-- Depends on: T22.
+- Seed (T23).
+- Depends on: T22a.
 
 ---
+## T23 - Seed mechanism and content for the first topic (#49)
 
-## T24 - Seed content for the remaining six topics
+**User story:** US-8  
+**Depends on:** T22b
 
-**User story:** US-8
+## Goal
+
+Seed content loaded from versioned files on first start, repeatable, no duplicates. First topic (LLMs) has >=1 published lesson and >=6 published questions.
+
+## Acceptance criteria
+
+- [ ] Seed content lives in versioned files under `backend/`, reviewed in diff; no runtime generation.
+- [ ] Documented command and backend start both load seed; loader inserts missing and reports skipped.
+- [ ] Loading twice creates no duplicates; second run reports nothing created.
+- [ ] First topic (LLMs) has at least 1 published lesson and at least 6 published questions, each 2-6 options, exactly one correct, explanation.
+- [ ] Integration test loads seed into empty test DB, loads again, asserts counts unchanged.
+
+## Out of scope
+
+- Other six topics (T24).
+- Depends on: T22b.
+
+---
+## T24 - Seed content for the remaining six topics (#50)
+
+**User story:** US-8  
 **Depends on:** T23
 
 ## Goal
 
-Every initial topic named in the specification has real learning material on first start, so the application is useful immediately.
-Source: `product-spec.md` section 4 US-8, section 3 (initial topics).
+All seven topics have real learning material.
 
 ## Acceptance criteria
 
-- [ ] AI agents, MCP, RAG, embeddings, evaluation and deployment each have at least 1 published lesson and at least 6 published questions in the seed files.
-- [ ] Every question has 2 to 6 options, exactly one correct option and a short explanation.
-- [ ] The loader is unchanged; a fresh database gets all seven topics, and a second run still creates nothing.
-- [ ] An integration test asserts the minimum count for each of the seven topics after one load.
+- [ ] AI agents, MCP, RAG, embeddings, evaluation and deployment each have at least 1 published lesson and at least 6 published questions in seed files.
+- [ ] Every question has 2-6 options, exactly one correct option, short explanation.
+- [ ] Loader unchanged; fresh DB gets all seven topics, second run creates nothing.
+- [ ] Integration test asserts minimum counts for each of the seven topics after one load.
 
 ## Out of scope
 
-- More content than the minimum, translations, images and videos.
-
-## Constraints
-
-- Only published content goes into the seed; drafts are created through the maintainer operations (T20, T25).
+- More than minimum, translations, images/videos.
 - Depends on: T23.
 
 ---
+## T25 - Maintainer account and the publish flow end to end (#51)
 
-## T25 - Maintainer account and the publish flow end to end
-
-**User story:** US-7
-**Depends on:** T20, T24
+**User story:** US-7  
+**Depends on:** T20b, T24
 
 ## Goal
 
-A maintainer account exists after seeding, and the whole draft-to-published path works against the real database.
-Source: `product-spec.md` section 4 US-7, section 3 (content loaded by the maintainer through the API or seed data).
+Maintainer account exists after seeding; draft-to-published path works against real DB.
 
 ## Acceptance criteria
 
-- [ ] The seed creates a user with `is_maintainer` true, taking its credentials from environment variables; no password is committed.
-- [ ] An integration test logs in as the maintainer, creates a draft lesson and a draft question, sees neither through the public endpoints, publishes them, sees both, unpublishes them and sees neither.
-- [ ] An integration test with a normal registered user gets 403 on the draft and publish operations.
-- [ ] An integration test with no session gets 401 on the same operations.
-- [ ] The seeded maintainer account is documented in `.env.example` with the variables it needs.
+- [ ] Seed creates user with `is_maintainer` true, credentials from env vars; no password committed.
+- [ ] Integration test logs in as maintainer, creates draft lesson and question, sees neither through public endpoints, publishes them, sees both, unpublishes them, sees neither.
+- [ ] Integration test with normal user gets 403 on draft/publish operations.
+- [ ] Integration test with no session gets 401 on same operations.
+- [ ] Seeded maintainer account documented in `.env.example` with needed variables.
 
 ## Out of scope
 
-- An admin interface, roles beyond the flag, and any AI tool that publishes.
-
-## Constraints
-
-- The maintainer flag is set in the database or the seed only.
-- Depends on: T20, T24.
+- Admin UI, roles beyond flag, AI tool that publishes.
+- Depends on: T20b, T24.
 
 ---
+## T26 - Backend integration tests for the key workflows (#52)
 
-## T26 - Backend integration tests for the key workflows
-
-**User story:** US-1, US-2, US-3, US-4, US-5, US-6
+**User story:** US-1, US-2, US-3, US-4, US-5, US-6  
 **Depends on:** T25
 
 ## Goal
 
-The whole API is exercised end to end against a real database, so the workflows in README section 9 are proven, not assumed.
-Source: `product-spec.md` section 7 (testing), `README.md` section 9.
+Whole API exercised end to end against real database.
 
 ## Acceptance criteria
 
-- [ ] Integration tests (build tag `integration`) drive the HTTP API against the test database for: browsing published content, starting and submitting a quiz, registering, logging in and logging out, saving progress, and reading quiz history.
-- [ ] They also assert that unpublished content never appears in a public response and that a submission with a foreign question is rejected.
-- [ ] The suite creates and cleans its own data and can run twice in a row against the same test database.
-- [ ] The documented command `(cd backend && go test -tags=integration ./...)` runs only these tests, and unit tests still run without a database.
-- [ ] The results are recorded in the stage artifact `docs/artifacts/integration/backend-results.md` and linked from the issue.
+- [ ] Integration tests (build tag `integration`) drive HTTP API against test database for: browsing published content, starting and submitting quiz, registering, logging in/out, saving progress, reading quiz history.
+- [ ] Also assert unpublished content never appears in public response and submission with foreign question is rejected.
+- [ ] Suite creates and cleans its own data and can run twice in a row against same test database.
+- [ ] Documented command `(cd backend && go test -tags=integration ./...)` runs only these tests; unit tests still run without database.
+- [ ] Results recorded in stage artifact `docs/artifacts/integration/backend-results.md` and linked from issue.
 
 ## Out of scope
 
-- Repository-level SQL tests, which already live with the repositories (T21-T22).
-- Load and performance tests.
-
-## Constraints
-
-- Integration tests stay separate from unit tests and never point at the development database.
+- Repository-level SQL tests (already in T21b/T22b).
+- Load/performance tests.
 - Depends on: T25.
 
 ---
-
 ## T27 - Connect the frontend: content screens
 
 **User story:** US-1
