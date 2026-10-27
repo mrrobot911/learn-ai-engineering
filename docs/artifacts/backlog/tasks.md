@@ -4,7 +4,7 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 
 - `T02`-`T13` became GitHub issues on 2026-10-17, where the issue number matches the task number (`T02` is #2, `T13` is #13); in those issues `Depends on: Txx` is written as `Depends on: #<issue number>`.
 - `T01` was issue #1. It was cancelled by the maintainer on 2026-10-18 and removed from this file: the scaffold it asked for contradicts the project order of `AGENTS.md`, the frontend project comes from Bolt and the Go project belongs to `T14`, after the contract. Nothing of it was carried over to another task.
-- `T14`-`T37` are still placeholders for issue numbers. When the maintainer creates them, every `Depends on: Txx` becomes `Depends on: #<issue number>`.
+- `T27`-`T37` are still placeholders for issue numbers. When the maintainer creates them, every `Depends on: Txx` becomes `Depends on: #<issue number>`.
 - `T02`-`T12` are done and merged into `main`; their text is kept unchanged in [`done.md`](done.md). The issues hold the same text, so open tasks are read here and finished ones there.
 - Each task fits one session and can be read on its own.
 - This file creates no issues and no code. The maintainer merges, splits and removes tasks before creating them (see [`docs/process.md`](../../process.md), "Backlog"). The issues for T02-T13 were created from this file on 2026-10-17.
@@ -35,7 +35,7 @@ Tasks not covered by a user story come from section 7 (non-functional requiremen
 ## T13 - Contract: maintainer draft and publish operations
 
 **User story:** US-7 (content preparation)
-**Depends on:** T10
+**Depends on:** #10
 
 ## Goal
 
@@ -59,7 +59,7 @@ Source: `product-spec.md` section 4 US-7, section 6.
 ## Constraints
 
 - Agents may create and edit drafts but must never publish.
-- Depends on: T10.
+- Depends on: #10.
 
 ---
 
@@ -69,7 +69,7 @@ Source: `product-spec.md` section 4 US-7, section 6.
 ## T14a - Backend foundation: server, configuration and /health (#34)
 
 **User story:** none - supports US-1 to US-7  
-**Depends on:** T10, T11, T12, T13
+**Depends on:** #10, #11, #12, #13
 
 ## Goal
 
@@ -92,14 +92,14 @@ The Go service starts, reads its configuration from the environment, and answers
 ## Constraints
 
 - SQL only in the repository layer; logic in services.
-- Depends on: T10, T11, T12, T13.
+- Depends on: #10, #11, #12, #13.
 
 ---
 
 ## T14b - Backend foundation: error type and mapping (#35)
 
 **User story:** none - supports US-1 to US-7  
-**Depends on:** T14a
+**Depends on:** #34
 
 ## Goal
 
@@ -119,13 +119,13 @@ One domain error type maps to the contract error object with correct codes, so l
 ## Constraints
 
 - Errors must follow the contract shape exactly.
-- Depends on: T14a.
+- Depends on: #34.
 
 ---
 ## T15 - Backend: public content endpoints (#36)
 
 **User story:** US-1  
-**Depends on:** T14b
+**Depends on:** #35
 
 ## Goal
 
@@ -148,13 +148,13 @@ The API serves published topics, their lessons in order, and a single lesson, so
 ## Constraints
 
 - Handlers stay thin; responses match `openapi.yaml` exactly. JSON is snake_case.
-- Depends on: T14b.
+- Depends on: #35.
 
 ---
 ## T16a - Backend: start quiz (#37)
 
 **User story:** US-2  
-**Depends on:** T14b
+**Depends on:** #35
 
 ## Goal
 
@@ -174,14 +174,14 @@ The API picks 5 random published questions for a topic, so quiz start is availab
 
 ## Constraints
 
-- Quiz is stateless. Depends on: T14b.
+- Quiz is stateless. Depends on: #35.
 
 ---
 
 ## T16b - Backend: grade and submit quiz (#38)
 
 **User story:** US-2, US-3  
-**Depends on:** T16a
+**Depends on:** #37
 
 ## Goal
 
@@ -203,13 +203,13 @@ The server grades submissions on the server, so the browser never decides the sc
 
 ## Constraints
 
-- The submission carries question and chosen option ids and the server checks they belong to the topic. Depends on: T16a.
+- The submission carries question and chosen option ids and the server checks they belong to the topic. Depends on: #37.
 
 ---
 ## T17a - Backend: registration, login, logout, current session (#39)
 
 **User story:** US-4  
-**Depends on:** T14b
+**Depends on:** #35
 
 ## Goal
 
@@ -231,14 +231,14 @@ A visitor can create an account, log in with a session cookie, log out, and be r
 
 ## Constraints
 
-- Session state comes from the cookie, never from request body or query parameter. Depends on: T14b.
+- Session state comes from the cookie, never from request body or query parameter. Depends on: #35.
 
 ---
 
 ## T17b - Backend: CSRF token issuing and checking (#40)
 
 **User story:** US-4  
-**Depends on:** T17a
+**Depends on:** #39
 
 ## Goal
 
@@ -249,19 +249,19 @@ CSRF protection is implemented as specified: csrf_token issued by register, logi
 - [ ] csrf_token is issued by register, login and every GET /auth/session.
 - [ ] X-CSRF-Token header is required only for state-changing requests that carry a session cookie.
 - [ ] A request without a session cookie is not checked for a token (anonymous requests remain unaffected). Quiz submission without session cookie needs no token.
-- [ ] State-changing requests with a session cookie but missing/invalid CSRF token return 403 with code forbidden (CSRF failure). A valid session without is_maintainer gets 403 with code authorization_error.
+- [ ] State-changing requests with a session cookie but missing/invalid CSRF token return 403 with code forbidden (CSRF failure).
 - [ ] Unit tests exist and pass for CSRF token issuing and checking.
 
 ## Out of scope
 
 - Other auth flows.
-- Depends on: T17a.
+- Depends on: #39.
 
 ---
 ## T18 - Backend: lesson progress (#41)
 
 **User story:** US-5  
-**Depends on:** T17b, #32
+**Depends on:** #40, #32
 
 ## Goal
 
@@ -279,13 +279,13 @@ A logged-in user can mark a lesson complete and undo it, and read their own comp
 ## Out of scope
 
 - Progress statistics and streaks.
-- Depends on: T17b, #32.
+- Depends on: #40, #32.
 
 ---
 ## T19 - Backend: quiz attempt history (#42)
 
 **User story:** US-6, US-3  
-**Depends on:** T16b, T17b
+**Depends on:** #38, #40
 
 ## Goal
 
@@ -303,13 +303,13 @@ Every submission from a logged-in user is stored with a snapshot of the question
 ## Out of scope
 
 - Deleting attempts and exporting them.
-- Depends on: T16b, T17b.
+- Depends on: #38, #40.
 
 ---
 ## T20a - Backend: maintainer create and edit drafts (#43)
 
 **User story:** US-7  
-**Depends on:** T15, T16b, T17b
+**Depends on:** #36, #38, #40
 
 ## Goal
 
@@ -318,6 +318,7 @@ Maintainer can create and edit draft lessons and questions; no endpoint to list 
 ## Acceptance criteria
 
 - [ ] A session without `is_maintainer` answers 403 (authorization_error) and a missing session answers 401 (authentication_error) on every draft operation.
+- [ ] A valid session without is_maintainer gets 403 with code authorization_error.
 - [ ] Creating and editing a lesson or a question stores it as a draft and never as published.
 - [ ] A question with fewer than 2 or more than 6 options, or without exactly one correct option, is rejected with a validation_error.
 - [ ] Topics/lessons addressed by slug/id as per contract; JSON snake_case.
@@ -330,14 +331,14 @@ Maintainer can create and edit draft lessons and questions; no endpoint to list 
 
 ## Constraints
 
-- Depends on: T15, T16b, T17b.
+- Depends on: #36, #38, #40.
 
 ---
 
 ## T20b - Backend: maintainer publish and unpublish (#44)
 
 **User story:** US-7  
-**Depends on:** T20a
+**Depends on:** #43
 
 ## Goal
 
@@ -353,13 +354,13 @@ Publishing and unpublishing are separate explicit endpoints that only change sta
 ## Out of scope
 
 - Create/edit drafts (T20a).
-- Depends on: T20a.
+- Depends on: #43.
 
 ---
 ## T21a - Persistence: content tables and migrations (#45)
 
 **User story:** US-1 (also serves US-2 and US-7)  
-**Depends on:** T15, T16b, T20b
+**Depends on:** #36, #38, #44
 
 ## Goal
 
@@ -379,14 +380,14 @@ Topics, lessons, questions and answer options live in PostgreSQL through numbere
 
 ## Constraints
 
-- Schema changes via numbered migration files only. Depends on: T15, T16b, T20b.
+- Schema changes via numbered migration files only. Depends on: #36, #38, #44.
 
 ---
 
 ## T21b - Persistence: content repositories (#46)
 
 **User story:** US-1 (also serves US-2 and US-7)  
-**Depends on:** T21a
+**Depends on:** #45
 
 ## Goal
 
@@ -402,13 +403,13 @@ PostgreSQL implementations replace in-memory content repositories behind same in
 ## Out of scope
 
 - Other domain tables (T22a).
-- Depends on: T21a.
+- Depends on: #45.
 
 ---
 ## T22a - Persistence: users, sessions, progress and attempt tables (#47)
 
 **User story:** US-4, US-5, US-6  
-**Depends on:** T17b, T18, T19, T21b
+**Depends on:** #40, #41, #42, #46
 
 ## Goal
 
@@ -425,14 +426,14 @@ Migrations for users, sessions, lesson_progress, quiz_attempts and quiz_attempt_
 ## Out of scope
 
 - Repository implementations (T22b).
-- Depends on: T17b, T18, T19, T21b.
+- Depends on: #40, #41, #42, #46.
 
 ---
 
 ## T22b - Persistence: users, sessions, progress and attempt repositories (#48)
 
 **User story:** US-4, US-5, US-6  
-**Depends on:** T22a
+**Depends on:** #47
 
 ## Goal
 
@@ -450,13 +451,13 @@ Postgres repos for auth, progress, attempts with snapshot behavior.
 ## Out of scope
 
 - Seed (T23).
-- Depends on: T22a.
+- Depends on: #47.
 
 ---
 ## T23 - Seed mechanism and content for the first topic (#49)
 
 **User story:** US-8  
-**Depends on:** T22b
+**Depends on:** #48
 
 ## Goal
 
@@ -473,13 +474,13 @@ Seed content loaded from versioned files on first start, repeatable, no duplicat
 ## Out of scope
 
 - Other six topics (T24).
-- Depends on: T22b.
+- Depends on: #48.
 
 ---
 ## T24 - Seed content for the remaining six topics (#50)
 
 **User story:** US-8  
-**Depends on:** T23
+**Depends on:** #49
 
 ## Goal
 
@@ -495,13 +496,13 @@ All seven topics have real learning material.
 ## Out of scope
 
 - More than minimum, translations, images/videos.
-- Depends on: T23.
+- Depends on: #49.
 
 ---
 ## T25 - Maintainer account and the publish flow end to end (#51)
 
 **User story:** US-7  
-**Depends on:** T20b, T24
+**Depends on:** #44, #50
 
 ## Goal
 
@@ -518,13 +519,13 @@ Maintainer account exists after seeding; draft-to-published path works against r
 ## Out of scope
 
 - Admin UI, roles beyond flag, AI tool that publishes.
-- Depends on: T20b, T24.
+- Depends on: #44, #50.
 
 ---
 ## T26 - Backend integration tests for the key workflows (#52)
 
 **User story:** US-1, US-2, US-3, US-4, US-5, US-6  
-**Depends on:** T25
+**Depends on:** #51
 
 ## Goal
 
@@ -542,7 +543,7 @@ Whole API exercised end to end against real database.
 
 - Repository-level SQL tests (already in T21b/T22b).
 - Load/performance tests.
-- Depends on: T25.
+- Depends on: #51.
 
 ---
 ## T27 - Connect the frontend: content screens
