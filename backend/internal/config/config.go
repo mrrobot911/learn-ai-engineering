@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 )
 
 // Config holds application configuration loaded from environment variables.
@@ -25,9 +24,10 @@ func Load() (*Config, error) {
 		DatabaseURL: getEnv("DATABASE_URL", ""),
 	}
 
-	// DATABASE_URL is required in non-development environments,
-	// but for the foundation we allow it to be empty with a clear message if needed
-	// However per requirements: "missing required -> clear message"
+	if cfg.Environment != "development" && cfg.Environment != "test" && cfg.Environment != "production" {
+		return nil, fmt.Errorf("ENV must be development, test or production")
+	}
+
 	if cfg.Environment == "production" && cfg.DatabaseURL == "" {
 		return nil, errors.New("DATABASE_URL is required in production environment")
 	}
@@ -46,15 +46,6 @@ func (c *Config) Addr() string {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
-	}
-	return defaultValue
-}
-
-func getEnvInt(key string, defaultValue int) int {
-	if value := os.Getenv(key); value != "" {
-		if intVal, err := strconv.Atoi(value); err == nil {
-			return intVal
-		}
 	}
 	return defaultValue
 }

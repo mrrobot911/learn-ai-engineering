@@ -3,10 +3,11 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
-	"github.com/datatalksclub/learn-ai-engineering/internal/config"
-	"github.com/datatalksclub/learn-ai-engineering/internal/handler"
-	"github.com/datatalksclub/learn-ai-engineering/internal/middleware"
+	"github.com/mrrobot911/learn-ai-engineering/internal/config"
+	"github.com/mrrobot911/learn-ai-engineering/internal/handler"
+	"github.com/mrrobot911/learn-ai-engineering/internal/middleware"
 )
 
 func main() {
@@ -23,7 +24,12 @@ func main() {
 	loggedMux := middleware.Logging(mux)
 
 	log.Printf("Starting server on %s", cfg.Addr())
-	if err := http.ListenAndServe(cfg.Addr(), loggedMux); err != nil {
+	srv := &http.Server{
+		Addr:              cfg.Addr(),
+		Handler:           loggedMux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }

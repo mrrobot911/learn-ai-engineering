@@ -1,16 +1,15 @@
 package config
 
 import (
-	"os"
 	"testing"
 )
 
 func TestLoadDefaults(t *testing.T) {
 	// Clear env vars
-	os.Unsetenv("HOST")
-	os.Unsetenv("PORT")
-	os.Unsetenv("ENV")
-	os.Unsetenv("DATABASE_URL")
+	t.Setenv("HOST", "")
+	t.Setenv("PORT", "")
+	t.Setenv("ENV", "")
+	t.Setenv("DATABASE_URL", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -31,9 +30,8 @@ func TestLoadDefaults(t *testing.T) {
 }
 
 func TestLoadMissingRequiredProduction(t *testing.T) {
-	os.Setenv("ENV", "production")
-	os.Unsetenv("DATABASE_URL")
-	defer os.Unsetenv("ENV")
+	t.Setenv("ENV", "production")
+	t.Setenv("DATABASE_URL", "")
 
 	_, err := Load()
 	if err == nil {
@@ -45,15 +43,27 @@ func TestLoadMissingRequiredProduction(t *testing.T) {
 }
 
 func TestLoadMissingRequiredTest(t *testing.T) {
-	os.Setenv("ENV", "test")
-	os.Unsetenv("DATABASE_URL")
-	defer os.Unsetenv("ENV")
+	t.Setenv("ENV", "test")
+	t.Setenv("DATABASE_URL", "")
 
 	_, err := Load()
 	if err == nil {
 		t.Fatal("expected error for missing DATABASE_URL in test")
 	}
 	if err.Error() != "DATABASE_URL is required in test environment" {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestLoadInvalidEnv(t *testing.T) {
+	t.Setenv("ENV", "staging")
+	t.Setenv("DATABASE_URL", "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error for invalid environment")
+	}
+	if err.Error() != "ENV must be development, test or production" {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }

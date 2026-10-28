@@ -1,3 +1,3 @@
-module github.com/datatalksclub/learn-ai-engineering
+module github.com/mrrobot911/learn-ai-engineering
 
 go 1.22
