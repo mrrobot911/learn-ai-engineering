@@ -204,3 +204,12 @@ Entries 0-12 are kept unchanged in [`ai-workflow-archive.md`](ai-workflow-archiv
 - **Verification:** `bunx @redocly/cli lint openapi.yaml` exit 0 (4 warnings). Created issues via `gh issue create`.
 - **Artifacts:** docs/artifacts/backlog/tasks.md (reworked), openapi.yaml (progress 404s).
 - **Links:** issues #32,#33,#34-#52, PR #33.
+
+## 2026-10-28 — Entry 22: Backend foundation fixes (issue #34)
+
+- **Tool:** OpenCode (software engineer role)
+- **Task / context:** issue #34 review findings; fix go.mod module path and imports, config validation for ENV, remove unused health layers, use http.Server with ReadHeaderTimeout, update PR body.
+- **Result:** Updated go.mod to github.com/mrrobot911/learn-ai-engineering and fixed imports; removed unused getEnvInt/strconv/comment and added ENV validation with test using t.Setenv; removed unused health service/repo; main uses http.Server with ReadHeaderTimeout 5s.
+- **Verification:**
+  - `(cd backend && gofmt -l . && go vet ./... && go test ./...)`: exit 0
+- **Links:** issue #34
