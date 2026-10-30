@@ -17,7 +17,6 @@ Run from the repository root; wrap directory changes in a subshell, as `(cd <dir
 - Pin versions (`go.mod`, Dockerfiles, the compose image tag, workflow actions), never `latest`; commit lockfiles; add or upgrade a dependency only when the task asks.
 - Keep `README.md` runnable when a command or step changes.
 - Do not run deploy commands or workflows (`gh workflow run`) unless asked.
-- Work from an issue. "do issue #N" means the cycle in `docs/process.md`, with the main session as orchestrator; implement directly only when the maintainer explicitly asks for a direct change.
 - Log every notable AI-assisted step as its own file in `docs/ai-log/` (rules and template: `docs/ai-workflow.md`). Never read existing entries.
 
 ## Writing code

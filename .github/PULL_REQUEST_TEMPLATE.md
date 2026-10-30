@@ -7,7 +7,7 @@ Do not merge: the maintainer reviews the diff and merges.
 <!-- What changed and why, in a few lines. -->
 
 ## Related issue
-Refs #
+Closes #
 
 ## Verification
 - [ ] Acceptance criteria reviewed
