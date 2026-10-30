@@ -10,7 +10,7 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 - This file creates no issues and no code. The maintainer merges, splits and removes tasks before creating them (see [`docs/process.md`](../../process.md), "Backlog"). The issues for T02-T13 were created from this file on 2026-10-17.
 - `T04`-`T09` were revised on 2026-10-19, after the Bolt prototype was imported and the API client of issue #3 was merged: each of them now adapts and verifies the pages that already exist in `frontend/` instead of building them, carries the lint problems of the imported files it touches, and `T09` closes the prototype stage with `bun run lint` exiting 0. Issues #4-#9 were updated in the same change. Nothing was merged, split or renumbered.
 - No task adds behaviour outside version 1 of the specification.
-- Every task ends with an entry in [`docs/ai-workflow.md`](../../ai-workflow.md) and a committed stage artifact; the retrospective pass over that bookkeeping is T37.
+- Every task ends with an entry file in [`docs/ai-log/`](../../ai-log/) (rules in [`docs/ai-workflow.md`](../../ai-workflow.md)) and a committed stage artifact; the retrospective pass over that bookkeeping is T37.
 
 ## Order
 
@@ -858,7 +858,7 @@ Source: `AGENTS.md` "Conventions" (log notable AI-assisted steps), `README.md` s
 
 ## Acceptance criteria
 
-- [ ] `docs/ai-workflow.md` has one entry per closed issue, following the entry template: tool, prompt, context given, result, artifacts and where they were used, what was changed by hand, verification, links.
+- [ ] `docs/ai-log/` has one entry file per closed issue, following the entry template in `docs/ai-workflow.md`: tool, prompt, context given, result, artifacts and where they were used, what was changed by hand, verification, links.
 - [ ] Every stage artifact in `docs/artifacts/` is linked from its log entry and from its issue.
 - [ ] No secret, credential or personal data appears in the log or in any artifact; the sources of the skills installed in T02 are recorded.
 - [ ] `docs/process.md` and `README.md` section 4 describe the workflow as it was actually followed, including anything that changed.
