@@ -27,5 +27,5 @@ Refs #
 - [ ] Changes follow `AGENTS.md`
 - [ ] No secrets, credentials or real user data in the diff
 - [ ] No unrelated changes
-- [ ] `docs/ai-workflow.md` entry added or updated
+- [ ] `docs/ai-log/` entry file added or updated
 - [ ] Nothing was pushed to `main` and nothing was merged

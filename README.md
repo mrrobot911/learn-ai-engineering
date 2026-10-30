@@ -73,14 +73,14 @@ The project follows a specification-first workflow:
 4. **Implementation with AI tools.** Code is generated task by task, in the order: frontend prototype with mocks, OpenAPI contract, backend with its tests, persistent storage with integration tests, connect the frontend to the backend, deployment pipeline. Tools: OpenCode in the repository (configuration in `opencode.jsonc`), Bolt for the UI prototype _(planned)_, Claude for planning and documents. Project skills for UI and React work are kept in `.agents/skills/`: `frontend-design`, `web-design-guidelines`, `react-best-practices` and `composition-patterns`, copied from their upstream repositories at the commit recorded in [`docs/artifacts/frontend-prototype/skills.md`](docs/artifacts/frontend-prototype/skills.md).
 5. **Stage artifacts.** Each stage ends with an artifact committed to the repository and linked to its issue (specification, prototype screenshots or notes, `openapi.yaml`, test results). The next stage receives it as context by path. Documents and screenshots are stored in `docs/artifacts/`; the specification and the API contract stay in the repository root.
 6. **Verification.** Generated code is checked by tests (unit and separate integration tests), a lint step, and manual review of the diff.
-7. **Logging.** For each significant task, [`docs/ai-workflow.md`](docs/ai-workflow.md) records the issue and its acceptance criteria, the instructions and specification given to the AI tool, what it implemented, which tests were run and their result, and what was reviewed or changed manually. Secrets and private data are never included. _Planned: created when implementation starts._
+7. **Logging.** For each significant task, one file in [`docs/ai-log/`](docs/ai-log/) (rules and template in [`docs/ai-workflow.md`](docs/ai-workflow.md)) records the issue and its acceptance criteria, the instructions and specification given to the AI tool, what it implemented, which tests were run and their result, and what was reviewed or changed manually. Secrets and private data are never included. _Planned: created when implementation starts._
 
 AI-prepared lesson and question drafts always go through human review before publication.
 
 ### AI workflow evidence
 
 - Public task tracker: GitHub Issues of this repository _(TODO: add the link once the repository URL is final)_
-- AI workflow log: [`docs/ai-workflow.md`](docs/ai-workflow.md)
+- AI workflow log: [`docs/ai-log/`](docs/ai-log/), rules in [`docs/ai-workflow.md`](docs/ai-workflow.md)
 - Implementation history: commits of this repository, each linked to its issue _(TODO: add the link)_
 
 ## 5. Repository structure

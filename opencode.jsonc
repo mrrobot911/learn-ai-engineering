@@ -2,7 +2,10 @@
   "$schema": "https://opencode.ai/config.json",
 
   "mcp": {
-    "gopls": { "enabled": true }
+    // Written in full (with type) so it also applies on OpenCode 2, which ignores enabled-only entries.
+    "gopls": { "type": "local", "command": ["gopls", "mcp"], "enabled": true },
+    // The global nixos MCP is for NixOS repositories only; off in this project.
+    "nixos": { "type": "local", "command": ["mcp-nixos"], "enabled": false }
   },
 
   "permission": {

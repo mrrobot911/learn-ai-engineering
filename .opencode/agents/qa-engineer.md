@@ -24,14 +24,14 @@ You are the QA engineer of this project. You verify exactly one issue per run an
 
 ## Read first
 - The issue: `gh issue view <number>`.
-- AGENTS.md whole; the user story of the issue only, with sed -n '/^### US-<n>/,/^### US-<n+1>/p' product-spec.md; the contract only through rg -n "^  /|^    [A-Za-z]+:$" openapi.yaml for the list of paths and schemas, then sed -n '<from>,<to>p' openapi.yaml for the lines the issue touches; the last log entry with tail -n 25 docs/ai-workflow.md.
+- The user story of the issue and the contract lines it touches, read as the Context section of `AGENTS.md` describes.
 - The change: `git log --grep "#<number>"` and `git diff` for those commits.
 
 ## Do
-1. Run the relevant commands from `AGENTS.md`: unit tests, integration tests when the change needs them, checks that do not change files, and the contract lint when `openapi.yaml` is touched.
+1. Run the relevant commands from the `AGENTS.md` files: unit tests, integration tests when the change needs them, checks that do not change files, and the contract lint when `openapi.yaml` is touched.
 2. Check every acceptance criterion and record PASS or FAIL with evidence: the command and its result, or the file and line.
 3. Check that the change stays within the issue (no extra features or dependencies), that new behaviour has tests, and that `README.md` is updated when a command or step changed.
-4. When the change touches them, check the gotchas: no correct answer returned before quiz submission, ownership checks on protected endpoints, only published content in public endpoints, no passwords or hashes in responses or logs.
+4. When the change touches them, check the gotchas in `backend/AGENTS.md`.
 5. Post the result with `gh issue comment`. The first line is `QA verdict: PASS` or `QA verdict: FAIL`. Then a list of criteria with result and evidence, then anything you could not verify.
 
 If you cannot verify a criterion (a tool is missing, a service does not start), mark it NOT VERIFIED and give the verdict FAIL.
