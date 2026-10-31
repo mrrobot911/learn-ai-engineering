@@ -59,7 +59,7 @@ func WriteError(w http.ResponseWriter, err error) {
 	writeJSON(w, mapping.status, body)
 }
 
-func writeJSON(w http.ResponseWriter, status int, body errorResponse) {
+func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(body)
