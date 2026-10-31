@@ -1,0 +1,9 @@
+## 2026-10-31 — Keep the orchestrator on the cycle (chore)
+- Tool: Claude (cloud session); the files are copied by the maintainer.
+- Task given: check three `/issue 36` runs. Run 1: `gh --version` was denied and the agent concluded that issue #35 does not exist (it is merged). Run 2: the superpowers plugin made the agent load skills and plan itself. Run 3: the cycle completed (pull request #57), but about ten commands were denied: `git checkout -b`, `git push -u`, chained status checks, and `--body "$(cat <<EOF ...)"` from process.md, which cost about a dozen calls before `--body-file -` worked.
+- Context given (files by name): the three session logs, docs/process.md, .opencode/agents/orchestrator.md, README.md, the issue-36 branch; the OpenCode v2 skills and config documentation and the superpowers OpenCode README.
+- Result: process.md step 1 gives the commands that create the branch and read the issue; step 6 reads the comments with `gh issue view <N> --json comments` and opens the pull request with `--body-file -` and a here-document. orchestrator.md denies skills, allows `gh --version` and `gh auth status`, and its prompt says: read only process.md and the issue, GitHub is the only source of issues, load no skills, retry a denied command once in the form from process.md, then stop and report. README: missing space fixed, stale "issues are created before implementation starts" sentence removed.
+- Artifacts: .opencode/agents/orchestrator.md, docs/process.md.
+- Accepted / rejected / changed by hand, and why: left for the maintainer.
+- Verification: frontmatter parsed as YAML; no Cyrillic in the changed files; pull request #57 re-checked: gofmt, go vet and go test pass, JSON fields match openapi.yaml. Not run: `/issue N` after this change; the superpowers bootstrap is still injected into every conversation.
+- Links: branch chore/orchestrator-fixes.

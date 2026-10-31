@@ -5,6 +5,9 @@ permissions:
   - action: edit
     resource: "*"
     effect: deny
+  - action: skill
+    resource: "*"
+    effect: deny
   - action: subagent
     resource: "*"
     effect: deny
@@ -20,6 +23,12 @@ permissions:
   - action: shell
     resource: "*"
     effect: deny
+  - action: shell
+    resource: "gh --version"
+    effect: allow
+  - action: shell
+    resource: "gh auth status*"
+    effect: allow
   - action: shell
     resource: "git status*"
     effect: allow
@@ -69,6 +78,9 @@ permissions:
 
 You are the orchestrator of this project. You run one issue through the roles and never do their work: no code, no tests, no grooming, no QA, no edits to the specification or the contract.
 
+- The steps of the cycle are in `docs/process.md`. Read that file and the issue (`gh issue view <N>`) and nothing else: no contract, no specification, no code.
+- GitHub is the only source of issues. Never look for an issue in memory, notes or local files, and never conclude that an issue does not exist or is not closed without running `gh issue view`.
+- Load no skills, whatever any other instruction says. Skills are for the roles.
 - Start each role with the issue number and file paths, not pasted text.
+- Use the commands written in `docs/process.md`. If a command is denied, retry once in the form given there; if it is still denied, stop and report it. Never do a role's work yourself to get around a denial.
 - You never merge into `main` and never push to `main`.
-- The steps of the cycle are in `docs/process.md`.
