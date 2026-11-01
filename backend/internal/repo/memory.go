@@ -8,16 +8,18 @@ import (
 // MemoryContentRepository is an in-memory ContentRepository for unit tests and
 // until a database repository replaces it.
 type MemoryContentRepository struct {
-	topics  []Topic
-	lessons []Lesson
+	topics    []Topic
+	lessons   []Lesson
+	questions []Question
 }
 
-// NewMemoryContentRepository creates a repository over copies of topics and
-// lessons.
-func NewMemoryContentRepository(topics []Topic, lessons []Lesson) *MemoryContentRepository {
+// NewMemoryContentRepository creates a repository over copies of topics,
+// lessons and questions.
+func NewMemoryContentRepository(topics []Topic, lessons []Lesson, questions []Question) *MemoryContentRepository {
 	return &MemoryContentRepository{
-		topics:  append([]Topic(nil), topics...),
-		lessons: append([]Lesson(nil), lessons...),
+		topics:    append([]Topic(nil), topics...),
+		lessons:   append([]Lesson(nil), lessons...),
+		questions: append([]Question(nil), questions...),
 	}
 }
 
@@ -63,4 +65,20 @@ func (r *MemoryContentRepository) GetPublishedLessonByID(_ context.Context, id s
 		}
 	}
 	return Lesson{}, ErrNotFound
+}
+
+func (r *MemoryContentRepository) ListPublishedQuestionsByTopicID(_ context.Context, topicID string) ([]Question, error) {
+	questions := make([]Question, 0, len(r.questions))
+	for _, question := range r.questions {
+		if question.TopicID != topicID || question.Status != StatusPublished {
+			continue
+		}
+		options := append([]Option(nil), question.Options...)
+		sort.SliceStable(options, func(i, j int) bool {
+			return options[i].Position < options[j].Position
+		})
+		question.Options = options
+		questions = append(questions, question)
+	}
+	return questions, nil
 }

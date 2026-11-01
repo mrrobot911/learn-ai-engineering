@@ -12,9 +12,10 @@ import (
 // unfilteredRepository returns every item it holds, including drafts, so the
 // service's published-only rule is exercised on its own.
 type unfilteredRepository struct {
-	topics  []repo.Topic
-	lessons []repo.Lesson
-	err     error
+	topics    []repo.Topic
+	lessons   []repo.Lesson
+	questions []repo.Question
+	err       error
 }
 
 func (r unfilteredRepository) ListPublishedTopics(context.Context) ([]repo.Topic, error) {
@@ -59,6 +60,15 @@ func (r unfilteredRepository) GetPublishedLessonByID(_ context.Context, id strin
 		}
 	}
 	return repo.Lesson{}, repo.ErrNotFound
+}
+
+// ListPublishedQuestionsByTopicID ignores the topic and the status on purpose,
+// so the service's own filtering is exercised.
+func (r unfilteredRepository) ListPublishedQuestionsByTopicID(context.Context, string) ([]repo.Question, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.questions, nil
 }
 
 func TestContentServiceListTopicsExcludesDrafts(t *testing.T) {
