@@ -35,6 +35,25 @@ type Lesson struct {
 	Status   ContentStatus
 }
 
+// Option is one answer option of a question. Position defines the stable order
+// the options are shown in; IsCorrect is never sent to a quiz client.
+type Option struct {
+	ID        string
+	Text      string
+	Position  int
+	IsCorrect bool
+}
+
+// Question is a multiple-choice question that belongs to a topic.
+type Question struct {
+	ID          string
+	TopicID     string
+	Text        string
+	Explanation string
+	Options     []Option
+	Status      ContentStatus
+}
+
 // ErrNotFound is returned when no published content matches the lookup.
 var ErrNotFound = errors.New("content not found")
 
@@ -46,4 +65,5 @@ type ContentRepository interface {
 	GetPublishedTopicBySlug(ctx context.Context, slug string) (Topic, error)
 	ListPublishedLessonsByTopicID(ctx context.Context, topicID string) ([]Lesson, error)
 	GetPublishedLessonByID(ctx context.Context, id string) (Lesson, error)
+	ListPublishedQuestionsByTopicID(ctx context.Context, topicID string) ([]Question, error)
 }

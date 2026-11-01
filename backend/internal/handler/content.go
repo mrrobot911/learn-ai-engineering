@@ -40,6 +40,17 @@ type lessonResponse struct {
 	Status   string `json:"status"`
 }
 
+type quizQuestionResponse struct {
+	ID      string               `json:"id"`
+	Text    string               `json:"text"`
+	Options []quizOptionResponse `json:"options"`
+}
+
+type quizOptionResponse struct {
+	ID   string `json:"id"`
+	Text string `json:"text"`
+}
+
 // ListTopics writes the published topics in position order.
 func (h *ContentHandler) ListTopics(w http.ResponseWriter, r *http.Request) {
 	topics, err := h.service.ListTopics(r.Context())
@@ -82,6 +93,31 @@ func (h *ContentHandler) GetLesson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, newLessonResponse(lesson))
+}
+
+// StartQuiz writes the questions of a quiz on the topic, with their options in
+// position order and no field that reveals the answer. It works with and
+// without a session.
+func (h *ContentHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
+	questions, err := h.service.StartQuiz(r.Context(), r.PathValue("topicSlug"))
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	response := make([]quizQuestionResponse, 0, len(questions))
+	for _, question := range questions {
+		options := make([]quizOptionResponse, 0, len(question.Options))
+		for _, option := range question.Options {
+			options = append(options, quizOptionResponse{ID: option.ID, Text: option.Text})
+		}
+		response = append(response, quizQuestionResponse{
+			ID:      question.ID,
+			Text:    question.Text,
+			Options: options,
+		})
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 func newTopicSummaryResponse(topic repo.Topic) topicSummaryResponse {

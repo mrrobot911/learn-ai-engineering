@@ -19,7 +19,7 @@ func main() {
 	}
 
 	h := handler.NewHealthHandler()
-	contentService := service.NewContentService(repo.NewMemoryContentRepository(nil, nil))
+	contentService := service.NewContentService(repo.NewMemoryContentRepository(nil, nil, nil))
 	contentHandler := handler.NewContentHandler(contentService)
 
 	mux := http.NewServeMux()
@@ -27,6 +27,7 @@ func main() {
 	mux.HandleFunc("GET /topics", contentHandler.ListTopics)
 	mux.HandleFunc("GET /topics/{topicSlug}", contentHandler.GetTopic)
 	mux.HandleFunc("GET /lessons/{lessonId}", contentHandler.GetLesson)
+	mux.HandleFunc("POST /topics/{topicSlug}/quiz", contentHandler.StartQuiz)
 
 	// Apply logging middleware
 	loggedMux := middleware.Logging(mux)

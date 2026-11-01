@@ -15,7 +15,7 @@ import (
 
 const lessonMarkdown = "# First lesson\n\nRead **this** markdown unchanged.\n"
 
-func contentFixtures() ([]repo.Topic, []repo.Lesson) {
+func contentFixtures() ([]repo.Topic, []repo.Lesson, []repo.Question) {
 	topics := []repo.Topic{
 		{ID: "topic-1", Slug: "intro", Title: "Introduction", Description: "Start here.", Position: 1, Status: repo.StatusPublished},
 		{ID: "topic-2", Slug: "draft-topic", Title: "Draft topic", Description: "Not visible.", Position: 2, Status: repo.StatusDraft},
@@ -26,7 +26,25 @@ func contentFixtures() ([]repo.Topic, []repo.Lesson) {
 		{ID: "lesson-1", TopicID: "topic-1", Title: "First lesson", Body: lessonMarkdown, Position: 1, Status: repo.StatusPublished},
 		{ID: "lesson-draft", TopicID: "topic-1", Title: "Draft lesson", Body: "Hidden body", Position: 3, Status: repo.StatusDraft},
 	}
-	return topics, lessons
+	questions := []repo.Question{
+		{ID: "question-1", TopicID: "topic-1", Text: "Question 1?", Explanation: "Because 1.", Status: repo.StatusPublished, Options: quizOptions("question-1")},
+		{ID: "question-2", TopicID: "topic-1", Text: "Question 2?", Explanation: "Because 2.", Status: repo.StatusPublished, Options: quizOptions("question-2")},
+		{ID: "question-3", TopicID: "topic-1", Text: "Question 3?", Explanation: "Because 3.", Status: repo.StatusPublished, Options: quizOptions("question-3")},
+		{ID: "question-4", TopicID: "topic-1", Text: "Question 4?", Explanation: "Because 4.", Status: repo.StatusPublished, Options: quizOptions("question-4")},
+		{ID: "question-5", TopicID: "topic-1", Text: "Question 5?", Explanation: "Because 5.", Status: repo.StatusPublished, Options: quizOptions("question-5")},
+		{ID: "question-6", TopicID: "topic-1", Text: "Question 6?", Explanation: "Because 6.", Status: repo.StatusPublished, Options: quizOptions("question-6")},
+		{ID: "question-draft", TopicID: "topic-1", Text: "Draft question?", Explanation: "Hidden.", Status: repo.StatusDraft, Options: quizOptions("question-draft")},
+		{ID: "question-advanced", TopicID: "topic-3", Text: "Advanced question?", Explanation: "Other topic.", Status: repo.StatusPublished, Options: quizOptions("question-advanced")},
+	}
+	return topics, lessons, questions
+}
+
+func quizOptions(questionID string) []repo.Option {
+	return []repo.Option{
+		{ID: questionID + "-option-1", Text: "First option", Position: 1, IsCorrect: true},
+		{ID: questionID + "-option-2", Text: "Second option", Position: 2},
+		{ID: questionID + "-option-3", Text: "Third option", Position: 3},
+	}
 }
 
 func newContentTestServer(repository repo.ContentRepository) http.Handler {
@@ -35,12 +53,13 @@ func newContentTestServer(repository repo.ContentRepository) http.Handler {
 	mux.HandleFunc("GET /topics", h.ListTopics)
 	mux.HandleFunc("GET /topics/{topicSlug}", h.GetTopic)
 	mux.HandleFunc("GET /lessons/{lessonId}", h.GetLesson)
+	mux.HandleFunc("POST /topics/{topicSlug}/quiz", h.StartQuiz)
 	return mux
 }
 
 func newFixtureServer() http.Handler {
-	topics, lessons := contentFixtures()
-	return newContentTestServer(repo.NewMemoryContentRepository(topics, lessons))
+	topics, lessons, questions := contentFixtures()
+	return newContentTestServer(repo.NewMemoryContentRepository(topics, lessons, questions))
 }
 
 func get(t *testing.T, h http.Handler, path string) *httptest.ResponseRecorder {
@@ -135,7 +154,7 @@ func TestListTopics(t *testing.T) {
 func TestListTopicsReturnsEmptyArray(t *testing.T) {
 	h := newContentTestServer(repo.NewMemoryContentRepository([]repo.Topic{
 		{ID: "topic-1", Slug: "draft", Position: 1, Status: repo.StatusDraft},
-	}, nil))
+	}, nil, nil))
 
 	w := get(t, h, "/topics")
 
@@ -283,6 +302,10 @@ func (r failingRepository) ListPublishedLessonsByTopicID(context.Context, string
 
 func (r failingRepository) GetPublishedLessonByID(context.Context, string) (repo.Lesson, error) {
 	return repo.Lesson{}, r.err
+}
+
+func (r failingRepository) ListPublishedQuestionsByTopicID(context.Context, string) ([]repo.Question, error) {
+	return nil, r.err
 }
 
 func TestContentEndpointsHideRepositoryErrors(t *testing.T) {
