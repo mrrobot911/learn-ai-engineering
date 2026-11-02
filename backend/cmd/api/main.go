@@ -28,6 +28,7 @@ func main() {
 	mux.HandleFunc("GET /topics/{topicSlug}", contentHandler.GetTopic)
 	mux.HandleFunc("GET /lessons/{lessonId}", contentHandler.GetLesson)
 	mux.HandleFunc("POST /topics/{topicSlug}/quiz", contentHandler.StartQuiz)
+	mux.HandleFunc("POST /topics/{topicSlug}/quiz/submissions", contentHandler.SubmitQuiz)
 
 	// Apply logging middleware
 	loggedMux := middleware.Logging(mux)

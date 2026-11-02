@@ -54,6 +54,7 @@ func newContentTestServer(repository repo.ContentRepository) http.Handler {
 	mux.HandleFunc("GET /topics/{topicSlug}", h.GetTopic)
 	mux.HandleFunc("GET /lessons/{lessonId}", h.GetLesson)
 	mux.HandleFunc("POST /topics/{topicSlug}/quiz", h.StartQuiz)
+	mux.HandleFunc("POST /topics/{topicSlug}/quiz/submissions", h.SubmitQuiz)
 	return mux
 }
 
