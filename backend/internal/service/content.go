@@ -17,6 +17,28 @@ import (
 // published questions. Version 1 does not let the client choose it.
 const quizSize = 5
 
+// QuizAnswer is one answer of a quiz submission. OptionID is nil when the
+// question is unanswered.
+type QuizAnswer struct {
+	QuestionID string
+	OptionID   *string
+}
+
+// QuizAnswerResult is the graded answer of one question of the quiz.
+type QuizAnswerResult struct {
+	QuestionID        string
+	IsCorrect         bool
+	CorrectOptionText string
+	Explanation       string
+}
+
+// QuizResult is the graded result of a quiz submission.
+type QuizResult struct {
+	Score   int
+	Total   int
+	Answers []QuizAnswerResult
+}
+
 // ContentService serves published topics and lessons and starts quizzes.
 type ContentService struct {
 	repository repo.ContentRepository
@@ -121,6 +143,97 @@ func (s *ContentService) StartQuiz(ctx context.Context, slug string) ([]repo.Que
 		published = published[:quizSize]
 	}
 	return published, nil
+}
+
+// SubmitQuiz grades the submission for a topic. A submission containing a
+// question that does not belong to the topic is rejected with validation_error
+// and nothing is graded. An unanswered question or an option that does not
+// belong to the question counts as incorrect. The first occurrence of a
+// question id counts; later duplicates are ignored. An empty answer list is a
+// validation_error.
+func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []QuizAnswer) (QuizResult, error) {
+	if len(answers) == 0 {
+		return QuizResult{}, validationError("The submission must include at least one answer.")
+	}
+
+	topic, err := s.getPublishedTopic(ctx, slug)
+	if err != nil {
+		return QuizResult{}, err
+	}
+
+	questions, err := s.repository.ListPublishedQuestionsByTopicID(ctx, topic.ID)
+	if err != nil {
+		return QuizResult{}, fmt.Errorf("list questions of topic %q for grading: %w", slug, err)
+	}
+
+	published := make(map[string]repo.Question, len(questions))
+	for _, question := range questions {
+		if question.TopicID == topic.ID && question.Status == repo.StatusPublished {
+			published[question.ID] = question
+		}
+	}
+
+	submitted := make([]gradedQuestion, 0, len(answers))
+	seen := make(map[string]bool, len(answers))
+	for _, answer := range answers {
+		if seen[answer.QuestionID] {
+			continue
+		}
+		question, ok := published[answer.QuestionID]
+		if !ok {
+			return QuizResult{}, validationError("A submission cannot include a question that does not belong to the topic.")
+		}
+		submitted = append(submitted, gradedQuestion{question: question, answer: answer})
+		seen[answer.QuestionID] = true
+	}
+
+	results := make([]QuizAnswerResult, 0, len(submitted))
+	score := 0
+	for _, graded := range submitted {
+		question := graded.question
+		correctOption := repo.Option{}
+		for _, option := range question.Options {
+			if option.IsCorrect {
+				correctOption = option
+				break
+			}
+		}
+
+		isCorrect := false
+		if graded.answer.OptionID != nil {
+			for _, option := range question.Options {
+				if option.ID == *graded.answer.OptionID && option.IsCorrect {
+					isCorrect = true
+					break
+				}
+			}
+		}
+
+		if isCorrect {
+			score++
+		}
+		results = append(results, QuizAnswerResult{
+			QuestionID:        question.ID,
+			IsCorrect:         isCorrect,
+			CorrectOptionText: correctOption.Text,
+			Explanation:       question.Explanation,
+		})
+	}
+
+	return QuizResult{
+		Score:   score,
+		Total:   len(results),
+		Answers: results,
+	}, nil
+}
+
+type gradedQuestion struct {
+	question repo.Question
+	answer   QuizAnswer
+}
+
+func validationError(message string) error {
+	return &apperr.Error{Code: apperr.CodeValidation, Message: message}
 }
 
 func (s *ContentService) getPublishedTopic(ctx context.Context, slug string) (repo.Topic, error) {

@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
+	"github.com/mrrobot911/learn-ai-engineering/internal/apperr"
 	"github.com/mrrobot911/learn-ai-engineering/internal/repo"
 	"github.com/mrrobot911/learn-ai-engineering/internal/service"
 )
@@ -49,6 +51,28 @@ type quizQuestionResponse struct {
 type quizOptionResponse struct {
 	ID   string `json:"id"`
 	Text string `json:"text"`
+}
+
+type quizSubmissionRequest struct {
+	Answers []quizSubmissionAnswerRequest `json:"answers"`
+}
+
+type quizSubmissionAnswerRequest struct {
+	QuestionID string  `json:"question_id"`
+	OptionID   *string `json:"option_id"`
+}
+
+type quizSubmissionResultResponse struct {
+	Score   int                              `json:"score"`
+	Total   int                              `json:"total"`
+	Answers []quizSubmissionResultAnswerItem `json:"answers"`
+}
+
+type quizSubmissionResultAnswerItem struct {
+	QuestionID        string `json:"question_id"`
+	IsCorrect         bool   `json:"is_correct"`
+	CorrectOptionText string `json:"correct_option_text"`
+	Explanation       string `json:"explanation"`
 }
 
 // ListTopics writes the published topics in position order.
@@ -115,6 +139,45 @@ func (h *ContentHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 			ID:      question.ID,
 			Text:    question.Text,
 			Options: options,
+		})
+	}
+	writeJSON(w, http.StatusOK, response)
+}
+
+// SubmitQuiz grades a quiz submission on the server. It works with or without
+// a session; an anonymous submission returns the result and stores nothing.
+func (h *ContentHandler) SubmitQuiz(w http.ResponseWriter, r *http.Request) {
+	var request quizSubmissionRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		WriteError(w, &apperr.Error{Code: apperr.CodeValidation, Message: "The request body is invalid."})
+		return
+	}
+
+	answers := make([]service.QuizAnswer, 0, len(request.Answers))
+	for _, answer := range request.Answers {
+		answers = append(answers, service.QuizAnswer{
+			QuestionID: answer.QuestionID,
+			OptionID:   answer.OptionID,
+		})
+	}
+
+	result, err := h.service.SubmitQuiz(r.Context(), r.PathValue("topicSlug"), answers)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	response := quizSubmissionResultResponse{
+		Score:   result.Score,
+		Total:   result.Total,
+		Answers: make([]quizSubmissionResultAnswerItem, 0, len(result.Answers)),
+	}
+	for _, answer := range result.Answers {
+		response.Answers = append(response.Answers, quizSubmissionResultAnswerItem{
+			QuestionID:        answer.QuestionID,
+			IsCorrect:         answer.IsCorrect,
+			CorrectOptionText: answer.CorrectOptionText,
+			Explanation:       answer.Explanation,
 		})
 	}
 	writeJSON(w, http.StatusOK, response)
