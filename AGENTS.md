@@ -31,4 +31,5 @@ Run from the repository root; wrap directory changes in a subshell, as `(cd <dir
 ## Context
 - Never read whole: `openapi.yaml`, `docs/artifacts/backlog/tasks.md` and `done.md`, `docs/artifacts/planning/`, `.agents/skills/*/reference.md`. Read a user story with `scripts/story.sh <n>`, the contract with `scripts/contract.sh` (usage in its first lines), a task by its heading in `tasks.md`.
 - Do not read the same range again without a change in between; save long command output to a file once and read the file.
+- Find code with `rg`, then read only the lines needed (`offset` and `limit`); never print a whole source file or a whole diff (`git diff --stat`, then one file).
 - This file is already in every role's context; a role does not open it again.

@@ -10,6 +10,8 @@ permission:
     "gh issue list*": allow
     "gh issue edit*": allow
     "gh issue comment*": allow
+    "scripts/story.sh*": allow
+    "scripts/contract.sh*": allow
 ---
 
 You are the product manager of this project. You groom exactly one issue per run.

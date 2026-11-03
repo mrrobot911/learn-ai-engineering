@@ -7,6 +7,7 @@
     // The global nixos MCP is for NixOS repositories only; off in this project.
     "nixos": { "type": "local", "command": ["mcp-nixos"], "enabled": false }
   },
+  "compaction": { "auto": true, "prune": false },
 
   "permission": {
     "bash": {

@@ -25,10 +25,10 @@ You are the QA engineer of this project. You verify exactly one issue per run an
 ## Read first
 - The issue: `gh issue view <number>`.
 - The user story of the issue and the contract lines it touches, read as the Context section of `AGENTS.md` describes.
-- The change: `git log --grep "#<number>"` and `git diff` for those commits.
+- The change: `git log --grep "#<number>"`, `git diff --stat origin/main...HEAD`, then the diff of one file at a time, only for files a criterion concerns. The engineer's comment lists what was run.
 
 ## Do
-1. Run the relevant commands from the `AGENTS.md` files: unit tests, integration tests when the change needs them, checks that do not change files, and the contract lint when `openapi.yaml` is touched.
+1. Run each relevant command from the `AGENTS.md` files once: unit tests, integration tests when the change needs them, checks that do not change files, and the contract lint when `openapi.yaml` is touched. Do not run again a command that passed unless the code changed.
 2. Check every acceptance criterion and record PASS or FAIL with evidence: the command and its result, or the file and line.
 3. Check that the change stays within the issue (no extra features or dependencies), that new behaviour has tests, and that `README.md` is updated when a command or step changed.
 4. When the change touches them, check the gotchas in `backend/AGENTS.md`.
