@@ -309,6 +309,10 @@ func (r failingRepository) ListPublishedQuestionsByTopicID(context.Context, stri
 	return nil, r.err
 }
 
+func (r failingRepository) LessonExistsAndPublished(context.Context, string) (bool, error) {
+	return false, r.err
+}
+
 func TestContentEndpointsHideRepositoryErrors(t *testing.T) {
 	cause := errors.New("query failed for user 42: password_hash=secret")
 	h := newContentTestServer(failingRepository{err: cause})

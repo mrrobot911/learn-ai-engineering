@@ -50,6 +50,18 @@ func (r unfilteredRepository) ListPublishedLessonsByTopicID(_ context.Context, t
 	return lessons, nil
 }
 
+func (r unfilteredRepository) LessonExistsAndPublished(_ context.Context, lessonID string) (bool, error) {
+	if r.err != nil {
+		return false, r.err
+	}
+	for _, lesson := range r.lessons {
+		if lesson.ID == lessonID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (r unfilteredRepository) GetPublishedLessonByID(_ context.Context, id string) (repo.Lesson, error) {
 	if r.err != nil {
 		return repo.Lesson{}, r.err

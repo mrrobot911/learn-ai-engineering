@@ -26,6 +26,9 @@ func main() {
 	authHandler := handler.NewAuthHandler(authService, cfg.Environment == "production")
 	withSession := middleware.Session(authService)
 
+	progressService := service.NewProgressService(repo.NewMemoryProgressRepository(), repo.NewMemoryContentRepository(nil, nil, nil))
+	progressHandler := handler.NewProgressHandler(progressService)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.Health)
 	mux.HandleFunc("GET /topics", contentHandler.ListTopics)
@@ -37,6 +40,11 @@ func main() {
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
 	mux.Handle("GET /auth/session", withSession(http.HandlerFunc(authHandler.CurrentSession)))
 	mux.Handle("POST /auth/logout", withSession(middleware.CSRF(http.HandlerFunc(authHandler.Logout))))
+
+	// Progress endpoints
+	mux.Handle("GET /me/progress", withSession(http.HandlerFunc(progressHandler.GetMyProgress)))
+	mux.Handle("PUT /me/progress/lessons/{lessonId}", withSession(middleware.CSRF(http.HandlerFunc(progressHandler.MarkLessonComplete))))
+	mux.Handle("DELETE /me/progress/lessons/{lessonId}", withSession(middleware.CSRF(http.HandlerFunc(progressHandler.UnmarkLessonComplete))))
 
 	// Apply logging middleware
 	loggedMux := middleware.Logging(mux)

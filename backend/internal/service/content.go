@@ -253,3 +253,9 @@ func (s *ContentService) getPublishedTopic(ctx context.Context, slug string) (re
 func notFound(message string) error {
 	return &apperr.Error{Code: apperr.CodeNotFound, Message: message}
 }
+
+// LessonExistsAndPublished checks if a lesson exists and is published.
+// This is used by ProgressService to verify lesson completion.
+func (s *ContentService) LessonExistsAndPublished(ctx context.Context, lessonID string) (bool, error) {
+	return s.repository.LessonExistsAndPublished(ctx, lessonID)
+}

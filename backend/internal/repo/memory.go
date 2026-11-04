@@ -82,3 +82,12 @@ func (r *MemoryContentRepository) ListPublishedQuestionsByTopicID(_ context.Cont
 	}
 	return questions, nil
 }
+
+func (r *MemoryContentRepository) LessonExistsAndPublished(_ context.Context, lessonID string) (bool, error) {
+	for _, lesson := range r.lessons {
+		if lesson.ID == lessonID && lesson.Status == StatusPublished {
+			return true, nil
+		}
+	}
+	return false, nil
+}

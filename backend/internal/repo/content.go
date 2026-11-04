@@ -66,4 +66,11 @@ type ContentRepository interface {
 	ListPublishedLessonsByTopicID(ctx context.Context, topicID string) ([]Lesson, error)
 	GetPublishedLessonByID(ctx context.Context, id string) (Lesson, error)
 	ListPublishedQuestionsByTopicID(ctx context.Context, topicID string) ([]Question, error)
+	LessonExistsAndPublished(ctx context.Context, lessonID string) (bool, error)
+}
+
+// ContentRepositoryForProgress is a subset of ContentRepository used only by
+// ProgressService to check if a lesson exists and is published.
+type ContentRepositoryForProgress interface {
+	LessonExistsAndPublished(ctx context.Context, lessonID string) (bool, error)
 }

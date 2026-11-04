@@ -34,3 +34,11 @@ func (e *Error) Error() string {
 func (e *Error) Unwrap() error {
 	return e.Err
 }
+
+// NotFound creates a not found error with the given message.
+func NotFound(message string) *Error {
+	return &Error{
+		Code:    CodeNotFound,
+		Message: message,
+	}
+}

@@ -13,13 +13,16 @@ const CookieName = "session"
 
 type contextKey struct{}
 
+// WithKey is the context key for the authenticated session.
+var WithKey = contextKey{}
+
 // With returns a context that carries the authenticated session.
 func With(ctx context.Context, auth service.AuthSession) context.Context {
-	return context.WithValue(ctx, contextKey{}, auth)
+	return context.WithValue(ctx, WithKey, auth)
 }
 
 // From returns the authenticated session carried by ctx, if any.
 func From(ctx context.Context) (service.AuthSession, bool) {
-	auth, ok := ctx.Value(contextKey{}).(service.AuthSession)
+	auth, ok := ctx.Value(WithKey).(service.AuthSession)
 	return auth, ok
 }
