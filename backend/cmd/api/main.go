@@ -22,13 +22,21 @@ func main() {
 	contentService := service.NewContentService(repo.NewMemoryContentRepository(nil, nil, nil))
 	contentHandler := handler.NewContentHandler(contentService)
 
+	authService := service.NewAuthService(repo.NewMemoryAuthRepository())
+	authHandler := handler.NewAuthHandler(authService, cfg.Environment == "production")
+	withSession := middleware.Session(authService)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.Health)
 	mux.HandleFunc("GET /topics", contentHandler.ListTopics)
 	mux.HandleFunc("GET /topics/{topicSlug}", contentHandler.GetTopic)
 	mux.HandleFunc("GET /lessons/{lessonId}", contentHandler.GetLesson)
 	mux.HandleFunc("POST /topics/{topicSlug}/quiz", contentHandler.StartQuiz)
-	mux.HandleFunc("POST /topics/{topicSlug}/quiz/submissions", contentHandler.SubmitQuiz)
+	mux.Handle("POST /topics/{topicSlug}/quiz/submissions", withSession(middleware.OptionalCSRF(http.HandlerFunc(contentHandler.SubmitQuiz))))
+	mux.HandleFunc("POST /auth/register", authHandler.Register)
+	mux.HandleFunc("POST /auth/login", authHandler.Login)
+	mux.Handle("GET /auth/session", withSession(http.HandlerFunc(authHandler.CurrentSession)))
+	mux.Handle("POST /auth/logout", withSession(middleware.CSRF(http.HandlerFunc(authHandler.Logout))))
 
 	// Apply logging middleware
 	loggedMux := middleware.Logging(mux)
