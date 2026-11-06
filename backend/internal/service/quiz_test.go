@@ -33,7 +33,7 @@ func seededService(questions []repo.Question) *ContentService {
 	return NewContentServiceWithRandom(unfilteredRepository{
 		topics:    []repo.Topic{{ID: "topic-1", Slug: "topic", Status: repo.StatusPublished}},
 		questions: questions,
-	}, rand.New(rand.NewSource(42)))
+	}, repo.NewMemoryAttemptRepository(), rand.New(rand.NewSource(42)))
 }
 
 func TestStartQuizReturnsFiveQuestions(t *testing.T) {
@@ -150,7 +150,7 @@ func TestStartQuizKeepsOptionPositionOrder(t *testing.T) {
 				{ID: "option-2", Text: "Second", Position: 2},
 			},
 		}},
-	), rand.New(rand.NewSource(7)))
+	), repo.NewMemoryAttemptRepository(), rand.New(rand.NewSource(7)))
 
 	want := []string{"option-1", "option-2", "option-3", "option-4"}
 	for call := 0; call < 2; call++ {
@@ -176,7 +176,7 @@ func TestStartQuizNotFound(t *testing.T) {
 	s := NewContentServiceWithRandom(unfilteredRepository{topics: []repo.Topic{
 		{ID: "topic-1", Slug: "published", Status: repo.StatusPublished},
 		{ID: "topic-2", Slug: "draft", Status: repo.StatusDraft},
-	}}, rand.New(rand.NewSource(1)))
+	}}, repo.NewMemoryAttemptRepository(), rand.New(rand.NewSource(1)))
 
 	for _, slug := range []string{"unknown", "draft"} {
 		t.Run(slug, func(t *testing.T) {
@@ -202,7 +202,7 @@ func TestStartQuizWrapsRepositoryError(t *testing.T) {
 	s := NewContentServiceWithRandom(questionFailingRepository{unfilteredRepository{
 		topics: []repo.Topic{{ID: "topic-1", Slug: "topic", Status: repo.StatusPublished}},
 		err:    cause,
-	}}, rand.New(rand.NewSource(1)))
+	}}, repo.NewMemoryAttemptRepository(), rand.New(rand.NewSource(1)))
 
 	_, err := s.StartQuiz(context.Background(), "topic")
 	if !errors.Is(err, cause) {
@@ -245,7 +245,7 @@ func TestSubmitQuizGradesAnswers(t *testing.T) {
 		{QuestionID: "q1", OptionID: &correct},
 		{QuestionID: "q2", OptionID: nil},
 		{QuestionID: "q3", OptionID: &foreignOption},
-	})
+	}, "")
 	if err != nil {
 		t.Fatalf("submit quiz: %v", err)
 	}
@@ -283,7 +283,7 @@ func TestSubmitQuizRejectsQuestionNotBelongingToTopic(t *testing.T) {
 			_, err := s.SubmitQuiz(context.Background(), "topic", []QuizAnswer{
 				{QuestionID: tt.questionID, OptionID: nil},
 				{QuestionID: "q1", OptionID: nil},
-			})
+			}, "")
 			if !hasCode(err, apperr.CodeValidation) {
 				t.Errorf("expected validation_error, got %v", err)
 			}
@@ -308,7 +308,7 @@ func TestSubmitQuizIgnoresDuplicateAnswers(t *testing.T) {
 			result, err := s.SubmitQuiz(context.Background(), "topic", []QuizAnswer{
 				{QuestionID: "q1", OptionID: &first},
 				{QuestionID: "q1", OptionID: &second},
-			})
+			}, "")
 			if err != nil {
 				t.Fatalf("submit quiz: %v", err)
 			}
@@ -327,7 +327,7 @@ func TestSubmitQuizRejectsEmptyAnswerList(t *testing.T) {
 
 	for name, answers := range map[string][]QuizAnswer{"nil": nil, "empty": {}} {
 		t.Run(name, func(t *testing.T) {
-			_, err := s.SubmitQuiz(context.Background(), "topic", answers)
+			_, err := s.SubmitQuiz(context.Background(), "topic", answers, "")
 			if !hasCode(err, apperr.CodeValidation) {
 				t.Errorf("expected validation_error, got %v", err)
 			}
@@ -339,11 +339,11 @@ func TestSubmitQuizTopicNotFound(t *testing.T) {
 	s := NewContentServiceWithRandom(unfilteredRepository{topics: []repo.Topic{
 		{ID: "topic-1", Slug: "published", Status: repo.StatusPublished},
 		{ID: "topic-2", Slug: "draft", Status: repo.StatusDraft},
-	}}, rand.New(rand.NewSource(1)))
+	}}, repo.NewMemoryAttemptRepository(), rand.New(rand.NewSource(1)))
 
 	for _, slug := range []string{"unknown", "draft"} {
 		t.Run(slug, func(t *testing.T) {
-			_, err := s.SubmitQuiz(context.Background(), slug, []QuizAnswer{{QuestionID: "q1"}})
+			_, err := s.SubmitQuiz(context.Background(), slug, []QuizAnswer{{QuestionID: "q1"}}, "")
 			if !hasCode(err, apperr.CodeNotFound) {
 				t.Errorf("expected not_found, got %v", err)
 			}
@@ -365,9 +365,9 @@ func TestSubmitQuizWrapsRepositoryError(t *testing.T) {
 	s := NewContentService(gradingQuestionsFailingRepository{
 		unfilteredRepository: unfilteredRepository{topics: []repo.Topic{{ID: "topic-1", Slug: "topic", Status: repo.StatusPublished}}},
 		err:                  cause,
-	})
+	}, repo.NewMemoryAttemptRepository())
 
-	_, err := s.SubmitQuiz(context.Background(), "topic", []QuizAnswer{{QuestionID: "q1"}})
+	_, err := s.SubmitQuiz(context.Background(), "topic", []QuizAnswer{{QuestionID: "q1"}}, "")
 	if !errors.Is(err, cause) {
 		t.Errorf("expected the repository error to be wrapped, got %v", err)
 	}

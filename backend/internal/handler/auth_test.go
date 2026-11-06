@@ -45,7 +45,7 @@ func buildAuthHandler(authRepo repo.AuthRepository, secureCookie bool) http.Hand
 			},
 		},
 	}
-	contentHandler := handler.NewContentHandler(service.NewContentService(repo.NewMemoryContentRepository(topics, nil, questions)))
+	contentHandler := handler.NewContentHandler(service.NewContentService(repo.NewMemoryContentRepository(topics, nil, questions), repo.NewMemoryAttemptRepository()))
 
 	withSession := middleware.Session(authService)
 	mux := http.NewServeMux()

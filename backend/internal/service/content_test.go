@@ -75,7 +75,7 @@ func TestContentServiceListTopicsExcludesDrafts(t *testing.T) {
 	s := NewContentService(unfilteredRepository{topics: []repo.Topic{
 		{ID: "topic-1", Slug: "published", Status: repo.StatusPublished},
 		{ID: "topic-2", Slug: "draft", Status: repo.StatusDraft},
-	}})
+	}}, repo.NewMemoryAttemptRepository())
 
 	topics, err := s.ListTopics(context.Background())
 	if err != nil {
@@ -96,7 +96,7 @@ func TestContentServiceGetTopicExcludesDrafts(t *testing.T) {
 			{ID: "lesson-1", TopicID: "topic-1", Status: repo.StatusPublished},
 			{ID: "lesson-2", TopicID: "topic-1", Status: repo.StatusDraft},
 		},
-	})
+	}, repo.NewMemoryAttemptRepository())
 
 	topic, lessons, err := s.GetTopic(context.Background(), "published")
 	if err != nil {
@@ -118,7 +118,7 @@ func TestContentServiceGetTopicExcludesDrafts(t *testing.T) {
 func TestContentServiceGetLessonExcludesDrafts(t *testing.T) {
 	s := NewContentService(unfilteredRepository{lessons: []repo.Lesson{
 		{ID: "lesson-1", Status: repo.StatusDraft},
-	}})
+	}}, repo.NewMemoryAttemptRepository())
 
 	if _, err := s.GetLesson(context.Background(), "lesson-1"); !hasCode(err, apperr.CodeNotFound) {
 		t.Errorf("expected not_found for a draft lesson, got %v", err)
@@ -127,7 +127,7 @@ func TestContentServiceGetLessonExcludesDrafts(t *testing.T) {
 
 func TestContentServiceWrapsRepositoryError(t *testing.T) {
 	cause := errors.New("query failed")
-	s := NewContentService(unfilteredRepository{err: cause})
+	s := NewContentService(unfilteredRepository{err: cause}, repo.NewMemoryAttemptRepository())
 
 	_, err := s.ListTopics(context.Background())
 	if !errors.Is(err, cause) {

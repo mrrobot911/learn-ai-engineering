@@ -39,22 +39,24 @@ type QuizResult struct {
 	Answers []QuizAnswerResult
 }
 
-// ContentService serves published topics and lessons and starts quizzes.
+// ContentService serves published topics and lessons, starts and grades
+// quizzes and stores the attempts of logged-in users.
 type ContentService struct {
 	repository repo.ContentRepository
+	attempts   repo.AttemptRepository
 	random     *rand.Rand
 	randomMu   sync.Mutex
 }
 
-// NewContentService creates a content service over repository.
-func NewContentService(repository repo.ContentRepository) *ContentService {
-	return NewContentServiceWithRandom(repository, rand.New(rand.NewSource(time.Now().UnixNano())))
+// NewContentService creates a content service over repository and attempts.
+func NewContentService(repository repo.ContentRepository, attempts repo.AttemptRepository) *ContentService {
+	return NewContentServiceWithRandom(repository, attempts, rand.New(rand.NewSource(time.Now().UnixNano())))
 }
 
 // NewContentServiceWithRandom creates a content service that draws its quiz
 // questions from random, so tests can pin the sequence.
-func NewContentServiceWithRandom(repository repo.ContentRepository, random *rand.Rand) *ContentService {
-	return &ContentService{repository: repository, random: random}
+func NewContentServiceWithRandom(repository repo.ContentRepository, attempts repo.AttemptRepository, random *rand.Rand) *ContentService {
+	return &ContentService{repository: repository, attempts: attempts, random: random}
 }
 
 // ListTopics returns the published topics. The repository already filters on
@@ -150,8 +152,9 @@ func (s *ContentService) StartQuiz(ctx context.Context, slug string) ([]repo.Que
 // and nothing is graded. An unanswered question or an option that does not
 // belong to the question counts as incorrect. The first occurrence of a
 // question id counts; later duplicates are ignored. An empty answer list is a
-// validation_error.
-func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []QuizAnswer) (QuizResult, error) {
+// validation_error. A non-empty userID stores the attempt for that user; an
+// anonymous submission stores nothing.
+func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []QuizAnswer, userID string) (QuizResult, error) {
 	if len(answers) == 0 {
 		return QuizResult{}, validationError("The submission must include at least one answer.")
 	}
@@ -188,6 +191,7 @@ func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []
 	}
 
 	results := make([]QuizAnswerResult, 0, len(submitted))
+	attemptAnswers := make([]repo.QuizAttemptAnswer, 0, len(submitted))
 	score := 0
 	for _, graded := range submitted {
 		question := graded.question
@@ -199,11 +203,13 @@ func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []
 			}
 		}
 
+		selectedOptionText := ""
 		isCorrect := false
 		if graded.answer.OptionID != nil {
 			for _, option := range question.Options {
-				if option.ID == *graded.answer.OptionID && option.IsCorrect {
-					isCorrect = true
+				if option.ID == *graded.answer.OptionID {
+					selectedOptionText = option.Text
+					isCorrect = option.IsCorrect
 					break
 				}
 			}
@@ -218,13 +224,63 @@ func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []
 			CorrectOptionText: correctOption.Text,
 			Explanation:       question.Explanation,
 		})
+		attemptAnswers = append(attemptAnswers, repo.QuizAttemptAnswer{
+			QuestionID:         question.ID,
+			QuestionText:       question.Text,
+			SelectedOptionText: selectedOptionText,
+			CorrectOptionText:  correctOption.Text,
+			IsCorrect:          isCorrect,
+		})
 	}
 
-	return QuizResult{
+	result := QuizResult{
 		Score:   score,
 		Total:   len(results),
 		Answers: results,
-	}, nil
+	}
+	if userID != "" {
+		if _, err := s.attempts.CreateAttempt(ctx, repo.QuizAttempt{
+			UserID:    userID,
+			TopicID:   topic.ID,
+			TopicSlug: topic.Slug,
+			Score:     result.Score,
+			Total:     result.Total,
+			CreatedAt: time.Now(),
+			Answers:   attemptAnswers,
+		}); err != nil {
+			return QuizResult{}, fmt.Errorf("store quiz attempt for user %q: %w", userID, err)
+		}
+	}
+	return result, nil
+}
+
+// ListAttempts returns the stored quiz attempts of the user, newest first. The
+// result is never nil.
+func (s *ContentService) ListAttempts(ctx context.Context, userID string) ([]repo.QuizAttempt, error) {
+	attempts, err := s.attempts.ListAttemptsByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list quiz attempts of user %q: %w", userID, err)
+	}
+	if attempts == nil {
+		attempts = []repo.QuizAttempt{}
+	}
+	return attempts, nil
+}
+
+// GetAttempt returns one stored attempt of the user. An attempt of another user
+// is reported as not found.
+func (s *ContentService) GetAttempt(ctx context.Context, userID, attemptID string) (repo.QuizAttempt, error) {
+	attempt, err := s.attempts.GetAttemptByID(ctx, attemptID)
+	if errors.Is(err, repo.ErrAttemptNotFound) {
+		return repo.QuizAttempt{}, notFound("Attempt not found.")
+	}
+	if err != nil {
+		return repo.QuizAttempt{}, fmt.Errorf("get quiz attempt %q: %w", attemptID, err)
+	}
+	if attempt.UserID != userID {
+		return repo.QuizAttempt{}, notFound("Attempt not found.")
+	}
+	return attempt, nil
 }
 
 type gradedQuestion struct {

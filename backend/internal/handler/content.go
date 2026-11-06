@@ -3,10 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/mrrobot911/learn-ai-engineering/internal/apperr"
 	"github.com/mrrobot911/learn-ai-engineering/internal/repo"
 	"github.com/mrrobot911/learn-ai-engineering/internal/service"
+	"github.com/mrrobot911/learn-ai-engineering/internal/session"
 )
 
 // ContentHandler handles the public content endpoints.
@@ -73,6 +75,28 @@ type quizSubmissionResultAnswerItem struct {
 	IsCorrect         bool   `json:"is_correct"`
 	CorrectOptionText string `json:"correct_option_text"`
 	Explanation       string `json:"explanation"`
+}
+
+type quizAttemptListItemResponse struct {
+	ID        string    `json:"id"`
+	TopicID   string    `json:"topic_id"`
+	TopicSlug string    `json:"topic_slug"`
+	Score     int       `json:"score"`
+	Total     int       `json:"total"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type quizAttemptDetailResponse struct {
+	quizAttemptListItemResponse
+	Answers []quizAttemptAnswerResponse `json:"answers"`
+}
+
+type quizAttemptAnswerResponse struct {
+	QuestionID         string `json:"question_id"`
+	QuestionText       string `json:"question_text"`
+	SelectedOptionText string `json:"selected_option_text"`
+	CorrectOptionText  string `json:"correct_option_text"`
+	IsCorrect          bool   `json:"is_correct"`
 }
 
 // ListTopics writes the published topics in position order.
@@ -161,7 +185,12 @@ func (h *ContentHandler) SubmitQuiz(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	result, err := h.service.SubmitQuiz(r.Context(), r.PathValue("topicSlug"), answers)
+	userID := ""
+	if auth, ok := session.From(r.Context()); ok {
+		userID = auth.User.ID
+	}
+
+	result, err := h.service.SubmitQuiz(r.Context(), r.PathValue("topicSlug"), answers, userID)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -181,6 +210,70 @@ func (h *ContentHandler) SubmitQuiz(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, http.StatusOK, response)
+}
+
+// ListMyAttempts writes the stored quiz attempts of the logged-in user, newest
+// first. It takes no user id from the request.
+func (h *ContentHandler) ListMyAttempts(w http.ResponseWriter, r *http.Request) {
+	auth, ok := session.From(r.Context())
+	if !ok {
+		WriteError(w, &apperr.Error{Code: apperr.CodeAuthentication, Message: "Authentication is required."})
+		return
+	}
+
+	attempts, err := h.service.ListAttempts(r.Context(), auth.User.ID)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	response := make([]quizAttemptListItemResponse, 0, len(attempts))
+	for _, attempt := range attempts {
+		response = append(response, newQuizAttemptListItemResponse(attempt))
+	}
+	writeJSON(w, http.StatusOK, response)
+}
+
+// GetMyAttempt writes one stored quiz attempt of the logged-in user. It takes no
+// user id from the request.
+func (h *ContentHandler) GetMyAttempt(w http.ResponseWriter, r *http.Request) {
+	auth, ok := session.From(r.Context())
+	if !ok {
+		WriteError(w, &apperr.Error{Code: apperr.CodeAuthentication, Message: "Authentication is required."})
+		return
+	}
+
+	attempt, err := h.service.GetAttempt(r.Context(), auth.User.ID, r.PathValue("attemptId"))
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	response := quizAttemptDetailResponse{
+		quizAttemptListItemResponse: newQuizAttemptListItemResponse(attempt),
+		Answers:                     make([]quizAttemptAnswerResponse, 0, len(attempt.Answers)),
+	}
+	for _, answer := range attempt.Answers {
+		response.Answers = append(response.Answers, quizAttemptAnswerResponse{
+			QuestionID:         answer.QuestionID,
+			QuestionText:       answer.QuestionText,
+			SelectedOptionText: answer.SelectedOptionText,
+			CorrectOptionText:  answer.CorrectOptionText,
+			IsCorrect:          answer.IsCorrect,
+		})
+	}
+	writeJSON(w, http.StatusOK, response)
+}
+
+func newQuizAttemptListItemResponse(attempt repo.QuizAttempt) quizAttemptListItemResponse {
+	return quizAttemptListItemResponse{
+		ID:        attempt.ID,
+		TopicID:   attempt.TopicID,
+		TopicSlug: attempt.TopicSlug,
+		Score:     attempt.Score,
+		Total:     attempt.Total,
+		CreatedAt: attempt.CreatedAt,
+	}
 }
 
 func newTopicSummaryResponse(topic repo.Topic) topicSummaryResponse {
