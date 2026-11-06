@@ -48,7 +48,7 @@ func quizOptions(questionID string) []repo.Option {
 }
 
 func newContentTestServer(repository repo.ContentRepository) http.Handler {
-	h := NewContentHandler(service.NewContentService(repository))
+	h := NewContentHandler(service.NewContentService(repository, repo.NewMemoryAttemptRepository()))
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /topics", h.ListTopics)
 	mux.HandleFunc("GET /topics/{topicSlug}", h.GetTopic)

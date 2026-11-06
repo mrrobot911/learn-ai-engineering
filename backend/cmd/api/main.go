@@ -20,7 +20,8 @@ func main() {
 
 	h := handler.NewHealthHandler()
 	contentRepository := repo.NewMemoryContentRepository(nil, nil, nil)
-	contentService := service.NewContentService(contentRepository)
+	attemptRepository := repo.NewMemoryAttemptRepository()
+	contentService := service.NewContentService(contentRepository, attemptRepository)
 	contentHandler := handler.NewContentHandler(contentService)
 
 	authService := service.NewAuthService(repo.NewMemoryAuthRepository())
@@ -42,6 +43,8 @@ func main() {
 	mux.Handle("GET /auth/session", withSession(http.HandlerFunc(authHandler.CurrentSession)))
 	mux.Handle("POST /auth/logout", withSession(middleware.CSRF(http.HandlerFunc(authHandler.Logout))))
 	mux.Handle("GET /me/progress", withSession(http.HandlerFunc(progressHandler.GetMyProgress)))
+	mux.Handle("GET /me/attempts", withSession(http.HandlerFunc(contentHandler.ListMyAttempts)))
+	mux.Handle("GET /me/attempts/{attemptId}", withSession(http.HandlerFunc(contentHandler.GetMyAttempt)))
 	mux.Handle("PUT /me/progress/lessons/{lessonId}", withSession(middleware.CSRF(http.HandlerFunc(progressHandler.MarkLessonComplete))))
 	mux.Handle("DELETE /me/progress/lessons/{lessonId}", withSession(middleware.CSRF(http.HandlerFunc(progressHandler.UnmarkLessonComplete))))
 
