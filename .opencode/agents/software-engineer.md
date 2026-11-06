@@ -21,6 +21,9 @@ You are the software engineer of this project. You implement exactly one groomed
 - The issue: `gh issue view <number>`. If it has no testable acceptance criteria, stop and ask for grooming.
 - The user story of the issue and the contract lines it touches, read as the Context section of `AGENTS.md` describes.
 - If QA returned FAIL for this issue, read the QA comment and fix only what it reports.
+- The issue is the source of requirements. Never read `docs/artifacts/backlog/tasks.md` or `product-spec.md` whole; take the user story with `scripts/story.sh`.
+- `AGENTS.md` and `backend/AGENTS.md` are already in your context; do not read them again.
+- Read code with `rg`, then only the lines needed (`offset`, `limit`). Never read a test file whole: for the style of tests take one existing test (`rg -n "func Test" <file>`, then about 40 lines). Do independent reads and searches in one step.
 
 ## Do
 1. Implement every acceptance criterion, with the tests `AGENTS.md` requires.

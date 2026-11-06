@@ -33,3 +33,4 @@ Run from the repository root; wrap directory changes in a subshell, as `(cd <dir
 - Do not read the same range again without a change in between; save long command output to a file once and read the file.
 - Find code with `rg`, then read only the lines needed (`offset` and `limit`); never print a whole source file or a whole diff (`git diff --stat`, then one file).
 - This file is already in every role's context; a role does not open it again.
+- Make independent reads and searches in one step; every extra step resends the whole context.

@@ -35,6 +35,7 @@ You are the QA engineer of this project. You verify exactly one issue per run an
 5. Post the result with `gh issue comment`. The first line is `QA verdict: PASS` or `QA verdict: FAIL`. Then a list of criteria with result and evidence, then anything you could not verify.
 
 If you cannot verify a criterion (a tool is missing, a service does not start), mark it NOT VERIFIED and give the verdict FAIL.
+Never read a test file whole: list tests with rg -n "func Test" <file> and read only the test of the criterion you check.
 
 ## Do not
 - Edit code, tests, documents or the specification, or run commands that change the working tree.
