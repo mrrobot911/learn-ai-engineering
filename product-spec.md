@@ -145,10 +145,10 @@ React with TypeScript (frontend, Bun as package manager and script runner), Go (
 - `questions`: id, topic_id, text, explanation, status
 - `answer_options`: id, question_id, text, position, is_correct
 - `users`: id, email, password_hash, is_maintainer, created_at
-- `sessions`: id, user_id, created_at, expires_at
+- `sessions`: id, user_id, csrf_token, created_at, expires_at
 - `lesson_progress`: user_id, lesson_id, completed_at
 - `quiz_attempts`: id, user_id, topic_id, score, total, created_at
-- `quiz_attempt_answers`: attempt_id, question_id (nullable reference), question_text, selected_option_text (empty if unanswered), correct_option_text, is_correct
+- `quiz_attempt_answers`: attempt_id, position, question_id (nullable reference), question_text, selected_option_text (empty if unanswered), correct_option_text, is_correct
 
 ## 10. Open questions
 

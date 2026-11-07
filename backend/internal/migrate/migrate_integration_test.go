@@ -5,6 +5,7 @@ package migrate
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -18,6 +19,14 @@ func testDBURL(t *testing.T) string {
 	}
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL or DATABASE_URL required for integration tests")
+	}
+	cfg, err := pgx.ParseConfig(url)
+	if err != nil {
+		t.Fatalf("parse database URL: %v", err)
+	}
+	name := cfg.Database
+	if name == "learn_ai_engineering" || !strings.Contains(strings.ToLower(name), "test") {
+		t.Fatalf("refusing to run integration tests against non-test database %q (set TEST_DATABASE_URL to an isolated test database, e.g. learn_ai_engineering_test)", name)
 	}
 	return url
 }
@@ -187,7 +196,7 @@ func TestApply_AuthProgressAttemptTables(t *testing.T) {
 	}
 
 	// sessions: id, user_id, created_at, expires_at, indexes on user_id and expires_at
-	_, err = conn.Exec(ctx, `INSERT INTO sessions (id, user_id, created_at, expires_at) VALUES ('s1','u1', NOW(), NOW() + INTERVAL '7 days')`)
+	_, err = conn.Exec(ctx, `INSERT INTO sessions (id, user_id, csrf_token, created_at, expires_at) VALUES ('s1','u1','csrf1', NOW(), NOW() + INTERVAL '7 days')`)
 	if err != nil {
 		t.Fatalf("insert session: %v", err)
 	}
@@ -228,14 +237,19 @@ func TestApply_AuthProgressAttemptTables(t *testing.T) {
 	if err != nil {
 		t.Fatalf("insert quiz_attempt: %v", err)
 	}
-	_, err = conn.Exec(ctx, `INSERT INTO quiz_attempt_answers (attempt_id, question_id, question_text, selected_option_text, correct_option_text, is_correct) VALUES ('a1','q1','Q?','A','A',true)`)
+	_, err = conn.Exec(ctx, `INSERT INTO quiz_attempt_answers (attempt_id, position, question_id, question_text, selected_option_text, correct_option_text, is_correct) VALUES ('a1',1,'q1','Q?','A','A',true)`)
 	if err != nil {
 		t.Fatalf("insert quiz_attempt_answer: %v", err)
 	}
 	// nullable question reference and empty selected answer allowed
-	_, err = conn.Exec(ctx, `INSERT INTO quiz_attempt_answers (attempt_id, question_id, question_text, selected_option_text, correct_option_text, is_correct) VALUES ('a1',NULL,'Gone?','','B',false)`)
+	_, err = conn.Exec(ctx, `INSERT INTO quiz_attempt_answers (attempt_id, position, question_id, question_text, selected_option_text, correct_option_text, is_correct) VALUES ('a1',2,NULL,'Gone?','','B',false)`)
 	if err != nil {
 		t.Fatalf("insert answer with null question_id: %v", err)
+	}
+	// the position is unique within an attempt
+	_, err = conn.Exec(ctx, `INSERT INTO quiz_attempt_answers (attempt_id, position, question_id, question_text, selected_option_text, correct_option_text, is_correct) VALUES ('a1',2,NULL,'Dup?','','B',false)`)
+	if err == nil {
+		t.Fatal("expected duplicate (attempt_id, position) violation")
 	}
 
 	// migration ordering: quiz_attempts migration version sorts after users (both in 000002, and file after 000001)

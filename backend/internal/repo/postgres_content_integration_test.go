@@ -60,6 +60,11 @@ func resetContentTables(t *testing.T, pool *pgxpool.Pool) {
 	t.Helper()
 	ctx := context.Background()
 	stmts := []string{
+		`DROP TABLE IF EXISTS quiz_attempt_answers`,
+		`DROP TABLE IF EXISTS quiz_attempts`,
+		`DROP TABLE IF EXISTS lesson_progress`,
+		`DROP TABLE IF EXISTS sessions`,
+		`DROP TABLE IF EXISTS users`,
 		`DROP TABLE IF EXISTS answer_options`,
 		`DROP TABLE IF EXISTS questions`,
 		`DROP TABLE IF EXISTS lessons`,
