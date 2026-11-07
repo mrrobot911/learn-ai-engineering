@@ -1,4 +1,5 @@
-package service
+// Package password hashes and verifies passwords with Argon2id.
+package password
 
 import (
 	"crypto/rand"
@@ -19,9 +20,9 @@ const (
 	argonSaltLength = 16
 )
 
-// hashPassword returns the encoded salted Argon2id hash of password in the PHC
-// string format, so the parameters are stored next to the hash.
-func hashPassword(password string) (string, error) {
+// Hash returns the encoded salted Argon2id hash of password in the PHC string
+// format, so the parameters are stored next to the hash.
+func Hash(password string) (string, error) {
 	salt := make([]byte, argonSaltLength)
 	if _, err := rand.Read(salt); err != nil {
 		return "", fmt.Errorf("generate password salt: %w", err)
@@ -35,9 +36,9 @@ func hashPassword(password string) (string, error) {
 	), nil
 }
 
-// verifyPassword reports whether password matches the encoded Argon2id hash.
+// Verify reports whether password matches the encoded Argon2id hash.
 // A malformed stored hash is an error, not a wrong password.
-func verifyPassword(encoded, password string) (bool, error) {
+func Verify(encoded, password string) (bool, error) {
 	parts := strings.Split(encoded, "$")
 	if len(parts) != 6 || parts[1] != "argon2id" {
 		return false, errors.New("password hash is not an Argon2id hash")

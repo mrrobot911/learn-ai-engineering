@@ -3,11 +3,16 @@ package seed
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/mrrobot911/learn-ai-engineering/internal/password"
 )
 
 // Report summarizes what the loader inserted or skipped.
@@ -77,8 +82,9 @@ type optionSeed struct {
 
 // Load reads seed JSON files from fsys and inserts any missing records into the
 // database. It is repeatable: loading twice creates no duplicates and reports
-// nothing created on the second run.
-func Load(ctx context.Context, pool *pgxpool.Pool, fsys fs.FS) (Report, error) {
+// nothing created on the second run. When maintainerEmail and maintainerPassword
+// are both non-empty, it also ensures a maintainer account exists for that email.
+func Load(ctx context.Context, pool *pgxpool.Pool, fsys fs.FS, maintainerEmail, maintainerPassword string) (Report, error) {
 	var report Report
 	matches, err := fs.Glob(fsys, "*.json")
 	if err != nil {
@@ -106,7 +112,43 @@ func Load(ctx context.Context, pool *pgxpool.Pool, fsys fs.FS) (Report, error) {
 		report.OptionsInserted += r.OptionsInserted
 		report.OptionsSkipped += r.OptionsSkipped
 	}
+	if maintainerEmail != "" || maintainerPassword != "" {
+		if maintainerEmail == "" || maintainerPassword == "" {
+			return report, fmt.Errorf("both maintainer email and password are required to seed a maintainer account")
+		}
+		if err := loadMaintainer(ctx, pool, maintainerEmail, maintainerPassword); err != nil {
+			return report, err
+		}
+	}
 	return report, nil
+}
+
+func loadMaintainer(ctx context.Context, pool *pgxpool.Pool, email, pass string) error {
+	hash, err := password.Hash(pass)
+	if err != nil {
+		return fmt.Errorf("hash maintainer password: %w", err)
+	}
+	id, err := newToken()
+	if err != nil {
+		return fmt.Errorf("generate maintainer user id: %w", err)
+	}
+	_, err = pool.Exec(ctx,
+		`INSERT INTO users (id, email, password_hash, is_maintainer, created_at)
+		 VALUES ($1, $2, $3, TRUE, $4)
+		 ON CONFLICT (email) DO UPDATE SET is_maintainer = TRUE`,
+		id, email, hash, time.Now().UTC())
+	if err != nil {
+		return fmt.Errorf("seed maintainer user: %w", err)
+	}
+	return nil
+}
+
+func newToken() (string, error) {
+	raw := make([]byte, 32)
+	if _, err := io.ReadFull(rand.Reader, raw); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 
 func loadTopics(ctx context.Context, pool *pgxpool.Pool, topics []topicSeed) (Report, error) {

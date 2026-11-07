@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mrrobot911/learn-ai-engineering/internal/apperr"
+	"github.com/mrrobot911/learn-ai-engineering/internal/password"
 	"github.com/mrrobot911/learn-ai-engineering/internal/repo"
 )
 
@@ -75,7 +76,7 @@ func TestRegisterStoresSaltedArgon2idHashes(t *testing.T) {
 		{firstUser.PasswordHash, "password-wrong", false},
 		{secondUser.PasswordHash, "password", true},
 	} {
-		matches, err := verifyPassword(tc.hash, tc.password)
+		matches, err := password.Verify(tc.hash, tc.password)
 		if err != nil {
 			t.Fatalf("verify password: %v", err)
 		}

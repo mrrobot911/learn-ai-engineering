@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/mrrobot911/learn-ai-engineering/internal/apperr"
+	pwhash "github.com/mrrobot911/learn-ai-engineering/internal/password"
 	"github.com/mrrobot911/learn-ai-engineering/internal/repo"
 )
 
@@ -56,7 +57,7 @@ func (s *AuthService) Register(ctx context.Context, email, password string) (Aut
 		return AuthSession{}, err
 	}
 
-	passwordHash, err := hashPassword(password)
+	passwordHash, err := pwhash.Hash(password)
 	if err != nil {
 		return AuthSession{}, fmt.Errorf("hash password for new user: %w", err)
 	}
@@ -104,7 +105,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (AuthSe
 		return AuthSession{}, fmt.Errorf("get user by email: %w", err)
 	}
 
-	matches, err := verifyPassword(user.PasswordHash, password)
+	matches, err := pwhash.Verify(user.PasswordHash, password)
 	if err != nil {
 		return AuthSession{}, fmt.Errorf("verify password: %w", err)
 	}
