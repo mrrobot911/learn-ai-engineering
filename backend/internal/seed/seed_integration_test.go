@@ -97,7 +97,7 @@ func TestLoad_IsRepeatable(t *testing.T) {
 	resetTables(t, pool)
 	applyMigrations(t, pool)
 
-	first, err := seed.Load(ctx, pool, seeddata.Files)
+	first, err := seed.Load(ctx, pool, seeddata.Files, "", "")
 	if err != nil {
 		t.Fatalf("first load: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestLoad_IsRepeatable(t *testing.T) {
 		before[id] = topicCounts{lessons: lessons, questions: questions, options: options}
 	}
 
-	second, err := seed.Load(ctx, pool, seeddata.Files)
+	second, err := seed.Load(ctx, pool, seeddata.Files, "", "")
 	if err != nil {
 		t.Fatalf("second load: %v", err)
 	}
@@ -158,5 +158,95 @@ func TestLoad_IsRepeatable(t *testing.T) {
 		assertCount(`SELECT COUNT(*) FROM lessons WHERE topic_id = $1`, want.lessons, id)
 		assertCount(`SELECT COUNT(*) FROM questions WHERE topic_id = $1`, want.questions, id)
 		assertCount(`SELECT COUNT(*) FROM answer_options ao JOIN questions q ON q.id = ao.question_id WHERE q.topic_id = $1`, want.options, id)
+	}
+}
+
+func TestLoad_SeedsMaintainerAccount(t *testing.T) {
+	ctx := context.Background()
+	pool := openTestPool(t)
+	resetTables(t, pool)
+	applyMigrations(t, pool)
+
+	const email = "seed-maintainer@example.com"
+	const pass = "seed-maintainer-password"
+
+	if _, err := seed.Load(ctx, pool, seeddata.Files, email, pass); err != nil {
+		t.Fatalf("first load: %v", err)
+	}
+
+	var (
+		gotEmail      string
+		gotHash       string
+		gotMaintainer bool
+	)
+	if err := pool.QueryRow(ctx,
+		`SELECT email, password_hash, is_maintainer FROM users WHERE email = $1`, email,
+	).Scan(&gotEmail, &gotHash, &gotMaintainer); err != nil {
+		t.Fatalf("query maintainer: %v", err)
+	}
+	if gotEmail != email {
+		t.Errorf("email = %q, want %q", gotEmail, email)
+	}
+	if !gotMaintainer {
+		t.Error("expected is_maintainer = true")
+	}
+	if !strings.HasPrefix(gotHash, "$argon2id$") {
+		t.Errorf("expected Argon2id hash, got %q", gotHash)
+	}
+	if strings.Contains(gotHash, pass) {
+		t.Error("stored hash contains the plaintext password")
+	}
+
+	// Repeatable: loading again must not duplicate the user or fail.
+	if _, err := seed.Load(ctx, pool, seeddata.Files, email, pass); err != nil {
+		t.Fatalf("second load: %v", err)
+	}
+	var count int
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM users WHERE email = $1`, email).Scan(&count); err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly 1 maintainer user after repeat load, got %d", count)
+	}
+	if err := pool.QueryRow(ctx, `SELECT is_maintainer FROM users WHERE email = $1`, email).Scan(&gotMaintainer); err != nil {
+		t.Fatalf("query maintainer after repeat: %v", err)
+	}
+	if !gotMaintainer {
+		t.Error("expected is_maintainer to remain true after repeat load")
+	}
+}
+
+func TestLoad_DoesNotPromoteExistingAccount(t *testing.T) {
+	ctx := context.Background()
+	pool := openTestPool(t)
+	resetTables(t, pool)
+	applyMigrations(t, pool)
+
+	const email = "registered-first@example.com"
+	const pass = "seed-maintainer-password"
+
+	// A regular user registered this email before the seed ran.
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO users (id, email, password_hash, is_maintainer, created_at)
+		 VALUES ('user-existing', $1, 'existing-hash', FALSE, NOW())`, email); err != nil {
+		t.Fatalf("insert existing user: %v", err)
+	}
+
+	if _, err := seed.Load(ctx, pool, seeddata.Files, email, pass); err == nil {
+		t.Fatal("expected an error when the maintainer email belongs to a regular account")
+	}
+
+	var gotMaintainer bool
+	var gotHash string
+	if err := pool.QueryRow(ctx,
+		`SELECT is_maintainer, password_hash FROM users WHERE email = $1`, email,
+	).Scan(&gotMaintainer, &gotHash); err != nil {
+		t.Fatalf("query existing user: %v", err)
+	}
+	if gotMaintainer {
+		t.Error("existing regular account was promoted to maintainer")
+	}
+	if gotHash != "existing-hash" {
+		t.Errorf("existing account password hash was changed: %q", gotHash)
 	}
 }

@@ -51,7 +51,7 @@ func main() {
 		}
 		conn.Release()
 
-		seedReport, err := seed.Load(ctx, pool, seeddata.Files)
+		seedReport, err := seed.Load(ctx, pool, seeddata.Files, os.Getenv("SEED_MAINTAINER_EMAIL"), os.Getenv("SEED_MAINTAINER_PASSWORD"))
 		if err != nil {
 			log.Fatalf("Failed to load seed content: %v", err)
 		}
