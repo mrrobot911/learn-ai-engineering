@@ -101,27 +101,100 @@ func applyOne(ctx context.Context, conn *pgx.Conn, version, body string) error {
 }
 
 func splitStatements(sql string) []string {
-	parts := strings.Split(sql, ";")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		stmt := strings.TrimSpace(p)
-		if stmt == "" {
+	var (
+		out      []string
+		start    int
+		inLine   bool
+		inQuote  bool
+		inDollar bool
+		dollar   string
+	)
+	for i := 0; i < len(sql); i++ {
+		ch := sql[i]
+		if inLine {
+			if ch == '\n' {
+				inLine = false
+			}
 			continue
 		}
-		// Keep comment-only blocks out; pgx handles comments in statements fine,
-		// but a block that is only comments produces an empty exec.
-		lines := strings.Split(stmt, "\n")
-		hasCode := false
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line != "" && !strings.HasPrefix(line, "--") {
-				hasCode = true
-				break
+		if inDollar {
+			if ch == '$' && strings.HasPrefix(sql[i:], dollar) {
+				i += len(dollar) - 1
+				inDollar = false
+				dollar = ""
+			}
+			continue
+		}
+		if inQuote {
+			if ch == '\'' {
+				if i+1 < len(sql) && sql[i+1] == '\'' {
+					i++ // escaped quote ''
+					continue
+				}
+				inQuote = false
+			}
+			continue
+		}
+		// normal state
+		if ch == '-' && i+1 < len(sql) && sql[i+1] == '-' {
+			inLine = true
+			i++
+			continue
+		}
+		if ch == '\'' {
+			inQuote = true
+			continue
+		}
+		if ch == '$' {
+			if tag, ok := dollarTag(sql[i:]); ok {
+				inDollar = true
+				dollar = tag
+				i += len(tag) - 1
+				continue
 			}
 		}
-		if hasCode {
-			out = append(out, stmt)
+		if ch == ';' {
+			stmt := strings.TrimSpace(sql[start:i])
+			if hasCode(stmt) {
+				out = append(out, stmt)
+			}
+			start = i + 1
 		}
 	}
+	if tail := strings.TrimSpace(sql[start:]); hasCode(tail) {
+		out = append(out, tail)
+	}
 	return out
+}
+
+// dollarTag reports whether s starts with a PostgreSQL dollar-quote tag
+// ($$, $tag$, etc.) and returns the tag including both $ delimiters.
+func dollarTag(s string) (string, bool) {
+	if len(s) == 0 || s[0] != '$' {
+		return "", false
+	}
+	for i := 1; i < len(s); i++ {
+		c := s[i]
+		if c == '$' {
+			return s[:i+1], true
+		}
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
+			continue
+		}
+		return "", false
+	}
+	return "", false
+}
+
+func hasCode(stmt string) bool {
+	if stmt == "" {
+		return false
+	}
+	for _, line := range strings.Split(stmt, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "--") {
+			return true
+		}
+	}
+	return false
 }
