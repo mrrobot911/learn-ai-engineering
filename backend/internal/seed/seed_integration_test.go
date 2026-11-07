@@ -104,8 +104,44 @@ func TestLoad_IsRepeatable(t *testing.T) {
 	if first.Created() == 0 {
 		t.Fatal("expected first load to create seed content")
 	}
-	if first.TopicsInserted < 1 || first.LessonsInserted < 1 || first.QuestionsInserted < 6 {
-		t.Fatalf("unexpected first load counts: %+v", first)
+
+	topics := []string{
+		"topic-llms",
+		"topic-ai-agents",
+		"topic-mcp",
+		"topic-rag",
+		"topic-embeddings",
+		"topic-evaluation",
+		"topic-deployment",
+	}
+
+	count := func(query string, args ...any) int {
+		t.Helper()
+		var got int
+		if err := pool.QueryRow(ctx, query, args...).Scan(&got); err != nil {
+			t.Fatalf("count query %q: %v", query, err)
+		}
+		return got
+	}
+	assertCount := func(query string, want int, args ...any) {
+		t.Helper()
+		if got := count(query, args...); got != want {
+			t.Fatalf("count %q = %d, want %d", query, got, want)
+		}
+	}
+
+	// Assert minimum counts for each of the seven topics after one load.
+	type topicCounts struct{ lessons, questions, options int }
+	before := make(map[string]topicCounts, len(topics))
+	for _, id := range topics {
+		assertCount(`SELECT COUNT(*) FROM topics WHERE id = $1`, 1, id)
+		lessons := count(`SELECT COUNT(*) FROM lessons WHERE topic_id = $1 AND status = 'published'`, id)
+		questions := count(`SELECT COUNT(*) FROM questions WHERE topic_id = $1 AND status = 'published'`, id)
+		options := count(`SELECT COUNT(*) FROM answer_options ao JOIN questions q ON q.id = ao.question_id WHERE q.topic_id = $1`, id)
+		if lessons < 1 || questions < 6 {
+			t.Fatalf("topic %s counts: lessons=%d questions=%d, want >=1 lesson and >=6 questions", id, lessons, questions)
+		}
+		before[id] = topicCounts{lessons: lessons, questions: questions, options: options}
 	}
 
 	second, err := seed.Load(ctx, pool, seeddata.Files)
@@ -117,18 +153,10 @@ func TestLoad_IsRepeatable(t *testing.T) {
 	}
 
 	// Assert database counts unchanged after second load.
-	assertCount := func(query string, want int) {
-		t.Helper()
-		var got int
-		if err := pool.QueryRow(ctx, query).Scan(&got); err != nil {
-			t.Fatalf("count query %q: %v", query, err)
-		}
-		if got != want {
-			t.Fatalf("count %q = %d, want %d", query, got, want)
-		}
+	for _, id := range topics {
+		want := before[id]
+		assertCount(`SELECT COUNT(*) FROM lessons WHERE topic_id = $1`, want.lessons, id)
+		assertCount(`SELECT COUNT(*) FROM questions WHERE topic_id = $1`, want.questions, id)
+		assertCount(`SELECT COUNT(*) FROM answer_options ao JOIN questions q ON q.id = ao.question_id WHERE q.topic_id = $1`, want.options, id)
 	}
-	assertCount(`SELECT COUNT(*) FROM topics WHERE id = 'topic-llms'`, 1)
-	assertCount(`SELECT COUNT(*) FROM lessons WHERE topic_id = 'topic-llms'`, first.LessonsInserted)
-	assertCount(`SELECT COUNT(*) FROM questions WHERE topic_id = 'topic-llms'`, first.QuestionsInserted)
-	assertCount(`SELECT COUNT(*) FROM answer_options WHERE question_id LIKE 'question-llms-%'`, first.OptionsInserted)
 }
