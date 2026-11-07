@@ -23,10 +23,30 @@
           "explanation": "During pretraining, LLMs learn by predicting the next token in a sequence. This objective teaches the model statistical patterns in language across large text corpora.",
           "status": "published",
           "options": [
-            { "id": "option-llms-01-a", "text": "Predict the next token in a sequence", "position": 1, "is_correct": true },
-            { "id": "option-llms-01-b", "text": "Execute programs written by users", "position": 2, "is_correct": false },
-            { "id": "option-llms-01-c", "text": "Store every document it reads in a database", "position": 3, "is_correct": false },
-            { "id": "option-llms-01-d", "text": "Verify facts using external sources by default", "position": 4, "is_correct": false }
+            {
+              "id": "option-llms-01-a",
+              "text": "Predict the next token in a sequence",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-llms-01-b",
+              "text": "Execute programs written by users",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-01-c",
+              "text": "Store every document it reads in a database",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-01-d",
+              "text": "Verify facts using external sources by default",
+              "position": 4,
+              "is_correct": false
+            }
           ]
         },
         {
@@ -35,9 +55,24 @@
           "explanation": "LLMs process text as tokens, which are units such as whole words, subwords, or punctuation. Tokenization converts raw text into the numerical inputs the model can work with.",
           "status": "published",
           "options": [
-            { "id": "option-llms-02-a", "text": "A security credential used to access the model API", "position": 1, "is_correct": false },
-            { "id": "option-llms-02-b", "text": "A unit of text, such as a word or part of a word", "position": 2, "is_correct": true },
-            { "id": "option-llms-02-c", "text": "A single training example from the dataset", "position": 3, "is_correct": false }
+            {
+              "id": "option-llms-02-a",
+              "text": "A security credential used to access the model API",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-02-b",
+              "text": "A unit of text, such as a word or part of a word",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-llms-02-c",
+              "text": "A single training example from the dataset",
+              "position": 3,
+              "is_correct": false
+            }
           ]
         },
         {
@@ -46,10 +81,30 @@
           "explanation": "The context window is the maximum amount of input (and generated) text, measured in tokens, that the model can consider at one time. Information outside that window is not directly available to the model.",
           "status": "published",
           "options": [
-            { "id": "option-llms-03-a", "text": "The time it takes to train the model", "position": 1, "is_correct": false },
-            { "id": "option-llms-03-b", "text": "The number of users who can access the model at once", "position": 2, "is_correct": false },
-            { "id": "option-llms-03-c", "text": "The amount of text the model can consider at one time", "position": 3, "is_correct": true },
-            { "id": "option-llms-03-d", "text": "The size of the model's weights on disk", "position": 4, "is_correct": false }
+            {
+              "id": "option-llms-03-a",
+              "text": "The time it takes to train the model",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-03-b",
+              "text": "The number of users who can access the model at once",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-03-c",
+              "text": "The amount of text the model can consider at one time",
+              "position": 3,
+              "is_correct": true
+            },
+            {
+              "id": "option-llms-03-d",
+              "text": "The size of the model's weights on disk",
+              "position": 4,
+              "is_correct": false
+            }
           ]
         },
         {
@@ -58,10 +113,30 @@
           "explanation": "LLMs generate outputs by sampling from probability distributions over next tokens. Sampling settings (and inherent randomness in decoding strategies) can lead to different valid continuations for the same prompt.",
           "status": "published",
           "options": [
-            { "id": "option-llms-04-a", "text": "Because the model randomly deletes parts of the prompt", "position": 1, "is_correct": false },
-            { "id": "option-llms-04-b", "text": "Because outputs are sampled from probabilities over possible tokens", "position": 2, "is_correct": true },
-            { "id": "option-llms-04-c", "text": "Because LLMs always query a live search engine", "position": 3, "is_correct": false },
-            { "id": "option-llms-04-d", "text": "Because each request retrains the model", "position": 4, "is_correct": false }
+            {
+              "id": "option-llms-04-a",
+              "text": "Because the model randomly deletes parts of the prompt",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-04-b",
+              "text": "Because outputs are sampled from probabilities over possible tokens",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-llms-04-c",
+              "text": "Because LLMs always query a live search engine",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-04-d",
+              "text": "Because each request retrains the model",
+              "position": 4,
+              "is_correct": false
+            }
           ]
         },
         {
@@ -70,11 +145,36 @@
           "explanation": "LLMs can generate plausible but incorrect information, sometimes called hallucinations. When correctness matters, users should verify important outputs against trusted sources or checks.",
           "status": "published",
           "options": [
-            { "id": "option-llms-05-a", "text": "They can produce confident but incorrect answers", "position": 1, "is_correct": true },
-            { "id": "option-llms-05-b", "text": "They can only process numbers, not text", "position": 2, "is_correct": false },
-            { "id": "option-llms-05-c", "text": "They cannot generate code in any programming language", "position": 3, "is_correct": false },
-            { "id": "option-llms-05-d", "text": "They require users to provide model weights with every prompt", "position": 4, "is_correct": false },
-            { "id": "option-llms-05-e", "text": "They always return the same answer for every question", "position": 5, "is_correct": false }
+            {
+              "id": "option-llms-05-a",
+              "text": "They can produce confident but incorrect answers",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-llms-05-b",
+              "text": "They can only process numbers, not text",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-05-c",
+              "text": "They cannot generate code in any programming language",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-05-d",
+              "text": "They require users to provide model weights with every prompt",
+              "position": 4,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-05-e",
+              "text": "They always return the same answer for every question",
+              "position": 5,
+              "is_correct": false
+            }
           ]
         },
         {
@@ -83,8 +183,1212 @@
           "explanation": "Instruction tuning trains the model on examples of following instructions and helpful responses. It helps align the pretrained model's behavior with user requests, making it more useful as an assistant.",
           "status": "published",
           "options": [
-            { "id": "option-llms-06-a", "text": "To reduce the model's vocabulary to a single language", "position": 1, "is_correct": false },
-            { "id": "option-llms-06-b", "text": "To help the model follow directions and respond usefully", "position": 2, "is_correct": true }
+            {
+              "id": "option-llms-06-a",
+              "text": "To reduce the model's vocabulary to a single language",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-llms-06-b",
+              "text": "To help the model follow directions and respond usefully",
+              "position": 2,
+              "is_correct": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-ai-agents",
+      "slug": "ai-agents",
+      "title": "AI Agents",
+      "description": "Learn what AI agents are, how they use tools and planning, and where human oversight matters.",
+      "position": 2,
+      "status": "published",
+      "lessons": [
+        {
+          "id": "lesson-ai-agents-01",
+          "title": "What is an AI Agent?",
+          "body": "# What is an AI Agent?\n\nAn AI agent is a system that uses a model to pursue a goal by choosing actions, often across multiple steps. Unlike a single prompt-response interaction, an agent can observe results, decide what to do next, and continue until it reaches an outcome or stops.\n\n## Core parts\n\n- **Goal**: The task the agent is trying to accomplish, usually provided by a user or system.\n- **Reasoning and planning**: The agent breaks work into steps, decides which action is most useful, and adapts when results are unexpected.\n- **Tools**: Agents can call external capabilities such as search, code execution, databases, or APIs to gather information or perform actions.\n- **Memory/state**: The agent tracks relevant context, intermediate results, and progress.\n\n## Human oversight\n\nAgents can be useful for research, coding, and workflow automation, but they can also take wrong actions or act on incorrect assumptions. Clear permissions, guardrails, and review points are important when actions affect real systems or data.",
+          "position": 1,
+          "status": "published"
+        }
+      ],
+      "questions": [
+        {
+          "id": "question-ai-agents-01",
+          "text": "What best distinguishes an AI agent from a single chat response?",
+          "explanation": "An agent can take multiple steps toward a goal, often using observations and tool results to decide what to do next. A single response does not by itself involve this ongoing action loop.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-ai-agents-01-a",
+              "text": "It can pursue a goal through multiple actions over time",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-ai-agents-01-b",
+              "text": "It never makes mistakes",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-ai-agents-01-c",
+              "text": "It only works without any model",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-ai-agents-01-d",
+              "text": "It always requires retraining for each task",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-ai-agents-02",
+          "text": "Why might an AI agent use tools?",
+          "explanation": "Tools let an agent access information or perform actions beyond text generation, such as querying an API, running code, or reading files. This helps the agent complete tasks that require external data or side effects.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-ai-agents-02-a",
+              "text": "To replace the need for any instructions",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-ai-agents-02-b",
+              "text": "To access external capabilities or information needed for a task",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-ai-agents-02-c",
+              "text": "To guarantee the answer is always correct",
+              "position": 3,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-ai-agents-03",
+          "text": "What is a sensible safety practice when an agent can change real systems?",
+          "explanation": "When actions have real impact, permissions and review points reduce risk. Guardrails such as limited tool access, confirmations, and logging help prevent unintended or harmful changes.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-ai-agents-03-a",
+              "text": "Give it unrestricted access so it works faster",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-ai-agents-03-b",
+              "text": "Disable all logging to simplify debugging",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-ai-agents-03-c",
+              "text": "Use permissions, guardrails, and human review for impactful actions",
+              "position": 3,
+              "is_correct": true
+            },
+            {
+              "id": "option-ai-agents-03-d",
+              "text": "Assume tool results are always trustworthy",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-ai-agents-04",
+          "text": "In an agent loop, what typically happens after a tool returns a result?",
+          "explanation": "Agents use observations, including tool outputs, to update their understanding of the task. They then decide the next step, which may be another tool call, a request for clarification, or a final response.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-ai-agents-04-a",
+              "text": "The agent ignores the result and restarts training",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-ai-agents-04-b",
+              "text": "The agent uses the result to decide the next action",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-ai-agents-04-c",
+              "text": "The tool output is automatically published to users",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-ai-agents-04-d",
+              "text": "The context window becomes unlimited",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-ai-agents-05",
+          "text": "Which task is a good fit for an agentic approach?",
+          "explanation": "Agentic systems are useful when a task requires several steps and interaction with external information or tools. Simple, single-step tasks may not need an agent loop.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-ai-agents-05-a",
+              "text": "A task requiring multiple steps, such as researching and summarizing sources",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-ai-agents-05-b",
+              "text": "Returning a fixed string with no decisions",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-ai-agents-05-c",
+              "text": "A task where no information or actions are needed",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-ai-agents-05-d",
+              "text": "Storing data without any logic or goal",
+              "position": 4,
+              "is_correct": false
+            },
+            {
+              "id": "option-ai-agents-05-e",
+              "text": "Rendering a static label in a UI",
+              "position": 5,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-ai-agents-06",
+          "text": "What does 'state' or memory help an agent do?",
+          "explanation": "State helps an agent keep track of what has already happened, such as completed steps, tool results, and remaining work. Without relevant state, multi-step tasks become unreliable.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-ai-agents-06-a",
+              "text": "Track progress and relevant information across steps",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-ai-agents-06-b",
+              "text": "Increase model weights during every request",
+              "position": 2,
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-mcp",
+      "slug": "mcp",
+      "title": "Model Context Protocol",
+      "description": "Learn how MCP connects AI applications to tools and data sources through a standard interface.",
+      "position": 3,
+      "status": "published",
+      "lessons": [
+        {
+          "id": "lesson-mcp-01",
+          "title": "Introduction to MCP",
+          "body": "# Introduction to MCP\n\nThe Model Context Protocol (MCP) is an open protocol for connecting AI applications to external tools, data sources, and workflows. Instead of building a custom integration for every model-to-system pair, MCP provides a standard way for clients and servers to exchange capabilities and context.\n\n## How it works\n\n- **MCP host/client**: The AI application (such as an editor assistant or agent runtime) uses an MCP client to discover and call capabilities.\n- **MCP server**: A server exposes specific capabilities, such as tools, resources, or prompts, often backed by a local system or remote service.\n- **Standard interface**: Because the protocol is consistent, a client can work with many servers without bespoke glue code for each one.\n\n## Why it matters\n\nMCP helps teams reuse integrations, control what an AI system can access, and make tool access more portable. As with any integration, servers should expose only the capabilities needed and handle authentication and permissions carefully.",
+          "position": 1,
+          "status": "published"
+        }
+      ],
+      "questions": [
+        {
+          "id": "question-mcp-01",
+          "text": "What problem does MCP primarily address?",
+          "explanation": "MCP standardizes how AI applications connect to external tools and data sources. This reduces the need for one-off integrations between every client and every system.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-mcp-01-a",
+              "text": "Standardizing connections between AI applications and external capabilities",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-mcp-01-b",
+              "text": "Replacing all databases with language models",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-mcp-01-c",
+              "text": "Training foundation models faster",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-mcp-01-d",
+              "text": "Compressing prompts to fewer tokens",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-mcp-02",
+          "text": "In MCP, what is the role of an MCP server?",
+          "explanation": "An MCP server exposes capabilities such as tools, resources, or prompts. A client connects to the server to discover and use those capabilities through the protocol.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-mcp-02-a",
+              "text": "To expose tools or data capabilities through a standard interface",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-mcp-02-b",
+              "text": "To fine-tune the client model on every request",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-mcp-02-c",
+              "text": "To prevent the client from using any external data",
+              "position": 3,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-mcp-03",
+          "text": "Why is a standard protocol useful for tool integrations?",
+          "explanation": "A shared protocol lets clients and servers interoperate without custom adapters for each pairing. This improves reuse and makes integrations easier to maintain and swap.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-mcp-03-a",
+              "text": "It means integrations never need authentication",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-mcp-03-b",
+              "text": "It allows reusable integrations across compatible clients and servers",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-mcp-03-c",
+              "text": "It guarantees every tool call returns correct data",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-mcp-03-d",
+              "text": "It removes the need to review permissions",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-mcp-04",
+          "text": "Which is an example of a capability an MCP server might provide?",
+          "explanation": "MCP servers commonly provide tools that perform actions or retrieve information, and they may also expose resources or prompts. The exact capabilities depend on what the server is designed to do.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-mcp-04-a",
+              "text": "A tool that queries an issue tracker",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-mcp-04-b",
+              "text": "A new GPU driver for model training",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-mcp-04-c",
+              "text": "A replacement for the model's tokenizer",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-mcp-04-d",
+              "text": "A browser's CSS rendering engine",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-mcp-05",
+          "text": "What should be considered when exposing systems through MCP?",
+          "explanation": "Integrations can access sensitive data or perform actions. Servers should expose only necessary capabilities and enforce authentication, authorization, and safe input handling.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-mcp-05-a",
+              "text": "Expose every internal API to maximize usefulness",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-mcp-05-b",
+              "text": "Limit capabilities and enforce permissions appropriate to the data and actions",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-mcp-05-c",
+              "text": "Skip input validation because the client is an AI",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-mcp-05-d",
+              "text": "Return secrets in tool responses for convenience",
+              "position": 4,
+              "is_correct": false
+            },
+            {
+              "id": "option-mcp-05-e",
+              "text": "Disable auditing to reduce latency",
+              "position": 5,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-mcp-06",
+          "text": "How does MCP relate to an AI agent?",
+          "explanation": "An agent can use MCP clients to discover and call tools exposed by MCP servers. MCP provides the connection layer; the agent provides the goal-directed decision making.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-mcp-06-a",
+              "text": "MCP can provide standardized access to tools an agent may use",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-mcp-06-b",
+              "text": "MCP replaces the need for a model or agent logic",
+              "position": 2,
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-rag",
+      "slug": "rag",
+      "title": "Retrieval-Augmented Generation",
+      "description": "Learn how RAG combines retrieval with generation to ground model answers in relevant data.",
+      "position": 4,
+      "status": "published",
+      "lessons": [
+        {
+          "id": "lesson-rag-01",
+          "title": "RAG Basics",
+          "body": "# RAG Basics\n\nRetrieval-Augmented Generation (RAG) is a pattern that improves model responses by retrieving relevant information and providing it as context before generation. Instead of relying only on what the model learned during training, RAG can ground answers in current or domain-specific data.\n\n## Typical flow\n\n1. **Prepare data**: Documents are split into chunks and indexed, often using embeddings for semantic search.\n2. **Retrieve**: When a user asks a question, the system finds the most relevant chunks.\n3. **Augment**: The retrieved chunks are added to the prompt or context.\n4. **Generate**: The model produces an answer using both the question and retrieved context.\n\n## Benefits and limits\n\nRAG can reduce hallucinations and make answers more traceable to source material. It does not guarantee correctness: retrieval can miss relevant documents, return irrelevant text, or provide outdated information, so evaluation and source handling still matter.",
+          "position": 1,
+          "status": "published"
+        }
+      ],
+      "questions": [
+        {
+          "id": "question-rag-01",
+          "text": "What is the main idea behind Retrieval-Augmented Generation?",
+          "explanation": "RAG retrieves relevant information and includes it in the model's context before generating a response. This helps ground the answer in external or up-to-date data.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-rag-01-a",
+              "text": "Retrieve relevant context and use it when generating an answer",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-rag-01-b",
+              "text": "Retrain the model from scratch for every user question",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-rag-01-c",
+              "text": "Generate answers without using any input context",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-rag-01-d",
+              "text": "Store user passwords inside prompts",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-rag-02",
+          "text": "Why is document chunking commonly used in RAG systems?",
+          "explanation": "Large documents are often split into smaller chunks so the system can retrieve the most relevant passages and fit them within context limits. Chunking also improves retrieval granularity.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-rag-02-a",
+              "text": "To make retrieval target relevant passages and manage context size",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-rag-02-b",
+              "text": "To remove the need for indexing",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-rag-02-c",
+              "text": "To ensure the model never sees source text",
+              "position": 3,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-rag-03",
+          "text": "What is a limitation of RAG?",
+          "explanation": "RAG quality depends on retrieval quality. If relevant information is not retrieved, or if irrelevant or stale content is retrieved, the generated answer can still be wrong.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-rag-03-a",
+              "text": "It guarantees perfect answers whenever sources exist",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-rag-03-b",
+              "text": "Poor retrieval can lead to incomplete or incorrect answers",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-rag-03-c",
+              "text": "It cannot use any domain-specific documents",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-rag-03-d",
+              "text": "It removes the need to evaluate outputs",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-rag-04",
+          "text": "Which step happens before generation in a typical RAG flow?",
+          "explanation": "After retrieval, the system augments the prompt or context with selected passages. The model then generates a response conditioned on that context.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-rag-04-a",
+              "text": "Retrieved context is added to the prompt or model input",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-rag-04-b",
+              "text": "The model's weights are permanently updated with the chunks",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-rag-04-c",
+              "text": "All documents are deleted to save space",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-rag-04-d",
+              "text": "The user question is discarded",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-rag-05",
+          "text": "When is RAG especially useful?",
+          "explanation": "RAG is helpful when answers need information that is private, recent, or specific to a domain. Providing relevant source material at query time can improve usefulness and grounding.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-rag-05-a",
+              "text": "When answers should use current or domain-specific information",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-rag-05-b",
+              "text": "When no source data exists and none is needed",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-rag-05-c",
+              "text": "When the goal is to avoid all data access",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-rag-05-d",
+              "text": "When you want the model to ignore the user question",
+              "position": 4,
+              "is_correct": false
+            },
+            {
+              "id": "option-rag-05-e",
+              "text": "When deterministic database transactions are the only requirement",
+              "position": 5,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-rag-06",
+          "text": "What does 'grounding' mean in the context of RAG?",
+          "explanation": "Grounding means basing a response on supplied evidence or source material. In RAG, retrieved passages provide context the model can use to produce a more supported answer.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-rag-06-a",
+              "text": "Basing the response on relevant retrieved source material",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-rag-06-b",
+              "text": "Forcing the model to answer with only one token",
+              "position": 2,
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-embeddings",
+      "slug": "embeddings",
+      "title": "Embeddings",
+      "description": "Learn what embeddings are and how they represent meaning for search, clustering, and RAG.",
+      "position": 5,
+      "status": "published",
+      "lessons": [
+        {
+          "id": "lesson-embeddings-01",
+          "title": "Understanding Embeddings",
+          "body": "# Understanding Embeddings\n\nAn embedding is a numerical vector representation of data, such as text, images, or code. Embedding models map similar items to vectors that are close together in a high-dimensional space, which makes embeddings useful for comparing meaning.\n\n## Common uses\n\n- **Semantic search**: Find documents related to a query even when they do not share the same keywords.\n- **Clustering**: Group similar items based on vector similarity.\n- **Recommendations and retrieval**: Identify related content or candidates.\n- **RAG indexing**: Store chunk embeddings so relevant passages can be retrieved for generation.\n\n## Practical notes\n\nEmbeddings capture patterns learned by the model, but they are not perfect representations of truth or intent. The choice of embedding model, chunking strategy, and similarity metric affects retrieval quality, so systems should be evaluated on real tasks.",
+          "position": 1,
+          "status": "published"
+        }
+      ],
+      "questions": [
+        {
+          "id": "question-embeddings-01",
+          "text": "What is an embedding?",
+          "explanation": "An embedding represents data as a vector of numbers. In many AI systems, embeddings place semantically related items near each other in vector space.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-embeddings-01-a",
+              "text": "A numerical vector representation of data",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-embeddings-01-b",
+              "text": "A database table primary key",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-embeddings-01-c",
+              "text": "A human-written summary of a document",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-embeddings-01-d",
+              "text": "A compressed image file format",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-embeddings-02",
+          "text": "Why are embeddings useful for semantic search?",
+          "explanation": "Semantic search compares the meaning of a query and documents using vector similarity. This can retrieve relevant results even when the exact query words do not appear.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-embeddings-02-a",
+              "text": "They allow matching based on meaning, not only exact keywords",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-embeddings-02-b",
+              "text": "They guarantee the top result is always correct",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-embeddings-02-c",
+              "text": "They eliminate the need to store original documents",
+              "position": 3,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-embeddings-03",
+          "text": "In a RAG system, embeddings are commonly used to:",
+          "explanation": "RAG systems often embed document chunks and queries into vectors, then retrieve chunks with high similarity to the query. Those chunks provide context for generation.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-embeddings-03-a",
+              "text": "Render the user interface",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-embeddings-03-b",
+              "text": "Find relevant document chunks for retrieval",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-embeddings-03-c",
+              "text": "Replace the need for a language model",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-embeddings-03-d",
+              "text": "Encrypt database backups",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-embeddings-04",
+          "text": "What affects the quality of embedding-based retrieval?",
+          "explanation": "Retrieval quality depends on multiple choices, including the embedding model, how data is chunked, and how similarity is measured and evaluated. Testing on real queries is important.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-embeddings-04-a",
+              "text": "Only the font used in the source documents",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-embeddings-04-b",
+              "text": "The embedding model, chunking, and evaluation approach",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-embeddings-04-c",
+              "text": "Whether the vectors are displayed as charts",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-embeddings-04-d",
+              "text": "The number of UI themes in the application",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-embeddings-05",
+          "text": "If two text embeddings are close in vector space, what does that usually suggest?",
+          "explanation": "Embedding models are trained so that related inputs tend to have similar vectors. Closeness usually indicates semantic similarity, though results depend on the model and data.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-embeddings-05-a",
+              "text": "The texts are likely similar in meaning or related",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-embeddings-05-b",
+              "text": "The texts have identical byte lengths",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-embeddings-05-c",
+              "text": "The texts were written by the same author",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-embeddings-05-d",
+              "text": "The texts are guaranteed to be factually true",
+              "position": 4,
+              "is_correct": false
+            },
+            {
+              "id": "option-embeddings-05-e",
+              "text": "The texts must be in the same database row",
+              "position": 5,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-embeddings-06",
+          "text": "Can embeddings be created for data other than text?",
+          "explanation": "Embeddings can represent many kinds of data, including images, audio, and code. Multimodal or domain-specific models learn vector representations suited to those inputs.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-embeddings-06-a",
+              "text": "Yes, embeddings can represent images, audio, code, and other data",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-embeddings-06-b",
+              "text": "No, embeddings only work for English text",
+              "position": 2,
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-evaluation",
+      "slug": "evaluation",
+      "title": "Evaluation",
+      "description": "Learn how to evaluate AI systems with clear criteria, test cases, and human review where needed.",
+      "position": 6,
+      "status": "published",
+      "lessons": [
+        {
+          "id": "lesson-evaluation-01",
+          "title": "Evaluating AI Systems",
+          "body": "# Evaluating AI Systems\n\nEvaluation helps you understand whether an AI system is useful, reliable, and safe for its intended task. Because model outputs can vary and fail in subtle ways, evaluation should be based on representative examples and clear criteria.\n\n## What to evaluate\n\n- **Quality**: Is the output correct, relevant, and complete for the task?\n- **Reliability**: Does the system behave consistently across similar inputs and edge cases?\n- **Safety and policy**: Does it avoid harmful, sensitive, or unauthorized behavior?\n- **Cost and latency**: Is performance acceptable for the product and budget?\n\n## Common approaches\n\nTeams use curated test sets, automated checks, model-based graders, and human review. No single metric is enough for every case. Good evaluation combines measurable checks with judgment on real user scenarios, especially before and after changes to prompts, models, retrieval, or tools.",
+          "position": 1,
+          "status": "published"
+        }
+      ],
+      "questions": [
+        {
+          "id": "question-evaluation-01",
+          "text": "Why is evaluation important for AI systems?",
+          "explanation": "AI outputs can be inconsistent or incorrect, so evaluation checks whether the system meets quality, safety, and product goals. It also helps detect regressions after changes.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-evaluation-01-a",
+              "text": "To measure whether the system meets task and safety goals",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-evaluation-01-b",
+              "text": "To eliminate the need for product requirements",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-evaluation-01-c",
+              "text": "To guarantee users never see an error",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-evaluation-01-d",
+              "text": "To replace monitoring in production",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-evaluation-02",
+          "text": "What makes a good evaluation dataset?",
+          "explanation": "An evaluation set should reflect the real tasks, inputs, and edge cases the system will face. Representative examples make results more meaningful than a few easy cases.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-evaluation-02-a",
+              "text": "Examples that represent real use cases and important edge cases",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-evaluation-02-b",
+              "text": "Only cases where the current system already succeeds",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-evaluation-02-c",
+              "text": "Random text with no relation to the product task",
+              "position": 3,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-evaluation-03",
+          "text": "Why might human review be part of AI evaluation?",
+          "explanation": "Some qualities, such as helpfulness, tone, or nuanced correctness, are hard to capture with simple automated rules. Human review can judge outputs where automatic metrics are incomplete.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-evaluation-03-a",
+              "text": "Because humans can train the model during every evaluation run",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-evaluation-03-b",
+              "text": "Because some output qualities require judgment beyond simple automated checks",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-evaluation-03-c",
+              "text": "Because automated tests are never useful",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-evaluation-03-d",
+              "text": "Because evaluation should avoid clear criteria",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-evaluation-04",
+          "text": "When should you re-run evaluations?",
+          "explanation": "Changes to prompts, models, retrieval, tools, or data can affect behavior. Re-evaluating after changes helps catch regressions and confirm improvements.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-evaluation-04-a",
+              "text": "After relevant changes such as prompts, models, or retrieval logic",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-evaluation-04-b",
+              "text": "Only once, before the first prototype",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-evaluation-04-c",
+              "text": "Never, if the demo looked good",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-evaluation-04-d",
+              "text": "Only when changing the website colors",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-evaluation-05",
+          "text": "What is a regression in the context of AI system changes?",
+          "explanation": "A regression is when a change makes behavior worse on cases that previously worked or mattered. Evaluations help detect regressions before they reach users.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-evaluation-05-a",
+              "text": "A decline in behavior or quality after a change",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-evaluation-05-b",
+              "text": "An improvement in latency",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-evaluation-05-c",
+              "text": "A new feature request from users",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-evaluation-05-d",
+              "text": "A database backup process",
+              "position": 4,
+              "is_correct": false
+            },
+            {
+              "id": "option-evaluation-05-e",
+              "text": "A larger context window",
+              "position": 5,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-evaluation-06",
+          "text": "Is one metric usually enough to evaluate an AI feature?",
+          "explanation": "AI features often involve tradeoffs among correctness, usefulness, safety, latency, and cost. A combination of checks gives a more complete view than a single metric.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-evaluation-06-a",
+              "text": "No, multiple criteria are often needed for a complete picture",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-evaluation-06-b",
+              "text": "Yes, one accuracy number is always sufficient",
+              "position": 2,
+              "is_correct": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-deployment",
+      "slug": "deployment",
+      "title": "Deployment",
+      "description": "Learn practical concerns for deploying AI features, including reliability, monitoring, and safety controls.",
+      "position": 7,
+      "status": "published",
+      "lessons": [
+        {
+          "id": "lesson-deployment-01",
+          "title": "Deploying AI Features",
+          "body": "# Deploying AI Features\n\nDeploying an AI feature means making it available to users in a way that is reliable, observable, and safe. Production AI systems need more than a working prompt: they need controls around inputs, outputs, failures, and change management.\n\n## Key concerns\n\n- **Configuration**: Manage model settings, API keys, endpoints, and feature flags through environment/configuration, not hardcoded secrets.\n- **Reliability**: Handle timeouts, rate limits, retries, and fallback behavior when model providers or tools fail.\n- **Monitoring**: Track latency, errors, cost, and quality signals so issues are visible after release.\n- **Safety**: Validate inputs, constrain tool permissions, and review outputs where mistakes could cause harm.\n\n## Rollout\n\nGradual rollouts, evaluations, and clear ownership help teams ship AI changes safely. Because behavior can change with prompts, models, or data, deployment should include a plan for observing and improving the system over time.",
+          "position": 1,
+          "status": "published"
+        }
+      ],
+      "questions": [
+        {
+          "id": "question-deployment-01",
+          "text": "Where should API keys and model endpoints be managed in production?",
+          "explanation": "Secrets and environment-specific settings should come from configuration such as environment variables or secret managers. Hardcoding them in source code risks leaks and makes environments harder to manage.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-deployment-01-a",
+              "text": "In environment/configuration management, not hardcoded in source",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-deployment-01-b",
+              "text": "Committed directly into the frontend bundle",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-deployment-01-c",
+              "text": "Inside public issue comments",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-deployment-01-d",
+              "text": "As plain text in user-visible error messages",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-deployment-02",
+          "text": "Why is monitoring important after deploying an AI feature?",
+          "explanation": "Monitoring helps teams detect failures, latency spikes, cost changes, and quality issues in real usage. AI behavior can drift or fail in cases not seen during development.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-deployment-02-a",
+              "text": "To detect errors, performance issues, and quality problems in production",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-deployment-02-b",
+              "text": "To avoid having any tests before release",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-deployment-02-c",
+              "text": "To make model outputs always deterministic",
+              "position": 3,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-deployment-03",
+          "text": "What is a good way to handle provider timeouts or rate limits?",
+          "explanation": "Production systems should anticipate external failures with bounded retries, timeouts, and fallback behavior. This improves reliability and gives users a clearer failure path.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-deployment-03-a",
+              "text": "Retry forever without limits",
+              "position": 1,
+              "is_correct": false
+            },
+            {
+              "id": "option-deployment-03-b",
+              "text": "Use timeouts and bounded error handling or fallback behavior",
+              "position": 2,
+              "is_correct": true
+            },
+            {
+              "id": "option-deployment-03-c",
+              "text": "Expose raw provider credentials to the client so it can retry",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-deployment-03-d",
+              "text": "Ignore the failure and return a success response",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-deployment-04",
+          "text": "Why can gradual rollout be useful for AI features?",
+          "explanation": "A gradual rollout limits the impact of unexpected behavior and gives teams time to observe metrics and user feedback. It is especially helpful when model behavior is hard to predict fully before release.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-deployment-04-a",
+              "text": "It reduces risk by exposing changes to a limited audience first",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-deployment-04-b",
+              "text": "It guarantees no evaluation is needed",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-deployment-04-c",
+              "text": "It prevents the need for logging",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-deployment-04-d",
+              "text": "It makes prompts impossible to change later",
+              "position": 4,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-deployment-05",
+          "text": "Which practice improves safety for AI features that can trigger actions?",
+          "explanation": "Actions should be constrained by permissions and validated before execution. Least privilege and guardrails reduce the damage from incorrect model decisions or malicious inputs.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-deployment-05-a",
+              "text": "Validate inputs and limit tool permissions to what is needed",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-deployment-05-b",
+              "text": "Allow every tool to run with administrator access",
+              "position": 2,
+              "is_correct": false
+            },
+            {
+              "id": "option-deployment-05-c",
+              "text": "Skip authorization checks for faster responses",
+              "position": 3,
+              "is_correct": false
+            },
+            {
+              "id": "option-deployment-05-d",
+              "text": "Trust model output as a security boundary",
+              "position": 4,
+              "is_correct": false
+            },
+            {
+              "id": "option-deployment-05-e",
+              "text": "Log secrets so actions can be replayed",
+              "position": 5,
+              "is_correct": false
+            }
+          ]
+        },
+        {
+          "id": "question-deployment-06",
+          "text": "Should deployment planning include cost considerations for AI features?",
+          "explanation": "Model calls, retrieval, and tool usage can create ongoing costs that vary with traffic and prompt size. Tracking and designing for cost helps keep the feature sustainable.",
+          "status": "published",
+          "options": [
+            {
+              "id": "option-deployment-06-a",
+              "text": "Yes, usage-based model and infrastructure costs should be considered",
+              "position": 1,
+              "is_correct": true
+            },
+            {
+              "id": "option-deployment-06-b",
+              "text": "No, AI feature costs are always fixed and negligible",
+              "position": 2,
+              "is_correct": false
+            }
           ]
         }
       ]
