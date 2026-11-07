@@ -13,7 +13,9 @@ import (
 	"github.com/mrrobot911/learn-ai-engineering/internal/middleware"
 	"github.com/mrrobot911/learn-ai-engineering/internal/migrate"
 	"github.com/mrrobot911/learn-ai-engineering/internal/repo"
+	"github.com/mrrobot911/learn-ai-engineering/internal/seed"
 	"github.com/mrrobot911/learn-ai-engineering/internal/service"
+	seeddata "github.com/mrrobot911/learn-ai-engineering/seed"
 )
 
 func main() {
@@ -48,6 +50,12 @@ func main() {
 			log.Fatalf("Failed to apply migrations: %v", err)
 		}
 		conn.Release()
+
+		seedReport, err := seed.Load(ctx, pool, seeddata.Files)
+		if err != nil {
+			log.Fatalf("Failed to load seed content: %v", err)
+		}
+		log.Printf("Seed: %s", seedReport)
 
 		contentRepository = repo.NewPostgresContentRepository(pool)
 		attemptRepository = repo.NewPostgresAttemptRepository(pool)
