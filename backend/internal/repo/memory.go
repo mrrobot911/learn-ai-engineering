@@ -10,13 +10,13 @@ import (
 // MemoryContentRepository is an in-memory ContentRepository for unit tests and
 // until a database repository replaces it.
 type MemoryContentRepository struct {
-	mu          sync.RWMutex
-	nextLesson  int
-	nextQuest   int
-	nextOption  int
-	topics      []Topic
-	lessons     []Lesson
-	questions   []Question
+	mu         sync.RWMutex
+	nextLesson int
+	nextQuest  int
+	nextOption int
+	topics     []Topic
+	lessons    []Lesson
+	questions  []Question
 }
 
 // NewMemoryContentRepository creates a repository over copies of topics,

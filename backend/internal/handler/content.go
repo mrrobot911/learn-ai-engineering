@@ -131,11 +131,11 @@ type draftQuestionOptionResponse struct {
 }
 
 type draftQuestionResponse struct {
-	ID      string                         `json:"id"`
-	TopicID string                         `json:"topic_id"`
-	Text    string                         `json:"text"`
-	Options []draftQuestionOptionResponse  `json:"options"`
-	Status  string                         `json:"status"`
+	ID      string                        `json:"id"`
+	TopicID string                        `json:"topic_id"`
+	Text    string                        `json:"text"`
+	Options []draftQuestionOptionResponse `json:"options"`
+	Status  string                        `json:"status"`
 }
 
 // ListTopics writes the published topics in position order.
