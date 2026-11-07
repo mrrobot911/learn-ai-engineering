@@ -1,0 +1,93 @@
+{
+  "topics": [
+    {
+      "id": "topic-llms",
+      "slug": "llms",
+      "title": "Large Language Models",
+      "description": "Learn how large language models work, how they are trained, and how to use them effectively.",
+      "position": 1,
+      "status": "published",
+      "lessons": [
+        {
+          "id": "lesson-llms-01",
+          "title": "What are Large Language Models?",
+          "body": "# What are Large Language Models?\n\nLarge Language Models (LLMs) are neural networks trained on large amounts of text to predict and generate language. Given a sequence of tokens (pieces of words), an LLM estimates which token is most likely to come next.\n\n## Key ideas\n\n- **Tokens**: Text is split into tokens before processing. A token might be a word, part of a word, or punctuation.\n- **Training**: During pretraining, the model learns patterns in language by predicting the next token across billions of examples. Later stages (like instruction tuning) help it follow directions and answer questions.\n- **Context window**: An LLM can only consider a limited amount of text at once. This limit is called the context window.\n- **Probabilistic output**: The model produces probabilities over possible next tokens, so the same prompt can lead to different outputs depending on sampling settings.\n\n## Why it matters\n\nLLMs can summarize text, answer questions, write code, and assist with many language tasks. They are powerful, but they can also make mistakes or produce confident-sounding incorrect answers, so their output should be verified when accuracy matters.",
+          "position": 1,
+          "status": "published"
+        }
+      ],
+      "questions": [
+        {
+          "id": "question-llms-01",
+          "text": "What is the core task an LLM is trained to do during pretraining?",
+          "explanation": "During pretraining, LLMs learn by predicting the next token in a sequence. This objective teaches the model statistical patterns in language across large text corpora.",
+          "status": "published",
+          "options": [
+            { "id": "option-llms-01-a", "text": "Predict the next token in a sequence", "position": 1, "is_correct": true },
+            { "id": "option-llms-01-b", "text": "Execute programs written by users", "position": 2, "is_correct": false },
+            { "id": "option-llms-01-c", "text": "Store every document it reads in a database", "position": 3, "is_correct": false },
+            { "id": "option-llms-01-d", "text": "Verify facts using external sources by default", "position": 4, "is_correct": false }
+          ]
+        },
+        {
+          "id": "question-llms-02",
+          "text": "What is a token in the context of LLMs?",
+          "explanation": "LLMs process text as tokens, which are units such as whole words, subwords, or punctuation. Tokenization converts raw text into the numerical inputs the model can work with.",
+          "status": "published",
+          "options": [
+            { "id": "option-llms-02-a", "text": "A security credential used to access the model API", "position": 1, "is_correct": false },
+            { "id": "option-llms-02-b", "text": "A unit of text, such as a word or part of a word", "position": 2, "is_correct": true },
+            { "id": "option-llms-02-c", "text": "A single training example from the dataset", "position": 3, "is_correct": false }
+          ]
+        },
+        {
+          "id": "question-llms-03",
+          "text": "What does an LLM's context window describe?",
+          "explanation": "The context window is the maximum amount of input (and generated) text, measured in tokens, that the model can consider at one time. Information outside that window is not directly available to the model.",
+          "status": "published",
+          "options": [
+            { "id": "option-llms-03-a", "text": "The time it takes to train the model", "position": 1, "is_correct": false },
+            { "id": "option-llms-03-b", "text": "The number of users who can access the model at once", "position": 2, "is_correct": false },
+            { "id": "option-llms-03-c", "text": "The amount of text the model can consider at one time", "position": 3, "is_correct": true },
+            { "id": "option-llms-03-d", "text": "The size of the model's weights on disk", "position": 4, "is_correct": false }
+          ]
+        },
+        {
+          "id": "question-llms-04",
+          "text": "Why can the same prompt produce different responses from an LLM?",
+          "explanation": "LLMs generate outputs by sampling from probability distributions over next tokens. Sampling settings (and inherent randomness in decoding strategies) can lead to different valid continuations for the same prompt.",
+          "status": "published",
+          "options": [
+            { "id": "option-llms-04-a", "text": "Because the model randomly deletes parts of the prompt", "position": 1, "is_correct": false },
+            { "id": "option-llms-04-b", "text": "Because outputs are sampled from probabilities over possible tokens", "position": 2, "is_correct": true },
+            { "id": "option-llms-04-c", "text": "Because LLMs always query a live search engine", "position": 3, "is_correct": false },
+            { "id": "option-llms-04-d", "text": "Because each request retrains the model", "position": 4, "is_correct": false }
+          ]
+        },
+        {
+          "id": "question-llms-05",
+          "text": "Which statement best describes a limitation of LLMs?",
+          "explanation": "LLMs can generate plausible but incorrect information, sometimes called hallucinations. When correctness matters, users should verify important outputs against trusted sources or checks.",
+          "status": "published",
+          "options": [
+            { "id": "option-llms-05-a", "text": "They can produce confident but incorrect answers", "position": 1, "is_correct": true },
+            { "id": "option-llms-05-b", "text": "They can only process numbers, not text", "position": 2, "is_correct": false },
+            { "id": "option-llms-05-c", "text": "They cannot generate code in any programming language", "position": 3, "is_correct": false },
+            { "id": "option-llms-05-d", "text": "They require users to provide model weights with every prompt", "position": 4, "is_correct": false },
+            { "id": "option-llms-05-e", "text": "They always return the same answer for every question", "position": 5, "is_correct": false }
+          ]
+        },
+        {
+          "id": "question-llms-06",
+          "text": "What is a common purpose of instruction tuning after pretraining?",
+          "explanation": "Instruction tuning trains the model on examples of following instructions and helpful responses. It helps align the pretrained model's behavior with user requests, making it more useful as an assistant.",
+          "status": "published",
+          "options": [
+            { "id": "option-llms-06-a", "text": "To reduce the model's vocabulary to a single language", "position": 1, "is_correct": false },
+            { "id": "option-llms-06-b", "text": "To help the model follow directions and respond usefully", "position": 2, "is_correct": true }
+          ]
+        }
+      ]
+    }
+  ]
+}
