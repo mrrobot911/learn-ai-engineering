@@ -306,6 +306,170 @@ func (s *ContentService) getPublishedTopic(ctx context.Context, slug string) (re
 	return topic, nil
 }
 
+// DraftLessonInput is the data for creating or updating a draft lesson.
+type DraftLessonInput struct {
+	Title    string
+	Body     string
+	Position int
+}
+
+// DraftQuestionOptionInput is one option of a draft question.
+type DraftQuestionOptionInput struct {
+	Text      string
+	IsCorrect bool
+}
+
+// DraftQuestionInput is the data for creating or updating a draft question.
+type DraftQuestionInput struct {
+	Text    string
+	Options []DraftQuestionOptionInput
+}
+
+// CreateDraftLesson creates a draft lesson under the topic.
+func (s *ContentService) CreateDraftLesson(ctx context.Context, topicSlug string, input DraftLessonInput) (repo.Lesson, error) {
+	topic, err := s.repository.GetTopicBySlug(ctx, topicSlug)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Lesson{}, notFound("Topic not found.")
+	}
+	if err != nil {
+		return repo.Lesson{}, fmt.Errorf("get topic %q: %w", topicSlug, err)
+	}
+
+	lesson, err := s.repository.CreateDraftLesson(ctx, topic.ID, repo.Lesson{
+		Title:    input.Title,
+		Body:     input.Body,
+		Position: input.Position,
+	})
+	if err != nil {
+		return repo.Lesson{}, fmt.Errorf("create draft lesson for topic %q: %w", topicSlug, err)
+	}
+	return lesson, nil
+}
+
+// UpdateDraftLesson updates an existing draft lesson under the topic.
+func (s *ContentService) UpdateDraftLesson(ctx context.Context, topicSlug, lessonID string, input DraftLessonInput) (repo.Lesson, error) {
+	topic, err := s.repository.GetTopicBySlug(ctx, topicSlug)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Lesson{}, notFound("Topic not found.")
+	}
+	if err != nil {
+		return repo.Lesson{}, fmt.Errorf("get topic %q: %w", topicSlug, err)
+	}
+
+	existing, err := s.repository.GetLessonByID(ctx, lessonID)
+	if errors.Is(err, repo.ErrNotFound) || existing.TopicID != topic.ID || existing.Status != repo.StatusDraft {
+		return repo.Lesson{}, notFound("Lesson not found.")
+	}
+	if err != nil {
+		return repo.Lesson{}, fmt.Errorf("get lesson %q: %w", lessonID, err)
+	}
+
+	updated, err := s.repository.UpdateDraftLesson(ctx, repo.Lesson{
+		ID:       lessonID,
+		TopicID:  topic.ID,
+		Title:    input.Title,
+		Body:     input.Body,
+		Position: input.Position,
+		Status:   repo.StatusDraft,
+	})
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Lesson{}, notFound("Lesson not found.")
+	}
+	if err != nil {
+		return repo.Lesson{}, fmt.Errorf("update draft lesson %q: %w", lessonID, err)
+	}
+	return updated, nil
+}
+
+// CreateDraftQuestion creates a draft question under the topic.
+func (s *ContentService) CreateDraftQuestion(ctx context.Context, topicSlug string, input DraftQuestionInput) (repo.Question, error) {
+	if err := validateDraftQuestion(input); err != nil {
+		return repo.Question{}, err
+	}
+
+	topic, err := s.repository.GetTopicBySlug(ctx, topicSlug)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Question{}, notFound("Topic not found.")
+	}
+	if err != nil {
+		return repo.Question{}, fmt.Errorf("get topic %q: %w", topicSlug, err)
+	}
+
+	question, err := s.repository.CreateDraftQuestion(ctx, topic.ID, draftQuestionFromInput(input))
+	if err != nil {
+		return repo.Question{}, fmt.Errorf("create draft question for topic %q: %w", topicSlug, err)
+	}
+	return question, nil
+}
+
+// UpdateDraftQuestion updates an existing draft question under the topic.
+func (s *ContentService) UpdateDraftQuestion(ctx context.Context, topicSlug, questionID string, input DraftQuestionInput) (repo.Question, error) {
+	if err := validateDraftQuestion(input); err != nil {
+		return repo.Question{}, err
+	}
+
+	topic, err := s.repository.GetTopicBySlug(ctx, topicSlug)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Question{}, notFound("Topic not found.")
+	}
+	if err != nil {
+		return repo.Question{}, fmt.Errorf("get topic %q: %w", topicSlug, err)
+	}
+
+	existing, err := s.repository.GetQuestionByID(ctx, questionID)
+	if errors.Is(err, repo.ErrNotFound) || existing.TopicID != topic.ID || existing.Status != repo.StatusDraft {
+		return repo.Question{}, notFound("Question not found.")
+	}
+	if err != nil {
+		return repo.Question{}, fmt.Errorf("get question %q: %w", questionID, err)
+	}
+
+	q := draftQuestionFromInput(input)
+	q.ID = questionID
+	q.TopicID = topic.ID
+	q.Status = repo.StatusDraft
+
+	updated, err := s.repository.UpdateDraftQuestion(ctx, q)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Question{}, notFound("Question not found.")
+	}
+	if err != nil {
+		return repo.Question{}, fmt.Errorf("update draft question %q: %w", questionID, err)
+	}
+	return updated, nil
+}
+
+func draftQuestionFromInput(input DraftQuestionInput) repo.Question {
+	options := make([]repo.Option, 0, len(input.Options))
+	for i, opt := range input.Options {
+		options = append(options, repo.Option{
+			Text:      opt.Text,
+			Position:  i + 1,
+			IsCorrect: opt.IsCorrect,
+		})
+	}
+	return repo.Question{
+		Text:    input.Text,
+		Options: options,
+	}
+}
+
+func validateDraftQuestion(input DraftQuestionInput) error {
+	if len(input.Options) < 2 || len(input.Options) > 6 {
+		return validationError("A question must have between 2 and 6 options.")
+	}
+	correct := 0
+	for _, opt := range input.Options {
+		if opt.IsCorrect {
+			correct++
+		}
+	}
+	if correct != 1 {
+		return validationError("A question must have exactly one correct option.")
+	}
+	return nil
+}
+
 func notFound(message string) error {
 	return &apperr.Error{Code: apperr.CodeNotFound, Message: message}
 }

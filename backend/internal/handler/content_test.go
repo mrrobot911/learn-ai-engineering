@@ -309,6 +309,34 @@ func (r failingRepository) ListPublishedQuestionsByTopicID(context.Context, stri
 	return nil, r.err
 }
 
+func (r failingRepository) GetTopicBySlug(context.Context, string) (repo.Topic, error) {
+	return repo.Topic{}, r.err
+}
+
+func (r failingRepository) CreateDraftLesson(context.Context, string, repo.Lesson) (repo.Lesson, error) {
+	return repo.Lesson{}, r.err
+}
+
+func (r failingRepository) GetLessonByID(context.Context, string) (repo.Lesson, error) {
+	return repo.Lesson{}, r.err
+}
+
+func (r failingRepository) UpdateDraftLesson(context.Context, repo.Lesson) (repo.Lesson, error) {
+	return repo.Lesson{}, r.err
+}
+
+func (r failingRepository) CreateDraftQuestion(context.Context, string, repo.Question) (repo.Question, error) {
+	return repo.Question{}, r.err
+}
+
+func (r failingRepository) GetQuestionByID(context.Context, string) (repo.Question, error) {
+	return repo.Question{}, r.err
+}
+
+func (r failingRepository) UpdateDraftQuestion(context.Context, repo.Question) (repo.Question, error) {
+	return repo.Question{}, r.err
+}
+
 func TestContentEndpointsHideRepositoryErrors(t *testing.T) {
 	cause := errors.New("query failed for user 42: password_hash=secret")
 	h := newContentTestServer(failingRepository{err: cause})
