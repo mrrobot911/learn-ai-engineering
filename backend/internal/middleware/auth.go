@@ -39,6 +39,29 @@ func Session(auth *service.AuthService) func(http.Handler) http.Handler {
 	}
 }
 
+// Maintainer requires a valid session whose user is a maintainer. It answers
+// 401 without a session and 403 (authorization_error) for a non-maintainer.
+func Maintainer(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth, ok := session.From(r.Context())
+		if !ok {
+			handler.WriteError(w, &apperr.Error{
+				Code:    apperr.CodeAuthentication,
+				Message: "Authentication is required.",
+			})
+			return
+		}
+		if !auth.User.IsMaintainer {
+			handler.WriteError(w, &apperr.Error{
+				Code:    apperr.CodeAuthorization,
+				Message: "Not a maintainer.",
+			})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // CSRF requires a valid session and the matching X-CSRF-Token header. It
 // answers 401 without a session and 403 for a missing or wrong token.
 func CSRF(next http.Handler) http.Handler {

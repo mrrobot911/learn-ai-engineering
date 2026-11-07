@@ -99,6 +99,45 @@ type quizAttemptAnswerResponse struct {
 	IsCorrect          bool   `json:"is_correct"`
 }
 
+type draftLessonRequest struct {
+	Title    string `json:"title"`
+	Body     string `json:"body"`
+	Position int    `json:"position"`
+}
+
+type draftLessonResponse struct {
+	ID       string `json:"id"`
+	TopicID  string `json:"topic_id"`
+	Title    string `json:"title"`
+	Body     string `json:"body"`
+	Position int    `json:"position"`
+	Status   string `json:"status"`
+}
+
+type draftQuestionOptionInput struct {
+	Text      string `json:"text"`
+	IsCorrect bool   `json:"is_correct"`
+}
+
+type draftQuestionRequest struct {
+	Text    string                     `json:"text"`
+	Options []draftQuestionOptionInput `json:"options"`
+}
+
+type draftQuestionOptionResponse struct {
+	ID        string `json:"id"`
+	Text      string `json:"text"`
+	IsCorrect bool   `json:"is_correct"`
+}
+
+type draftQuestionResponse struct {
+	ID      string                         `json:"id"`
+	TopicID string                         `json:"topic_id"`
+	Text    string                         `json:"text"`
+	Options []draftQuestionOptionResponse  `json:"options"`
+	Status  string                         `json:"status"`
+}
+
 // ListTopics writes the published topics in position order.
 func (h *ContentHandler) ListTopics(w http.ResponseWriter, r *http.Request) {
 	topics, err := h.service.ListTopics(r.Context())
@@ -263,6 +302,129 @@ func (h *ContentHandler) GetMyAttempt(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, http.StatusOK, response)
+}
+
+// CreateDraftLesson creates a draft lesson for a topic.
+func (h *ContentHandler) CreateDraftLesson(w http.ResponseWriter, r *http.Request) {
+	var request draftLessonRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		WriteError(w, &apperr.Error{Code: apperr.CodeValidation, Message: "The request body is invalid."})
+		return
+	}
+
+	lesson, err := h.service.CreateDraftLesson(r.Context(), r.PathValue("topicSlug"), service.DraftLessonInput{
+		Title:    request.Title,
+		Body:     request.Body,
+		Position: request.Position,
+	})
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, newDraftLessonResponse(lesson))
+}
+
+// UpdateDraftLesson updates an existing draft lesson.
+func (h *ContentHandler) UpdateDraftLesson(w http.ResponseWriter, r *http.Request) {
+	var request draftLessonRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		WriteError(w, &apperr.Error{Code: apperr.CodeValidation, Message: "The request body is invalid."})
+		return
+	}
+
+	lesson, err := h.service.UpdateDraftLesson(r.Context(), r.PathValue("topicSlug"), r.PathValue("lessonId"), service.DraftLessonInput{
+		Title:    request.Title,
+		Body:     request.Body,
+		Position: request.Position,
+	})
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, newDraftLessonResponse(lesson))
+}
+
+// CreateDraftQuestion creates a draft question for a topic.
+func (h *ContentHandler) CreateDraftQuestion(w http.ResponseWriter, r *http.Request) {
+	var request draftQuestionRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		WriteError(w, &apperr.Error{Code: apperr.CodeValidation, Message: "The request body is invalid."})
+		return
+	}
+
+	options := make([]service.DraftQuestionOptionInput, 0, len(request.Options))
+	for _, opt := range request.Options {
+		options = append(options, service.DraftQuestionOptionInput{
+			Text:      opt.Text,
+			IsCorrect: opt.IsCorrect,
+		})
+	}
+
+	question, err := h.service.CreateDraftQuestion(r.Context(), r.PathValue("topicSlug"), service.DraftQuestionInput{
+		Text:    request.Text,
+		Options: options,
+	})
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, newDraftQuestionResponse(question))
+}
+
+// UpdateDraftQuestion updates an existing draft question.
+func (h *ContentHandler) UpdateDraftQuestion(w http.ResponseWriter, r *http.Request) {
+	var request draftQuestionRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		WriteError(w, &apperr.Error{Code: apperr.CodeValidation, Message: "The request body is invalid."})
+		return
+	}
+
+	options := make([]service.DraftQuestionOptionInput, 0, len(request.Options))
+	for _, opt := range request.Options {
+		options = append(options, service.DraftQuestionOptionInput{
+			Text:      opt.Text,
+			IsCorrect: opt.IsCorrect,
+		})
+	}
+
+	question, err := h.service.UpdateDraftQuestion(r.Context(), r.PathValue("topicSlug"), r.PathValue("questionId"), service.DraftQuestionInput{
+		Text:    request.Text,
+		Options: options,
+	})
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, newDraftQuestionResponse(question))
+}
+
+func newDraftLessonResponse(lesson repo.Lesson) draftLessonResponse {
+	return draftLessonResponse{
+		ID:       lesson.ID,
+		TopicID:  lesson.TopicID,
+		Title:    lesson.Title,
+		Body:     lesson.Body,
+		Position: lesson.Position,
+		Status:   string(lesson.Status),
+	}
+}
+
+func newDraftQuestionResponse(question repo.Question) draftQuestionResponse {
+	options := make([]draftQuestionOptionResponse, 0, len(question.Options))
+	for _, opt := range question.Options {
+		options = append(options, draftQuestionOptionResponse{
+			ID:        opt.ID,
+			Text:      opt.Text,
+			IsCorrect: opt.IsCorrect,
+		})
+	}
+	return draftQuestionResponse{
+		ID:      question.ID,
+		TopicID: question.TopicID,
+		Text:    question.Text,
+		Options: options,
+		Status:  string(question.Status),
+	}
 }
 
 func newQuizAttemptListItemResponse(attempt repo.QuizAttempt) quizAttemptListItemResponse {

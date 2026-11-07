@@ -57,13 +57,21 @@ type Question struct {
 // ErrNotFound is returned when no published content matches the lookup.
 var ErrNotFound = errors.New("content not found")
 
-// ContentRepository reads published content. Implementations filter on status
-// and return ErrNotFound when a requested topic or lesson does not exist or is
-// not published.
+// ContentRepository reads published content and manages draft content for
+// maintainers. Implementations filter on status for public reads and return
+// ErrNotFound when a requested item does not exist or is not visible.
 type ContentRepository interface {
 	ListPublishedTopics(ctx context.Context) ([]Topic, error)
 	GetPublishedTopicBySlug(ctx context.Context, slug string) (Topic, error)
 	ListPublishedLessonsByTopicID(ctx context.Context, topicID string) ([]Lesson, error)
 	GetPublishedLessonByID(ctx context.Context, id string) (Lesson, error)
 	ListPublishedQuestionsByTopicID(ctx context.Context, topicID string) ([]Question, error)
+
+	GetTopicBySlug(ctx context.Context, slug string) (Topic, error)
+	CreateDraftLesson(ctx context.Context, topicID string, lesson Lesson) (Lesson, error)
+	GetLessonByID(ctx context.Context, id string) (Lesson, error)
+	UpdateDraftLesson(ctx context.Context, lesson Lesson) (Lesson, error)
+	CreateDraftQuestion(ctx context.Context, topicID string, question Question) (Question, error)
+	GetQuestionByID(ctx context.Context, id string) (Question, error)
+	UpdateDraftQuestion(ctx context.Context, question Question) (Question, error)
 }
