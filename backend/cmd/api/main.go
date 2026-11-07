@@ -51,6 +51,10 @@ func main() {
 	mux.Handle("PUT /topics/{topicSlug}/lessons/{lessonId}", withSession(middleware.CSRF(middleware.Maintainer(http.HandlerFunc(contentHandler.UpdateDraftLesson)))))
 	mux.Handle("POST /topics/{topicSlug}/questions", withSession(middleware.CSRF(middleware.Maintainer(http.HandlerFunc(contentHandler.CreateDraftQuestion)))))
 	mux.Handle("PUT /topics/{topicSlug}/questions/{questionId}", withSession(middleware.CSRF(middleware.Maintainer(http.HandlerFunc(contentHandler.UpdateDraftQuestion)))))
+	mux.Handle("PUT /topics/{topicSlug}/lessons/{lessonId}/publish", withSession(middleware.CSRF(middleware.Maintainer(http.HandlerFunc(contentHandler.PublishLesson)))))
+	mux.Handle("PUT /topics/{topicSlug}/lessons/{lessonId}/unpublish", withSession(middleware.CSRF(middleware.Maintainer(http.HandlerFunc(contentHandler.UnpublishLesson)))))
+	mux.Handle("PUT /topics/{topicSlug}/questions/{questionId}/publish", withSession(middleware.CSRF(middleware.Maintainer(http.HandlerFunc(contentHandler.PublishQuestion)))))
+	mux.Handle("PUT /topics/{topicSlug}/questions/{questionId}/unpublish", withSession(middleware.CSRF(middleware.Maintainer(http.HandlerFunc(contentHandler.UnpublishQuestion)))))
 
 	// Apply logging middleware
 	loggedMux := middleware.Logging(mux)

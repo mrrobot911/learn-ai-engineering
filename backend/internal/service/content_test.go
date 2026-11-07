@@ -123,6 +123,55 @@ func (r unfilteredRepository) UpdateDraftQuestion(context.Context, repo.Question
 	return repo.Question{}, repo.ErrNotFound
 }
 
+func (r unfilteredRepository) PublishLesson(_ context.Context, topicID, lessonID string) (repo.Lesson, error) {
+	if r.err != nil {
+		return repo.Lesson{}, r.err
+	}
+	for _, l := range r.lessons {
+		if l.ID == lessonID && l.TopicID == topicID {
+			l.Status = repo.StatusPublished
+			return l, nil
+		}
+	}
+	return repo.Lesson{}, repo.ErrNotFound
+}
+func (r unfilteredRepository) UnpublishLesson(_ context.Context, topicID, lessonID string) (repo.Lesson, error) {
+	if r.err != nil {
+		return repo.Lesson{}, r.err
+	}
+	for _, l := range r.lessons {
+		if l.ID == lessonID && l.TopicID == topicID {
+			l.Status = repo.StatusDraft
+			return l, nil
+		}
+	}
+	return repo.Lesson{}, repo.ErrNotFound
+}
+func (r unfilteredRepository) PublishQuestion(_ context.Context, topicID, questionID string) (repo.Question, error) {
+	if r.err != nil {
+		return repo.Question{}, r.err
+	}
+	for _, q := range r.questions {
+		if q.ID == questionID && q.TopicID == topicID {
+			q.Status = repo.StatusPublished
+			return q, nil
+		}
+	}
+	return repo.Question{}, repo.ErrNotFound
+}
+func (r unfilteredRepository) UnpublishQuestion(_ context.Context, topicID, questionID string) (repo.Question, error) {
+	if r.err != nil {
+		return repo.Question{}, r.err
+	}
+	for _, q := range r.questions {
+		if q.ID == questionID && q.TopicID == topicID {
+			q.Status = repo.StatusDraft
+			return q, nil
+		}
+	}
+	return repo.Question{}, repo.ErrNotFound
+}
+
 func TestContentServiceListTopicsExcludesDrafts(t *testing.T) {
 	s := NewContentService(unfilteredRepository{topics: []repo.Topic{
 		{ID: "topic-1", Slug: "published", Status: repo.StatusPublished},

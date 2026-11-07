@@ -473,3 +473,83 @@ func validateDraftQuestion(input DraftQuestionInput) error {
 func notFound(message string) error {
 	return &apperr.Error{Code: apperr.CodeNotFound, Message: message}
 }
+
+// PublishLesson publishes a lesson, making it visible through public endpoints.
+func (s *ContentService) PublishLesson(ctx context.Context, topicSlug, lessonID string) (repo.Lesson, error) {
+	topic, err := s.repository.GetTopicBySlug(ctx, topicSlug)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Lesson{}, notFound("Topic not found.")
+	}
+	if err != nil {
+		return repo.Lesson{}, fmt.Errorf("get topic %q: %w", topicSlug, err)
+	}
+
+	lesson, err := s.repository.PublishLesson(ctx, topic.ID, lessonID)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Lesson{}, notFound("Lesson not found.")
+	}
+	if err != nil {
+		return repo.Lesson{}, fmt.Errorf("publish lesson %q: %w", lessonID, err)
+	}
+	return lesson, nil
+}
+
+// UnpublishLesson unpublishes a lesson, returning it to draft status.
+func (s *ContentService) UnpublishLesson(ctx context.Context, topicSlug, lessonID string) (repo.Lesson, error) {
+	topic, err := s.repository.GetTopicBySlug(ctx, topicSlug)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Lesson{}, notFound("Topic not found.")
+	}
+	if err != nil {
+		return repo.Lesson{}, fmt.Errorf("get topic %q: %w", topicSlug, err)
+	}
+
+	lesson, err := s.repository.UnpublishLesson(ctx, topic.ID, lessonID)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Lesson{}, notFound("Lesson not found.")
+	}
+	if err != nil {
+		return repo.Lesson{}, fmt.Errorf("unpublish lesson %q: %w", lessonID, err)
+	}
+	return lesson, nil
+}
+
+// PublishQuestion publishes a question, making it visible through public endpoints.
+func (s *ContentService) PublishQuestion(ctx context.Context, topicSlug, questionID string) (repo.Question, error) {
+	topic, err := s.repository.GetTopicBySlug(ctx, topicSlug)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Question{}, notFound("Topic not found.")
+	}
+	if err != nil {
+		return repo.Question{}, fmt.Errorf("get topic %q: %w", topicSlug, err)
+	}
+
+	question, err := s.repository.PublishQuestion(ctx, topic.ID, questionID)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Question{}, notFound("Question not found.")
+	}
+	if err != nil {
+		return repo.Question{}, fmt.Errorf("publish question %q: %w", questionID, err)
+	}
+	return question, nil
+}
+
+// UnpublishQuestion unpublishes a question, returning it to draft status.
+func (s *ContentService) UnpublishQuestion(ctx context.Context, topicSlug, questionID string) (repo.Question, error) {
+	topic, err := s.repository.GetTopicBySlug(ctx, topicSlug)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Question{}, notFound("Topic not found.")
+	}
+	if err != nil {
+		return repo.Question{}, fmt.Errorf("get topic %q: %w", topicSlug, err)
+	}
+
+	question, err := s.repository.UnpublishQuestion(ctx, topic.ID, questionID)
+	if errors.Is(err, repo.ErrNotFound) {
+		return repo.Question{}, notFound("Question not found.")
+	}
+	if err != nil {
+		return repo.Question{}, fmt.Errorf("unpublish question %q: %w", questionID, err)
+	}
+	return question, nil
+}
