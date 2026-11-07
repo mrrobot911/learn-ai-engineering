@@ -215,3 +215,38 @@ func TestLoad_SeedsMaintainerAccount(t *testing.T) {
 		t.Error("expected is_maintainer to remain true after repeat load")
 	}
 }
+
+func TestLoad_DoesNotPromoteExistingAccount(t *testing.T) {
+	ctx := context.Background()
+	pool := openTestPool(t)
+	resetTables(t, pool)
+	applyMigrations(t, pool)
+
+	const email = "registered-first@example.com"
+	const pass = "seed-maintainer-password"
+
+	// A regular user registered this email before the seed ran.
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO users (id, email, password_hash, is_maintainer, created_at)
+		 VALUES ('user-existing', $1, 'existing-hash', FALSE, NOW())`, email); err != nil {
+		t.Fatalf("insert existing user: %v", err)
+	}
+
+	if _, err := seed.Load(ctx, pool, seeddata.Files, email, pass); err == nil {
+		t.Fatal("expected an error when the maintainer email belongs to a regular account")
+	}
+
+	var gotMaintainer bool
+	var gotHash string
+	if err := pool.QueryRow(ctx,
+		`SELECT is_maintainer, password_hash FROM users WHERE email = $1`, email,
+	).Scan(&gotMaintainer, &gotHash); err != nil {
+		t.Fatalf("query existing user: %v", err)
+	}
+	if gotMaintainer {
+		t.Error("existing regular account was promoted to maintainer")
+	}
+	if gotHash != "existing-hash" {
+		t.Errorf("existing account password hash was changed: %q", gotHash)
+	}
+}

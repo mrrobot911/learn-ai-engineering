@@ -132,13 +132,28 @@ func loadMaintainer(ctx context.Context, pool *pgxpool.Pool, email, pass string)
 	if err != nil {
 		return fmt.Errorf("generate maintainer user id: %w", err)
 	}
-	_, err = pool.Exec(ctx,
+	tag, err := pool.Exec(ctx,
 		`INSERT INTO users (id, email, password_hash, is_maintainer, created_at)
 		 VALUES ($1, $2, $3, TRUE, $4)
-		 ON CONFLICT (email) DO UPDATE SET is_maintainer = TRUE`,
+		 ON CONFLICT (email) DO NOTHING`,
 		id, email, hash, time.Now().UTC())
 	if err != nil {
 		return fmt.Errorf("seed maintainer user: %w", err)
+	}
+	if tag.RowsAffected() == 1 {
+		return nil
+	}
+
+	// The email is already registered. Seeding must never promote an existing
+	// account, because anyone could have registered this email before the seed
+	// ran. Accept it only if it already is the maintainer.
+	var isMaintainer bool
+	if err := pool.QueryRow(ctx,
+		`SELECT is_maintainer FROM users WHERE email = $1`, email).Scan(&isMaintainer); err != nil {
+		return fmt.Errorf("check existing maintainer user: %w", err)
+	}
+	if !isMaintainer {
+		return fmt.Errorf("account %q already exists and is not a maintainer; refusing to promote it", email)
 	}
 	return nil
 }
