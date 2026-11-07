@@ -182,6 +182,14 @@ func (h *ContentHandler) GetLesson(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, newLessonResponse(lesson))
 }
 
+func newQuizQuestionResponse(question repo.Question) quizQuestionResponse {
+	options := make([]quizOptionResponse, 0, len(question.Options))
+	for _, opt := range question.Options {
+		options = append(options, quizOptionResponse{ID: opt.ID, Text: opt.Text})
+	}
+	return quizQuestionResponse{ID: question.ID, Text: question.Text, Options: options}
+}
+
 // StartQuiz writes the questions of a quiz on the topic, with their options in
 // position order and no field that reveals the answer. It works with and
 // without a session.
@@ -458,4 +466,44 @@ func newLessonResponse(lesson repo.Lesson) lessonResponse {
 		Position: lesson.Position,
 		Status:   string(lesson.Status),
 	}
+}
+
+// PublishLesson publishes a draft lesson.
+func (h *ContentHandler) PublishLesson(w http.ResponseWriter, r *http.Request) {
+	lesson, err := h.service.PublishLesson(r.Context(), r.PathValue("topicSlug"), r.PathValue("lessonId"))
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, newLessonResponse(lesson))
+}
+
+// UnpublishLesson unpublishes a lesson.
+func (h *ContentHandler) UnpublishLesson(w http.ResponseWriter, r *http.Request) {
+	lesson, err := h.service.UnpublishLesson(r.Context(), r.PathValue("topicSlug"), r.PathValue("lessonId"))
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, newDraftLessonResponse(lesson))
+}
+
+// PublishQuestion publishes a draft question.
+func (h *ContentHandler) PublishQuestion(w http.ResponseWriter, r *http.Request) {
+	question, err := h.service.PublishQuestion(r.Context(), r.PathValue("topicSlug"), r.PathValue("questionId"))
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, newQuizQuestionResponse(question))
+}
+
+// UnpublishQuestion unpublishes a question.
+func (h *ContentHandler) UnpublishQuestion(w http.ResponseWriter, r *http.Request) {
+	question, err := h.service.UnpublishQuestion(r.Context(), r.PathValue("topicSlug"), r.PathValue("questionId"))
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, newDraftQuestionResponse(question))
 }

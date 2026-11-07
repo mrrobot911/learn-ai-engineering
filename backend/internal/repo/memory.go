@@ -156,6 +156,34 @@ func (r *MemoryContentRepository) UpdateDraftLesson(_ context.Context, lesson Le
 	return Lesson{}, ErrNotFound
 }
 
+func (r *MemoryContentRepository) PublishLesson(_ context.Context, topicID, lessonID string) (Lesson, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for i, lesson := range r.lessons {
+		if lesson.ID == lessonID && lesson.TopicID == topicID {
+			lesson.Status = StatusPublished
+			r.lessons[i] = lesson
+			return lesson, nil
+		}
+	}
+	return Lesson{}, ErrNotFound
+}
+
+func (r *MemoryContentRepository) UnpublishLesson(_ context.Context, topicID, lessonID string) (Lesson, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for i, lesson := range r.lessons {
+		if lesson.ID == lessonID && lesson.TopicID == topicID {
+			lesson.Status = StatusDraft
+			r.lessons[i] = lesson
+			return lesson, nil
+		}
+	}
+	return Lesson{}, ErrNotFound
+}
+
 func (r *MemoryContentRepository) ListPublishedQuestionsByTopicID(_ context.Context, topicID string) ([]Question, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -216,6 +244,38 @@ func (r *MemoryContentRepository) UpdateDraftQuestion(_ context.Context, questio
 			out := question
 			out.Options = cloneOptions(question.Options)
 			return out, nil
+		}
+	}
+	return Question{}, ErrNotFound
+}
+
+func (r *MemoryContentRepository) PublishQuestion(_ context.Context, topicID, questionID string) (Question, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for i, question := range r.questions {
+		if question.ID == questionID && question.TopicID == topicID {
+			question.Status = StatusPublished
+			q := question
+			q.Options = cloneOptions(question.Options)
+			r.questions[i] = question
+			return q, nil
+		}
+	}
+	return Question{}, ErrNotFound
+}
+
+func (r *MemoryContentRepository) UnpublishQuestion(_ context.Context, topicID, questionID string) (Question, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for i, question := range r.questions {
+		if question.ID == questionID && question.TopicID == topicID {
+			question.Status = StatusDraft
+			q := question
+			q.Options = cloneOptions(question.Options)
+			r.questions[i] = question
+			return q, nil
 		}
 	}
 	return Question{}, ErrNotFound

@@ -71,7 +71,11 @@ type ContentRepository interface {
 	CreateDraftLesson(ctx context.Context, topicID string, lesson Lesson) (Lesson, error)
 	GetLessonByID(ctx context.Context, id string) (Lesson, error)
 	UpdateDraftLesson(ctx context.Context, lesson Lesson) (Lesson, error)
+	PublishLesson(ctx context.Context, topicID, lessonID string) (Lesson, error)
+	UnpublishLesson(ctx context.Context, topicID, lessonID string) (Lesson, error)
 	CreateDraftQuestion(ctx context.Context, topicID string, question Question) (Question, error)
 	GetQuestionByID(ctx context.Context, id string) (Question, error)
 	UpdateDraftQuestion(ctx context.Context, question Question) (Question, error)
+	PublishQuestion(ctx context.Context, topicID, questionID string) (Question, error)
+	UnpublishQuestion(ctx context.Context, topicID, questionID string) (Question, error)
 }

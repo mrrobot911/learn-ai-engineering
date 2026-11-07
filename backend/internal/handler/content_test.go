@@ -337,6 +337,19 @@ func (r failingRepository) UpdateDraftQuestion(context.Context, repo.Question) (
 	return repo.Question{}, r.err
 }
 
+func (r failingRepository) PublishLesson(context.Context, string, string) (repo.Lesson, error) {
+	return repo.Lesson{}, r.err
+}
+func (r failingRepository) UnpublishLesson(context.Context, string, string) (repo.Lesson, error) {
+	return repo.Lesson{}, r.err
+}
+func (r failingRepository) PublishQuestion(context.Context, string, string) (repo.Question, error) {
+	return repo.Question{}, r.err
+}
+func (r failingRepository) UnpublishQuestion(context.Context, string, string) (repo.Question, error) {
+	return repo.Question{}, r.err
+}
+
 func TestContentEndpointsHideRepositoryErrors(t *testing.T) {
 	cause := errors.New("query failed for user 42: password_hash=secret")
 	h := newContentTestServer(failingRepository{err: cause})
