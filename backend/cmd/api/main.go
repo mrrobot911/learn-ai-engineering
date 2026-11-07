@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mrrobot911/learn-ai-engineering/internal/config"
 	"github.com/mrrobot911/learn-ai-engineering/internal/handler"
 	"github.com/mrrobot911/learn-ai-engineering/internal/middleware"
+	"github.com/mrrobot911/learn-ai-engineering/internal/migrate"
 	"github.com/mrrobot911/learn-ai-engineering/internal/repo"
 	"github.com/mrrobot911/learn-ai-engineering/internal/service"
 )
@@ -19,16 +23,51 @@ func main() {
 	}
 
 	h := handler.NewHealthHandler()
-	contentRepository := repo.NewMemoryContentRepository(nil, nil, nil)
-	attemptRepository := repo.NewMemoryAttemptRepository()
+
+	var (
+		contentRepository  repo.ContentRepository
+		attemptRepository  repo.AttemptRepository
+		authRepository     repo.AuthRepository
+		progressRepository repo.ProgressRepository
+	)
+
+	if cfg.DatabaseURL != "" {
+		ctx := context.Background()
+		pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+		if err != nil {
+			log.Fatalf("Failed to connect to database: %v", err)
+		}
+		defer pool.Close()
+
+		conn, err := pool.Acquire(ctx)
+		if err != nil {
+			log.Fatalf("Failed to acquire database connection: %v", err)
+		}
+		if err := migrate.Apply(ctx, conn.Conn(), os.DirFS("migrations")); err != nil {
+			conn.Release()
+			log.Fatalf("Failed to apply migrations: %v", err)
+		}
+		conn.Release()
+
+		contentRepository = repo.NewPostgresContentRepository(pool)
+		attemptRepository = repo.NewPostgresAttemptRepository(pool)
+		authRepository = repo.NewPostgresAuthRepository(pool)
+		progressRepository = repo.NewPostgresProgressRepository(pool)
+	} else {
+		contentRepository = repo.NewMemoryContentRepository(nil, nil, nil)
+		attemptRepository = repo.NewMemoryAttemptRepository()
+		authRepository = repo.NewMemoryAuthRepository()
+		progressRepository = repo.NewMemoryProgressRepository()
+	}
+
 	contentService := service.NewContentService(contentRepository, attemptRepository)
 	contentHandler := handler.NewContentHandler(contentService)
 
-	authService := service.NewAuthService(repo.NewMemoryAuthRepository())
+	authService := service.NewAuthService(authRepository)
 	authHandler := handler.NewAuthHandler(authService, cfg.Environment == "production")
 	withSession := middleware.Session(authService)
 
-	progressService := service.NewProgressService(repo.NewMemoryProgressRepository(), contentRepository)
+	progressService := service.NewProgressService(progressRepository, contentRepository)
 	progressHandler := handler.NewProgressHandler(progressService)
 
 	mux := http.NewServeMux()
