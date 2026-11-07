@@ -137,7 +137,7 @@ The application, API and database start together. Ports and URLs are defined in 
 # start the database for integration tests
 docker compose up -d db
 
-# backend integration tests
+# backend integration tests (uses TEST_DATABASE_URL, or DATABASE_URL; must point to an isolated test database, never dev)
 (cd backend && go test -tags=integration ./...)
 
 # frontend tests
