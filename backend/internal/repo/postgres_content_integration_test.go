@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,6 +22,16 @@ func testDBURL(t *testing.T) string {
 	}
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL or DATABASE_URL required for integration tests")
+	}
+	// AC4 (T21b): integration tests must never point at the development database.
+	// Refuse known dev DB names and require a test database name.
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		t.Fatalf("parse database URL: %v", err)
+	}
+	dbName := cfg.ConnConfig.Database
+	if dbName == "learn_ai_engineering" || !strings.Contains(strings.ToLower(dbName), "test") {
+		t.Fatalf("refusing to run integration tests against non-test database %q (set TEST_DATABASE_URL to an isolated test database, e.g. learn_ai_engineering_test)", dbName)
 	}
 	return url
 }
