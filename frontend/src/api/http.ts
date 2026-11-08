@@ -241,7 +241,7 @@ export function createHttpClient(): ApiClient {
       if (!topicSlug) {
         const topics = await request<Array<{ id: string; slug: string; title: string; description: string; position: number }>>('/topics');
         const topic = topics.find((t) => t.id === raw.topicId);
-        if (!topic) throw new ApiError(404, 'NOT_FOUND', 'Topic not found for lesson.');
+        if (!topic) throw new ApiError(404, 'not_found', 'Topic not found for lesson.');
         cacheTopicTitle(topic.id, topic.slug, topic.title);
         topicSlug = topic.slug;
       }
