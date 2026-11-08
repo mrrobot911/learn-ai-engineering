@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { api } from '@/api';
-import type { Lesson, Topic, TopicSummary, User } from '@/api';
+import type { Lesson, Topic, User } from '@/api';
 import { useSession } from '@/session';
 import { LessonPage } from './LessonPage';
 
@@ -47,7 +47,7 @@ function setSession(user: User | null) {
   });
 }
 
-const topicSummary: TopicSummary = {
+const topic: Topic = {
   id: 'top-graph',
   slug: 'graph-rag',
   title: 'Graph RAG',
@@ -55,16 +55,13 @@ const topicSummary: TopicSummary = {
   icon: 'Network',
   color: 'brand',
   position: 1,
-};
-
-const topic: Topic = {
-  ...topicSummary,
   lessons: [],
 };
 
 const lesson: Lesson = {
   id: 'les-1',
   topicId: 'top-graph',
+  topicSlug: 'graph-rag',
   title: 'Why tokens matter',
   summary: 'Tokens are the unit of cost and context',
   body: 'Tokens are how the model sees text.',
@@ -102,7 +99,6 @@ function deferred<T>() {
 
 function mockContent(l: Lesson = lesson, t: Topic = topicWithLesson) {
   getLesson.mockResolvedValue(l);
-  listTopics.mockResolvedValue([topicSummary]);
   getTopic.mockResolvedValue(t);
 }
 
@@ -121,6 +117,7 @@ describe('LessonPage', () => {
     expect(await screen.findByRole('heading', { name: 'Why tokens matter', level: 1 })).toBeInTheDocument();
     expect(getLesson).toHaveBeenCalledWith('les-1');
     expect(getTopic).toHaveBeenCalledWith('graph-rag');
+    expect(listTopics).not.toHaveBeenCalled();
     expect(screen.getByRole('link', { name: 'Graph RAG' })).toHaveAttribute('href', '#/topic/graph-rag');
     expect(screen.getByText(lesson.summary)).toBeInTheDocument();
     expect(screen.getByText('Tokens are how the model sees text.')).toBeInTheDocument();
@@ -152,9 +149,9 @@ describe('LessonPage', () => {
 
   it('shows the loading state while the client calls are pending', async () => {
     const lessonCall = deferred<Lesson>();
-    const topicsCall = deferred<TopicSummary[]>();
+    const topicCall = deferred<Topic>();
     getLesson.mockReturnValue(lessonCall.promise);
-    listTopics.mockReturnValue(topicsCall.promise);
+    getTopic.mockReturnValue(topicCall.promise);
 
     render(<LessonPage id="les-1" />);
 
@@ -162,7 +159,7 @@ describe('LessonPage', () => {
     expect(screen.queryByRole('heading', { name: 'Why tokens matter' })).not.toBeInTheDocument();
 
     lessonCall.resolve(lesson);
-    topicsCall.resolve([topicSummary]);
+    topicCall.resolve(topicWithLesson);
     expect(await screen.findByRole('heading', { name: 'Why tokens matter', level: 1 })).toBeInTheDocument();
     expect(screen.queryByText('Loading lesson…')).not.toBeInTheDocument();
   });
@@ -171,7 +168,6 @@ describe('LessonPage', () => {
     getLesson
       .mockRejectedValueOnce(new Error('network down'))
       .mockResolvedValueOnce(lesson);
-    listTopics.mockResolvedValue([topicSummary]);
     getTopic.mockResolvedValue(topicWithLesson);
 
     const user = userEvent.setup();
@@ -184,7 +180,17 @@ describe('LessonPage', () => {
     expect(await screen.findByRole('heading', { name: 'Why tokens matter', level: 1 })).toBeInTheDocument();
     expect(getLesson).toHaveBeenCalledTimes(2);
     expect(getTopic).toHaveBeenCalledWith('graph-rag');
+    expect(listTopics).not.toHaveBeenCalled();
     expect(screen.queryByText('Something went wrong')).not.toBeInTheDocument();
+  });
+
+  it('shows a not-found state when getTopic rejects with the 404 signal', async () => {
+    getTopic.mockRejectedValue(notFoundError());
+
+    render(<LessonPage id="les-1" />);
+
+    expect(await screen.findByText('Lesson not found')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to topics' })).toHaveAttribute('href', '#/topics');
   });
 
   it('shows the error state when getTopic rejects without the not-found signal', async () => {

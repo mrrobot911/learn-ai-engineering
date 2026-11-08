@@ -42,6 +42,7 @@ function setSession(user: User | null) {
 const lessonOne: Lesson = {
   id: 'les-1',
   topicId: 'top-a',
+  topicSlug: 'topic-a',
   title: 'Lesson One',
   summary: 'The first lesson',
   body: 'Body one',
@@ -51,6 +52,7 @@ const lessonOne: Lesson = {
 const lessonTwo: Lesson = {
   id: 'les-2',
   topicId: 'top-a',
+  topicSlug: 'topic-a',
   title: 'Lesson Two',
   summary: 'The second lesson',
   body: 'Body two',
@@ -60,6 +62,7 @@ const lessonTwo: Lesson = {
 const lessonThree: Lesson = {
   id: 'les-3',
   topicId: 'top-a',
+  topicSlug: 'topic-a',
   title: 'Lesson Three',
   summary: 'The third lesson',
   body: 'Body three',

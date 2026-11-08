@@ -88,13 +88,13 @@ describe('presentation-field mapper', () => {
       slug: 'llms',
       icon: 'BrainCircuit',
       color: 'brand',
-      lessons: [{ id: 'l1', topicId: 't1', summary: 'Hello world content.', durationMin: 1 }],
+      lessons: [{ id: 'l1', topicId: 't1', topicSlug: 'llms', summary: 'Hello world content.', durationMin: 1 }],
     });
 
     const summary = mapTopicSummary({ id: 't2', slug: 'mcp', title: 'MCP', description: 'd', position: 2 });
     expect(summary).toMatchObject({ icon: 'Plug', color: 'warning' });
 
-    const lesson = mapLesson({ id: 'l2', topicId: 't1', title: 'Empty', body: '', position: 2 });
-    expect(lesson).toMatchObject({ summary: '', durationMin: 0, body: '' });
+    const lesson = mapLesson({ id: 'l2', topicId: 't1', topicSlug: 'llms', title: 'Empty', body: '', position: 2 });
+    expect(lesson).toMatchObject({ topicSlug: 'llms', summary: '', durationMin: 0, body: '' });
   });
 });

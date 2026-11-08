@@ -4,6 +4,7 @@
 export interface Lesson {
   id: string;
   topicId: string;
+  topicSlug: string;
   title: string;
   summary: string;
   body: string;
