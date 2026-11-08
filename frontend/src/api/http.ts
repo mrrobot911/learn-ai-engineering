@@ -34,12 +34,19 @@ interface RequestOptions {
 let csrfToken: string | null = null;
 let topicTitleCache = new Map<string, string>();
 let quizQuestionsCache = new Map<string, QuizQuestion[]>();
+let onUnauthorized: (() => void) | null = null;
 
 /** Visible for tests: reset in-memory CSRF/caches. */
 export function resetHttpState(): void {
   csrfToken = null;
   topicTitleCache = new Map();
   quizQuestionsCache = new Map();
+  onUnauthorized = null;
+}
+
+/** Registers a handler for 401 authentication errors from protected calls. */
+export function setOnUnauthorized(handler: (() => void) | null): void {
+  onUnauthorized = handler;
 }
 
 export function getCsrfToken(): string | null {
@@ -141,6 +148,14 @@ async function request<T>(
     ) {
       await doRequest<RawAuthResponse>('/auth/session');
       return doRequest<T>(path, options);
+    }
+    if (
+      error instanceof ApiError &&
+      error.status === 401 &&
+      error.code === 'authentication_error'
+    ) {
+      csrfToken = null;
+      onUnauthorized?.();
     }
     throw error;
   }
@@ -343,7 +358,7 @@ export function createHttpClient(): ApiClient {
     },
 
     async register(credentials: Credentials): Promise<User> {
-      const raw = await request<RawAuthResponse>('/auth/register', {
+      const raw = await doRequest<RawAuthResponse>('/auth/register', {
         method: 'POST',
         body: credentials,
       });
@@ -351,7 +366,7 @@ export function createHttpClient(): ApiClient {
     },
 
     async login(credentials: Credentials): Promise<User> {
-      const raw = await request<RawAuthResponse>('/auth/login', {
+      const raw = await doRequest<RawAuthResponse>('/auth/login', {
         method: 'POST',
         body: credentials,
       });
@@ -364,7 +379,7 @@ export function createHttpClient(): ApiClient {
     },
 
     async getSession(): Promise<User> {
-      const raw = await request<RawAuthResponse>('/auth/session');
+      const raw = await doRequest<RawAuthResponse>('/auth/session');
       return mapUser(raw.user);
     },
 

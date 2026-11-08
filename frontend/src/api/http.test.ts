@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from './errors';
-import { createHttpClient, getCsrfToken, resetHttpState } from './http';
+import {
+  createHttpClient,
+  getCsrfToken,
+  resetHttpState,
+  setOnUnauthorized,
+} from './http';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -490,5 +495,47 @@ describe('http client', () => {
         ),
       ),
     ).not.toContain('csrf');
+  });
+
+  it('does not call the unauthorized handler on a 401 authentication_error from login', async () => {
+    const client = createHttpClient();
+    const onUnauthorized = vi.fn();
+    setOnUnauthorized(onUnauthorized);
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        { code: 'authentication_error', message: 'Invalid credentials.' },
+        401,
+      ),
+    );
+
+    await expect(
+      client.login({ email: 'a@b.c', password: 'wrong' }),
+    ).rejects.toMatchObject({
+      status: 401,
+      code: 'authentication_error',
+    });
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+
+  it('does not call the unauthorized handler on a 401 authentication_error from register', async () => {
+    const client = createHttpClient();
+    const onUnauthorized = vi.fn();
+    setOnUnauthorized(onUnauthorized);
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        { code: 'authentication_error', message: 'Invalid credentials.' },
+        401,
+      ),
+    );
+
+    await expect(
+      client.register({ email: 'a@b.c', password: 'secret' }),
+    ).rejects.toMatchObject({
+      status: 401,
+      code: 'authentication_error',
+    });
+    expect(onUnauthorized).not.toHaveBeenCalled();
   });
 });
