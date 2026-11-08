@@ -1,5 +1,5 @@
 # Build stage: pin Bun version (also recorded in .bun-version).
-FROM oven/bun:1.2.5 AS builder
+FROM oven/bun:1.4.2 AS builder
 
 WORKDIR /app
 
