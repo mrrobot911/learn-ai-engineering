@@ -358,7 +358,7 @@ export function createHttpClient(): ApiClient {
     },
 
     async register(credentials: Credentials): Promise<User> {
-      const raw = await request<RawAuthResponse>('/auth/register', {
+      const raw = await doRequest<RawAuthResponse>('/auth/register', {
         method: 'POST',
         body: credentials,
       });
@@ -366,7 +366,7 @@ export function createHttpClient(): ApiClient {
     },
 
     async login(credentials: Credentials): Promise<User> {
-      const raw = await request<RawAuthResponse>('/auth/login', {
+      const raw = await doRequest<RawAuthResponse>('/auth/login', {
         method: 'POST',
         body: credentials,
       });
