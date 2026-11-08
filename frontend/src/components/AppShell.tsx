@@ -48,7 +48,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-ink-50">
                   <UserCircle2 className="w-4 h-4 text-ink-400" />
                   <span className="text-sm text-ink-700 font-medium">{user.email}</span>
-                  {user.isMaintainer && <span className="badge bg-brand-50 text-brand-700 text-[10px]">maintainer</span>}
                 </div>
                 <button onClick={handleLogout} className="btn-ghost text-sm">
                   <LogOut className="w-4 h-4" /> Log out
@@ -85,7 +84,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <>
                   <div className="px-3 py-2 text-sm text-ink-600 flex items-center gap-2">
                     <UserCircle2 className="w-4 h-4" /> {user.email}
-                    {user.isMaintainer && <span className="badge bg-brand-50 text-brand-700 text-[10px]">maintainer</span>}
                   </div>
                   <button onClick={handleLogout} className="px-3 py-2 rounded-md text-sm text-left text-error-600 hover:bg-error-50 flex items-center gap-2">
                     <LogOut className="w-4 h-4" /> Log out

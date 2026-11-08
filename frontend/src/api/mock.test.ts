@@ -125,7 +125,9 @@ describe('quiz operations', () => {
 describe('account operations', () => {
   it('register returns the new account and signs in', async () => {
     const user = await mockClient.register({ email: 'New@Forge.dev', password: 'password123' });
-    expect(user).toMatchObject({ email: 'new@forge.dev', isMaintainer: false });
+    expect(user).toMatchObject({ email: 'new@forge.dev' });
+    expect(user).not.toHaveProperty('isMaintainer');
+    expect(user).not.toHaveProperty('createdAt');
     await expect(mockClient.listAttempts()).resolves.toEqual([]);
   });
 

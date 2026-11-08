@@ -29,8 +29,6 @@ function seedUsers(): User[] {
     {
       id: 'usr-demo',
       email: 'demo@forge.dev',
-      isMaintainer: true,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
     },
   ];
 }
@@ -196,8 +194,6 @@ export const mockClient: ApiClient = {
     const user: User = {
       id: `usr-${address.replace(/[^a-z0-9]/g, '-')}`,
       email: address,
-      isMaintainer: false,
-      createdAt: new Date().toISOString(),
     };
     users.push(user);
     sessionUserId = user.id;

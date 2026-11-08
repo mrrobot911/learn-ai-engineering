@@ -70,7 +70,7 @@ function topicTitleFor(id?: string | null, slug?: string | null): string {
   return slug ?? id ?? '';
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function doRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, csrf = false } = options;
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -113,8 +113,25 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return snakeToCamel<T>(payload);
 }
 
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  try {
+    return await doRequest<T>(path, options);
+  } catch (error) {
+    if (
+      options.csrf &&
+      error instanceof ApiError &&
+      error.status === 403 &&
+      error.code === 'forbidden'
+    ) {
+      await doRequest<RawAuthResponse>('/auth/session');
+      return doRequest<T>(path, options);
+    }
+    throw error;
+  }
+}
+
 interface RawAuthResponse {
-  user: { id: string; email: string; isMaintainer?: boolean; createdAt?: string };
+  user: { id: string; email: string };
   csrfToken: string;
 }
 
@@ -122,8 +139,6 @@ function mapUser(raw: RawAuthResponse['user']): User {
   return {
     id: raw.id,
     email: raw.email,
-    isMaintainer: raw.isMaintainer ?? false,
-    createdAt: raw.createdAt ?? '',
   };
 }
 

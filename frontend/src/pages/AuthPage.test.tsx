@@ -56,7 +56,7 @@ describe('AuthPage', () => {
 
   it('calls api.register once with email and password only on valid submission', async () => {
     const user = userEvent.setup();
-    register.mockResolvedValue({ id: 'u1', email: 'test@example.com', isMaintainer: false, createdAt: new Date().toISOString() });
+    register.mockResolvedValue({ id: 'u1', email: 'test@example.com' });
     renderWithProviders(<AuthPage mode="register" />);
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'password123');
@@ -79,7 +79,7 @@ describe('AuthPage', () => {
 
   it('calls api.login once with email and password only on valid login', async () => {
     const user = userEvent.setup();
-    login.mockResolvedValue({ id: 'u1', email: 'test@example.com', isMaintainer: false, createdAt: new Date().toISOString() });
+    login.mockResolvedValue({ id: 'u1', email: 'test@example.com' });
     renderWithProviders(<AuthPage mode="login" />);
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'password123');
@@ -108,5 +108,19 @@ describe('AuthPage', () => {
     await user.click(screen.getByRole('button', { name: /create account/i }));
     await screen.findByText(/already exists/i);
     expect(container.innerHTML).not.toContain(pwd);
+  });
+
+  it('does not write session tokens, CSRF tokens, or passwords to browser storage', async () => {
+    const user = userEvent.setup();
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    register.mockResolvedValue({ id: 'u1', email: 'test@example.com' });
+    renderWithProviders(<AuthPage mode="register" />);
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'password123');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+    await waitFor(() => expect(register).toHaveBeenCalled());
+    expect(window.localStorage.length).toBe(0);
+    expect(window.sessionStorage.length).toBe(0);
   });
 });

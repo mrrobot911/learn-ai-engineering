@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from './errors';
 import { createHttpClient, getCsrfToken, resetHttpState } from './http';
@@ -258,5 +259,62 @@ describe('http client', () => {
       correctOptionText: 'A',
       isCorrect: false,
     });
+  });
+
+  it('retries a CSRF 403 forbidden once after refreshing the token via GET /auth/session', async () => {
+    const client = createHttpClient();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-old' }),
+    );
+    await client.login({ email: 'a@b.c', password: 'secret' });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({ code: 'forbidden', message: 'CSRF failed' }, 403));
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-new' }),
+    );
+    fetchMock.mockResolvedValueOnce(jsonResponse(['l1']));
+
+    await expect(client.markLessonComplete('l1')).resolves.toBeUndefined();
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock.mock.calls[1][0]).toBe('https://api.test/me/progress/lessons/l1');
+    expect(fetchMock.mock.calls[2][0]).toBe('https://api.test/auth/session');
+    expect((fetchMock.mock.calls[2][1] as RequestInit).method).toBe('GET');
+    expect(fetchMock.mock.calls[3][0]).toBe('https://api.test/me/progress/lessons/l1');
+    expect((fetchMock.mock.calls[3][1] as RequestInit).headers).toMatchObject({
+      'X-CSRF-Token': 'csrf-new',
+    });
+  });
+
+  it('does not retry a 403 authorization_error', async () => {
+    const client = createHttpClient();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-1' }),
+    );
+    await client.login({ email: 'a@b.c', password: 'secret' });
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ code: 'authorization_error', message: 'Not allowed' }, 403),
+    );
+
+    await expect(client.markLessonComplete('l1')).rejects.toMatchObject({
+      status: 403,
+      code: 'authorization_error',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps tokens in memory only and never writes auth secrets to browser storage', async () => {
+    const client = createHttpClient();
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-1' }),
+    );
+    await client.login({ email: 'a@b.c', password: 'secret' });
+    expect(getCsrfToken()).toBe('csrf-1');
+    expect(window.localStorage.length).toBe(0);
+    expect(window.sessionStorage.length).toBe(0);
+    expect(JSON.stringify([...Array(window.localStorage.length)].map((_, i) => window.localStorage.key(i)))).not.toContain('csrf');
   });
 });

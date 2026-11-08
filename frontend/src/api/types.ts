@@ -82,12 +82,11 @@ export interface Credentials {
   password: string;
 }
 
-export interface User {
+/** Mirrors the contract's UserSummary (`id`, `email`). */
+export type User = {
   id: string;
   email: string;
-  isMaintainer: boolean;
-  createdAt: string;
-}
+};
 
 /** The only surface the frontend has on the backend (product-spec.md section 7). */
 export interface ApiClient {

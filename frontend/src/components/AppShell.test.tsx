@@ -47,7 +47,7 @@ describe('AppShell', () => {
 
   it('shows logged-in header with email and logout control, and logs out', async () => {
     const user = userEvent.setup();
-    login.mockResolvedValue({ id: 'u1', email: 'user@example.com', isMaintainer: false, createdAt: new Date().toISOString() });
+    login.mockResolvedValue({ id: 'u1', email: 'user@example.com' });
     logout.mockResolvedValue();
     // We need to set user in session - render a helper component
     const { useSession } = await import('@/session');
