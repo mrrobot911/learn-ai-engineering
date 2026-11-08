@@ -293,16 +293,15 @@ export function createHttpClient(): ApiClient {
       }>(`/lessons/${encodeURIComponent(lessonId)}`);
       let topicSlug = raw.topicSlug;
       if (!topicSlug) {
-        const topics =
-          await request<
-            Array<{
-              id: string;
-              slug: string;
-              title: string;
-              description: string;
-              position: number;
-            }>
-          >('/topics');
+        const topics = await request<
+          Array<{
+            id: string;
+            slug: string;
+            title: string;
+            description: string;
+            position: number;
+          }>
+        >('/topics');
         const topic = topics.find((t) => t.id === raw.topicId);
         if (!topic)
           throw new ApiError(404, 'not_found', 'Topic not found for lesson.');
