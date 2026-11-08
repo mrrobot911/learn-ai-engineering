@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Read PostgreSQL major from compose image
+        run: |
+          postgres_image="$(grep -E 'image:[[:space:]]*postgres:' docker-compose.yml | head -n1 | sed -E 's/.*image:[[:space:]]*//')"
+          postgres_major="$(printf '%s' "$postgres_image" | sed -E 's/postgres:([0-9]+).*/\1/')"
+          echo "POSTGRES_IMAGE=$postgres_image" >> "$GITHUB_ENV"
+          echo "POSTGRES_MAJOR=$postgres_major" >> "$GITHUB_ENV"
+          test -n "$postgres_major"
+
+      - name: Set up Go (version from go.mod)
+        uses: actions/setup-go@v5.5.0
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Set up Bun (version from .bun-version)
+        uses: oven-sh/setup-bun@v2.0.2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install frontend dependencies
+        run: cd frontend && bun install --frozen-lockfile
+
+      - name: Run checks (make check)
+        run: make check
+
+      - name: Run unit tests (make test)
+        run: make test

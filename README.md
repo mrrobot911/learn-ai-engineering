@@ -128,38 +128,33 @@ The application, API and database start together. Ports and URLs are defined in 
 
 ## 9. Testing
 
+Makefile targets (run from the repository root):
+
+- `make test` — all unit tests (backend `go test ./...` and frontend unit tests).
+- `make test-integration` — backend and frontend integration tests on an isolated test database (backend runs with `-p 1` because packages share one database).
+- `make check` — checks that do not change files (`gofmt -l` and `go vet`, frontend `typecheck`, `lint` and `format:check`, and Redocly lint of `openapi.yaml`).
+- `make up` / `make down` — start and stop the Compose stack.
+
+CI runs on every push and pull request and calls `make check` and `make test` (see `.github/workflows/ci.yml`). Integration tests are run separately (T33b) via `make test-integration`.
+
 ```bash
-# run every command from the repository root
+# equivalent commands
 
-# backend unit tests
-(cd backend && go test ./...)
+# unit tests
+make test
 
-# start the database for integration tests
-docker compose up -d db
+# integration tests (requires Docker; uses an isolated test database, never dev)
+make test-integration
 
-# backend integration tests (uses TEST_DATABASE_URL, or DATABASE_URL; must point to an isolated test database, never dev)
-(cd backend && go test -tags=integration ./...)
+# checks (no file changes)
+make check
 
-# frontend unit tests (excludes frontend/tests/integration/)
-(cd frontend && bun install && bun run test)
-
-# frontend integration tests (real backend + seeded test database, never the dev database)
-# Starts an isolated test DB and backend, applies migrations and seed, inserts test fixtures.
-bash scripts/frontend-integration.sh
-
-# checks that do not change files
-(cd backend && gofmt -l . && go vet ./...)
-(cd frontend && bun run lint && bun run format:check)
-
-# apply formatting (changes files)
+# formatting (changes files)
 (cd backend && gofmt -w .)
 (cd frontend && bun run format)
-
-# validate the API contract
-bunx @redocly/cli lint openapi.yaml
 ```
 
-Unit tests live next to the code. Integration tests are kept separate from unit tests and cover the key workflows: browsing content, taking and submitting a quiz, registering and logging in, saving progress and quiz history. _Planned: commands are checked once the project is scaffolded._
+Unit tests live next to the code. Integration tests are kept separate from unit tests and cover the key workflows: browsing content, taking and submitting a quiz, registering and logging in, saving progress and quiz history.
 
 ## 10. CI/CD and deployment
 
