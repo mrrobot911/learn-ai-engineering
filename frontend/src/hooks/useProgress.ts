@@ -1,6 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/api';
 
+function statusOf(error: unknown): number | undefined {
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    const { status } = error as { status?: unknown };
+    return typeof status === 'number' ? status : undefined;
+  }
+  return undefined;
+}
+
+function redirectToLogin() {
+  const current = window.location.hash || '#/topics';
+  if (!current.startsWith('#/login') && !current.startsWith('#/register')) {
+    sessionStorage.setItem('authReturnTo', current);
+  }
+  window.location.hash = '#/login';
+}
+
 /**
  * The lessons the logged-in user has completed, read through the client
  * (product-spec.md section 4 US-5). `ids` is null until the list has arrived
@@ -25,11 +41,14 @@ export function useProgress(userId: string | undefined) {
           setIds(list);
           setFailed(false);
         }
-      } catch {
-        if (!cancelled) {
-          setIds(null);
-          setFailed(true);
+      } catch (error) {
+        if (cancelled) return;
+        if (statusOf(error) === 401) {
+          redirectToLogin();
+          return;
         }
+        setIds(null);
+        setFailed(true);
       }
     })();
     return () => {
@@ -40,8 +59,13 @@ export function useProgress(userId: string | undefined) {
   /** Marks the lesson complete or undoes it; the list follows the client. */
   const setComplete = useCallback(
     async (lessonId: string, complete: boolean) => {
-      if (complete) await api.markLessonComplete(lessonId);
-      else await api.undoLessonComplete(lessonId);
+      try {
+        if (complete) await api.markLessonComplete(lessonId);
+        else await api.undoLessonComplete(lessonId);
+      } catch (error) {
+        if (statusOf(error) === 401) redirectToLogin();
+        throw error;
+      }
       setIds((prev) => {
         if (prev === null) return prev;
         return complete

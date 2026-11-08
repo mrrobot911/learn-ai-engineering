@@ -107,6 +107,7 @@ function mockContent(l: Lesson = lesson, t: Topic = topicWithLesson) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  sessionStorage.clear();
   setSession(null);
   mockContent();
 });
@@ -374,5 +375,67 @@ describe('LessonPage', () => {
     expect(
       screen.queryByRole('button', { name: /complete/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows progress as unavailable without hiding the lesson when progress returns 500', async () => {
+    setSession(loggedInUser);
+    getProgress.mockRejectedValue(
+      Object.assign(new Error('Server error'), {
+        status: 500,
+        code: 'internal_error',
+      }),
+    );
+
+    render(<LessonPage id="les-1" />);
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Why tokens matter',
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/progress is unavailable right now/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /complete/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('sends the user to login and back when a progress load returns 401', async () => {
+    window.location.hash = '#/lesson/les-1';
+    setSession(loggedInUser);
+    getProgress.mockRejectedValue(
+      Object.assign(new Error('No session'), {
+        status: 401,
+        code: 'authentication_error',
+      }),
+    );
+
+    render(<LessonPage id="les-1" />);
+
+    await waitFor(() => expect(window.location.hash).toBe('#/login'));
+    expect(sessionStorage.getItem('authReturnTo')).toBe('#/lesson/les-1');
+  });
+
+  it('sends the user to login and back when a progress toggle returns 401', async () => {
+    window.location.hash = '#/lesson/les-1';
+    setSession(loggedInUser);
+    getProgress.mockResolvedValue([]);
+    markLessonComplete.mockRejectedValue(
+      Object.assign(new Error('No session'), {
+        status: 401,
+        code: 'authentication_error',
+      }),
+    );
+
+    const user = userEvent.setup();
+    render(<LessonPage id="les-1" />);
+
+    const button = await screen.findByRole('button', { name: /complete/i });
+    await user.click(button);
+
+    await waitFor(() => expect(window.location.hash).toBe('#/login'));
+    expect(sessionStorage.getItem('authReturnTo')).toBe('#/lesson/les-1');
   });
 });
