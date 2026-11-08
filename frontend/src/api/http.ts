@@ -231,6 +231,18 @@ function mapAttemptSummary(raw: {
   };
 }
 
+async function ensureTopicTitlesCached(): Promise<void> {
+  try {
+    const topics =
+      await request<Array<{ id: string; slug: string; title: string }>>(
+        '/topics',
+      );
+    topics.forEach((t) => cacheTopicTitle(t.id, t.slug, t.title));
+  } catch {
+    // A missing or unpublished topic falls back to its slug in the mapping.
+  }
+}
+
 function mapAttempt(raw: {
   id: string;
   topicId: string;
@@ -408,35 +420,41 @@ export function createHttpClient(): ApiClient {
     },
 
     async listAttempts(): Promise<QuizAttemptSummary[]> {
-      const raw = await request<
-        Array<{
+      const [raw] = await Promise.all([
+        request<
+          Array<{
+            id: string;
+            topicId: string;
+            topicSlug: string;
+            score: number;
+            total: number;
+            createdAt: string;
+          }>
+        >('/me/attempts'),
+        ensureTopicTitlesCached(),
+      ]);
+      return raw.map(mapAttemptSummary);
+    },
+
+    async getAttempt(attemptId: string): Promise<QuizAttempt> {
+      const [raw] = await Promise.all([
+        request<{
           id: string;
           topicId: string;
           topicSlug: string;
           score: number;
           total: number;
           createdAt: string;
-        }>
-      >('/me/attempts');
-      return raw.map(mapAttemptSummary);
-    },
-
-    async getAttempt(attemptId: string): Promise<QuizAttempt> {
-      const raw = await request<{
-        id: string;
-        topicId: string;
-        topicSlug: string;
-        score: number;
-        total: number;
-        createdAt: string;
-        answers: Array<{
-          questionId: string | null;
-          questionText: string;
-          selectedOptionText: string;
-          correctOptionText: string;
-          isCorrect: boolean;
-        }>;
-      }>(`/me/attempts/${encodeURIComponent(attemptId)}`);
+          answers: Array<{
+            questionId: string | null;
+            questionText: string;
+            selectedOptionText: string;
+            correctOptionText: string;
+            isCorrect: boolean;
+          }>;
+        }>(`/me/attempts/${encodeURIComponent(attemptId)}`),
+        ensureTopicTitlesCached(),
+      ]);
       return mapAttempt(raw);
     },
   };

@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { api } from '@/api';
 import type { QuizAttempt, QuizAttemptSummary, User } from '@/api';
@@ -124,6 +130,8 @@ function deferred<T>() {
 beforeEach(() => {
   vi.resetAllMocks();
   setSession(null);
+  window.location.hash = '#/history';
+  sessionStorage.clear();
 });
 
 afterEach(cleanup);
@@ -219,6 +227,20 @@ describe('HistoryPage', () => {
     expect(
       screen.queryByRole('heading', { name: 'Something went wrong' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('sends the user to login and back when the list returns 401', async () => {
+    setSession(loggedInUser);
+    listAttempts.mockRejectedValue(
+      Object.assign(new Error('No session'), { status: 401 }),
+    );
+
+    render(<HistoryPage />);
+
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#/login');
+    });
+    expect(sessionStorage.getItem('authReturnTo')).toBe('#/history');
   });
 });
 
@@ -344,5 +366,76 @@ describe('HistoryDetailPage', () => {
     expect(
       screen.queryByRole('heading', { name: 'Something went wrong' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('sends the user to login and back when the detail returns 401', async () => {
+    setSession(loggedInUser);
+    window.location.hash = '#/history/att-1';
+    getAttempt.mockRejectedValue(
+      Object.assign(new Error('No session'), { status: 401 }),
+    );
+
+    render(<HistoryDetailPage attemptId="att-1" />);
+
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#/login');
+    });
+    expect(sessionStorage.getItem('authReturnTo')).toBe('#/history/att-1');
+  });
+
+  it('shows the not-found state when the detail returns 404', async () => {
+    setSession(loggedInUser);
+    getAttempt.mockRejectedValue(
+      Object.assign(new Error('Not found'), { status: 404 }),
+    );
+
+    render(<HistoryDetailPage attemptId="missing" />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Attempt not found' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders answers with a null question id using position keys', async () => {
+    setSession(loggedInUser);
+    getAttempt.mockResolvedValue({
+      ...attempt,
+      answers: [
+        {
+          questionId: '',
+          questionText: 'Removed question A',
+          selectedOptionId: null,
+          selectedOptionText: '',
+          correctOptionId: '',
+          correctOptionText: 'Correct A',
+          isCorrect: false,
+          explanation: '',
+        },
+        {
+          questionId: '',
+          questionText: 'Removed question B',
+          selectedOptionId: null,
+          selectedOptionText: 'Picked B',
+          correctOptionId: '',
+          correctOptionText: 'Correct B',
+          isCorrect: false,
+          explanation: '',
+        },
+      ],
+    });
+
+    render(<HistoryDetailPage attemptId="att-1" />);
+
+    const answers = await screen.findAllByRole('listitem');
+    expect(answers).toHaveLength(2);
+    expect(
+      within(answers[0]).getByText('Removed question A'),
+    ).toBeInTheDocument();
+    expect(
+      within(answers[0]).getByText('No answer selected'),
+    ).toBeInTheDocument();
+    expect(
+      within(answers[1]).getByText('Removed question B'),
+    ).toBeInTheDocument();
   });
 });
