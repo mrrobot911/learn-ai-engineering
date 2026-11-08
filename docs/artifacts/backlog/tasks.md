@@ -914,24 +914,26 @@ Source: `product-spec.md` section 7 (testing), `README.md` section 9.
 
 ## Goal
 
-Every push and pull request runs the same non-database checks as `AGENTS.md`, so broken work is caught before it is merged.
+Every push and pull request runs the same checks and unit tests as `AGENTS.md` through a Makefile, so broken work is caught before it is merged and the same commands run locally and in CI.
 Source: `product-spec.md` section 7, `README.md` section 9.
 
 ## Acceptance criteria
 
-- [ ] A workflow runs on every push and pull request and executes the backend `gofmt -l .`, `go vet ./...` and `go test ./...`, the frontend frozen install, lint, typecheck, format check and unit tests, and `bunx @redocly/cli lint openapi.yaml`.
+- [ ] A Makefile provides `make test` (all unit tests), `make test-integration` (backend and frontend integration tests on the test database; backend runs with `-p 1` because packages share one database), `make check` (gofmt, go vet, typecheck, lint, format:check, redocly lint), `make up`, and `make down`.
+- [ ] A workflow runs on every push and pull request and calls these Makefile targets for the non-database checks and unit tests (at minimum `make check` and `make test`), so CI does not duplicate the command list.
 - [ ] The Go version comes from `go.mod`, the Bun version from `.bun-version`, and the PostgreSQL major from the compose image; every action is referenced by a pinned version.
 - [ ] A failing check fails the workflow, no step deploys anything, and the workflow is green on the default branch.
-- [ ] README section 9 lists the checks CI runs.
+- [ ] README section 9 lists the Makefile targets CI runs.
 
 ## Out of scope
 
-- The integration job: T33b.
+- The integration job: T33b (it calls `make test-integration`).
 - Deployment: T34a-T35b.
 
 ## Constraints
 
 - Do not run a deploy command or workflow.
+- `-p 1` for backend integration tests is documented by this issue.
 - Depends on: #86, #84.
 
 ---
@@ -949,9 +951,9 @@ Source: `product-spec.md` section 7, `README.md` section 9.
 ## Acceptance criteria
 
 - [ ] A separate job starts `postgres:16-alpine`, the same major as the compose file, creates `learn_ai_engineering_test`, and supplies `TEST_DATABASE_URL` and `DATABASE_URL` from the workflow only.
-- [ ] The job runs `(cd backend && go test -p 1 -tags=integration ./...)` and the frontend integration command from T31b against a backend started on that test database; `-p 1` is required because the packages share one database.
+- [ ] The job calls `make test-integration` (defined by #87) against that test database; `-p 1` for the backend integration tests is documented by #87 because the packages share one database.
 - [ ] The job starts from an empty database each run, applies migrations and seed, and never uses a shared or developer database.
-- [ ] A failing test fails the job, no step deploys anything, and README section 9 documents the integration command.
+- [ ] A failing test fails the job, no step deploys anything, and README section 9 documents `make test-integration`.
 
 ## Out of scope
 
@@ -1098,9 +1100,9 @@ Source: `product-spec.md` section 7 (reproducibility), `README.md` section 11.
 
 ## Acceptance criteria
 
-- [ ] Every command in README sections 8, 9, 10 and 11 is executed from a clean clone in this task and works exactly as written; any correction is a change to the README.
+- [ ] Every command in README sections 8, 9, 10 and 11 is executed from a clean clone in this task and works exactly as written; any correction is a change to the README. README uses the Makefile targets from #87 (`make test`, `make test-integration`, `make check`, `make up`, `make down`) where they apply.
 - [ ] The status table matches reality: finished items no longer say _planned_, and unfinished ones say what is missing.
-- [ ] The repository structure matches the real tree, including the Dockerfiles, `docker-compose.yml`, `render.yaml`, every variable in `.env.example` and the integration test command.
+- [ ] The repository structure matches the real tree, including the Dockerfiles, `docker-compose.yml`, `render.yaml`, every variable in `.env.example`, the Makefile, and the integration test command.
 - [ ] The links to the repository, the issue tracker and the live application are filled in; the deployment section names Render and the public URL.
 - [ ] The AI workflow entry records which commands were run from the clean clone and their result.
 
