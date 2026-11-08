@@ -1,8 +1,16 @@
 import type { ApiClient } from './types';
 import { mockClient } from './mock';
+import { httpClient } from './http';
 
-// The one value that selects the implementation. A real client added later (#27-#30)
-// replaces the mock here and satisfies the same type, so screens cannot tell which is active.
-export const API_MODE = 'mock';
+export type ApiMode = 'mock' | 'http';
 
-export const api: ApiClient = mockClient;
+function resolveMode(): ApiMode {
+  const raw = import.meta.env.VITE_API_MODE;
+  if (import.meta.env.PROD) return 'http';
+  if (raw === 'http') return 'http';
+  return 'mock';
+}
+
+export const API_MODE: ApiMode = resolveMode();
+
+export const api: ApiClient = API_MODE === 'http' ? httpClient : mockClient;
