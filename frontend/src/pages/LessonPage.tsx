@@ -34,16 +34,8 @@ export function LessonPage({ id }: { id: string }) {
     setRecord(undefined);
     (async () => {
       try {
-        const [lesson, topics] = await Promise.all([api.getLesson(id), api.listTopics()]);
-        const summary = topics.find((t) => t.id === lesson.topicId);
-        if (!summary) {
-          if (!cancelled) {
-            setNotFound(true);
-            setLoading(false);
-          }
-          return;
-        }
-        const topic = await api.getTopic(summary.slug);
+        const lesson = await api.getLesson(id);
+        const topic = await api.getTopic(lesson.topicSlug);
         if (!cancelled) {
           setRecord({ lesson, topic });
           setLoading(false);

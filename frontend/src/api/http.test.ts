@@ -54,12 +54,21 @@ describe('http client', () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ id: 'l1', topic_id: 't1', title: 'L', body: '', position: 1, status: 'published' }),
     );
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse([{ id: 't1', slug: 'llms', title: 'LLMs', description: 'd', position: 1 }]),
+    );
     const lesson = await client.getLesson('l1');
-    expect(fetchMock).toHaveBeenLastCalledWith(
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
       'https://api.test/lessons/l1',
       expect.objectContaining({ method: 'GET', credentials: 'include' }),
     );
-    expect(lesson).toMatchObject({ topicId: 't1', summary: '', durationMin: 0 });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      'https://api.test/topics',
+      expect.objectContaining({ method: 'GET', credentials: 'include' }),
+    );
+    expect(lesson).toMatchObject({ topicId: 't1', topicSlug: 'llms', summary: '', durationMin: 0 });
   });
 
   it('maps quiz operations to slug paths and converts submission body to snake_case', async () => {

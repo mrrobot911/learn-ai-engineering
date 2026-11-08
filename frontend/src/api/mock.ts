@@ -127,19 +127,31 @@ function progressOf(userId: string): Set<string> {
   return done;
 }
 
+function toApiLesson(lesson: FixtureTopic['lessons'][number], topicSlug: string) {
+  return { ...lesson, topicSlug };
+}
+
+function toApiTopic(topic: FixtureTopic) {
+  return { ...topic, lessons: topic.lessons.map((lesson) => toApiLesson(lesson, topic.slug)) };
+}
+
 export const mockClient: ApiClient = {
   async listTopics() {
-    return topics;
+    return topics.map(({ lessons, status, ...topic }) => {
+      void lessons;
+      void status;
+      return topic;
+    });
   },
 
   async getTopic(slug) {
-    return requireTopicBySlug(slug);
+    return toApiTopic(requireTopicBySlug(slug));
   },
 
   async getLesson(lessonId) {
     const found = getLessonById(lessonId);
     if (!found) throw notFoundError(`No lesson with id "${lessonId}".`);
-    return found.lesson;
+    return toApiLesson(found.lesson, found.topic.slug);
   },
 
   async startQuiz(slug) {

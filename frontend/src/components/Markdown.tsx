@@ -61,6 +61,8 @@ function parseBlocks(md: string): Block[] {
     if (h3) { blocks.push({ type: 'h3', content: h3[1] }); i++; continue; }
     const h2 = line.match(/^##\s+(.*)$/);
     if (h2) { blocks.push({ type: 'h2', content: h2[1] }); i++; continue; }
+    const h1 = line.match(/^#\s+(.*)$/);
+    if (h1) { blocks.push({ type: 'h2', content: h1[1] }); i++; continue; }
 
     // blockquote
     if (/^>\s?/.test(line)) {
@@ -108,6 +110,10 @@ function parseBlocks(md: string): Block[] {
     ) {
       para.push(lines[i]);
       i++;
+    }
+    if (para.length === 0) {
+      i++;
+      continue;
     }
     blocks.push({ type: 'p', content: para.join(' ') });
   }

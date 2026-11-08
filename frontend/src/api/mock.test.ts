@@ -35,12 +35,14 @@ describe('content operations', () => {
   it('getTopic resolves with the fixture topic and its lessons', async () => {
     const topic = await mockClient.getTopic(TOPIC_SLUG);
     expect(topic.id).toBe(TOPIC_ID);
-    expect(topic.lessons).toEqual(topics[0].lessons);
+    expect(topic.lessons).toEqual(
+      topics[0].lessons.map((lesson) => ({ ...lesson, topicSlug: TOPIC_SLUG })),
+    );
   });
 
   it('getLesson resolves with the fixture lesson', async () => {
     const lesson = await mockClient.getLesson(topics[0].lessons[0].id);
-    expect(lesson).toEqual(topics[0].lessons[0]);
+    expect(lesson).toEqual({ ...topics[0].lessons[0], topicSlug: TOPIC_SLUG });
   });
 
   it('getLesson rejects an unknown id with the 404 not-found signal', async () => {

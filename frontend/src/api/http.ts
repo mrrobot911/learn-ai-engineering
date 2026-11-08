@@ -235,9 +235,17 @@ export function createHttpClient(): ApiClient {
 
     async getLesson(lessonId: string): Promise<Lesson> {
       const raw = await request<{
-        id: string; topicId: string; title: string; body: string; position: number;
+        id: string; topicId: string; topicSlug?: string; title: string; body: string; position: number;
       }>(`/lessons/${encodeURIComponent(lessonId)}`);
-      return mapLesson(raw);
+      let topicSlug = raw.topicSlug;
+      if (!topicSlug) {
+        const topics = await request<Array<{ id: string; slug: string; title: string; description: string; position: number }>>('/topics');
+        const topic = topics.find((t) => t.id === raw.topicId);
+        if (!topic) throw new ApiError(404, 'not_found', 'Topic not found for lesson.');
+        cacheTopicTitle(topic.id, topic.slug, topic.title);
+        topicSlug = topic.slug;
+      }
+      return mapLesson({ ...raw, topicSlug });
     },
 
     async startQuiz(slug: string): Promise<QuizQuestion[]> {

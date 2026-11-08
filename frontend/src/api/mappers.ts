@@ -86,6 +86,7 @@ interface RawTopicSummary {
 interface RawLesson {
   id: string;
   topicId: string;
+  topicSlug?: string;
   title: string;
   body: string;
   position: number;
@@ -108,11 +109,12 @@ export function mapTopicSummary(raw: RawTopicSummary): TopicSummary {
   };
 }
 
-export function mapLesson(raw: RawLesson): Lesson {
+export function mapLesson(raw: RawLesson, topicSlug = ''): Lesson {
   const body = raw.body ?? '';
   return {
     id: raw.id,
     topicId: raw.topicId,
+    topicSlug: raw.topicSlug ?? topicSlug,
     title: raw.title,
     summary: summaryFromBody(body),
     body,
@@ -124,6 +126,6 @@ export function mapLesson(raw: RawLesson): Lesson {
 export function mapTopic(raw: RawTopicDetail): Topic {
   return {
     ...mapTopicSummary(raw),
-    lessons: (raw.lessons ?? []).map(mapLesson),
+    lessons: (raw.lessons ?? []).map((lesson) => mapLesson(lesson, raw.slug)),
   };
 }
