@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { api } from '@/api';
 import type { Lesson, Topic, User } from '@/api';
@@ -98,6 +98,7 @@ function notFound(): Error & { status: number } {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  sessionStorage.clear();
   setSession(null);
 });
 
@@ -236,5 +237,46 @@ describe('TopicPage', () => {
     expect(screen.getByText('The first lesson')).toBeInTheDocument();
     expect(screen.queryByText('0 of 3')).not.toBeInTheDocument();
     expect(screen.queryByText('Completed')).not.toBeInTheDocument();
+  });
+
+  it('shows progress as unavailable without hiding the topic when progress returns 500', async () => {
+    setSession(loggedInUser);
+    getTopic.mockResolvedValue(topicAThree);
+    getProgress.mockRejectedValue(
+      Object.assign(new Error('Server error'), {
+        status: 500,
+        code: 'internal_error',
+      }),
+    );
+
+    render(<TopicPage slug="topic-a" />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Topic A', level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('The first lesson')).toBeInTheDocument();
+    expect(
+      screen.getByText(/progress is unavailable right now/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('0 of 3')).not.toBeInTheDocument();
+  });
+
+  it('sends the user to login and back when a progress load returns 401', async () => {
+    window.location.hash = '#/topic/topic-a';
+    setSession(loggedInUser);
+    getTopic.mockResolvedValue(topicAThree);
+    getProgress.mockRejectedValue(
+      Object.assign(new Error('No session'), {
+        status: 401,
+        code: 'authentication_error',
+      }),
+    );
+
+    render(<TopicPage slug="topic-a" />);
+
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#/login');
+    });
+    expect(sessionStorage.getItem('authReturnTo')).toBe('#/topic/topic-a');
   });
 });

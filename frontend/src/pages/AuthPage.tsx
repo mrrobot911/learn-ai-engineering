@@ -10,6 +10,20 @@ function emailValid(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function returnTarget(): string {
+  const next = sessionStorage.getItem('authReturnTo');
+  sessionStorage.removeItem('authReturnTo');
+  if (
+    next &&
+    next.startsWith('#/') &&
+    !next.startsWith('#/login') &&
+    !next.startsWith('#/register')
+  ) {
+    return next;
+  }
+  return '#/topics';
+}
+
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const { login, register, user } = useSession();
   const [email, setEmail] = useState('');
@@ -21,7 +35,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const isRegister = mode === 'register';
 
   useEffect(() => {
-    if (user) window.location.hash = '#/topics';
+    if (user) window.location.hash = returnTarget();
   }, [user]);
 
   function validate(): boolean {
@@ -59,7 +73,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         }
         setPassword('');
         toast('Welcome. Your account is ready.', 'success');
-        window.location.hash = '#/topics';
+        window.location.hash = returnTarget();
       } else {
         const res = await login(email, password);
         setSubmitting(false);
@@ -70,7 +84,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         }
         setPassword('');
         toast('Logged in successfully.', 'success');
-        window.location.hash = '#/topics';
+        window.location.hash = returnTarget();
       }
     } catch (err) {
       setSubmitting(false);
