@@ -53,26 +53,29 @@ const questions: QuizQuestion[] = [
   },
 ];
 
+// Server grading: score, correctness, correct answer text and explanation come
+// from the response. Question text and selected answer text are filled from the
+// in-memory questions/answers on the result screen (T28b).
 const result: QuizResult = {
   score: 1,
   total: 2,
   answers: [
     {
       questionId: 'q1',
-      questionText: 'What does RAG stand for?',
-      selectedOptionId: 'q1-a',
-      selectedOptionText: 'Retrieval-augmented generation',
-      correctOptionId: 'q1-a',
+      questionText: '',
+      selectedOptionId: null,
+      selectedOptionText: '',
+      correctOptionId: '',
       correctOptionText: 'Retrieval-augmented generation',
       isCorrect: true,
       explanation: 'RAG grounds the answer in retrieved documents.',
     },
     {
       questionId: 'q2',
-      questionText: 'What is a token?',
+      questionText: '',
       selectedOptionId: null,
       selectedOptionText: '',
-      correctOptionId: 'q2-a',
+      correctOptionId: '',
       correctOptionText: 'A unit of text a model reads',
       isCorrect: false,
       explanation: 'A token is a unit of text, not a credential.',
@@ -368,5 +371,58 @@ describe('QuizResultPage', () => {
 
     expect(screen.getByText('Result not found')).toBeInTheDocument();
     expect(screen.queryByText('Topic A · Quiz result')).not.toBeInTheDocument();
+  });
+
+  it('shows the server score and per-question correctness without computing them', async () => {
+    getTopic.mockResolvedValue(topic);
+    startQuiz.mockResolvedValue(questions);
+    submitQuiz.mockResolvedValue(result);
+
+    const user = userEvent.setup();
+    const play = render(<QuizPlayPage slug="topic-a" />);
+    await screen.findByRole('heading', { name: 'What does RAG stand for?' });
+    await user.click(optionButton(/Retrieval-augmented generation/));
+    await user.click(screen.getByRole('button', { name: /Next/ }));
+    await screen.findByRole('heading', { name: 'What is a token?' });
+    await user.click(screen.getByRole('button', { name: /Submit quiz/ }));
+    await waitFor(() => expect(window.location.hash).toMatch(/^#\/quiz\/topic-a\/result\//));
+
+    play.unmount();
+    const attemptId = window.location.hash.split('/').pop() as string;
+    render(<QuizResultPage slug="topic-a" attemptId={attemptId} />);
+
+    expect(await screen.findByText('Topic A · Quiz result')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('/ 2')).toBeInTheDocument();
+    expect(screen.getAllByRole('img', { name: 'Correct' })).toHaveLength(1);
+    expect(screen.getAllByRole('img', { name: 'Incorrect' })).toHaveLength(1);
+  });
+
+  it('fills question and selected answer text from in-memory data and shows explanations', async () => {
+    getTopic.mockResolvedValue(topic);
+    startQuiz.mockResolvedValue(questions);
+    submitQuiz.mockResolvedValue(result);
+
+    const user = userEvent.setup();
+    const play = render(<QuizPlayPage slug="topic-a" />);
+    await screen.findByRole('heading', { name: 'What does RAG stand for?' });
+    await user.click(optionButton(/Retrieval-augmented generation/));
+    await user.click(screen.getByRole('button', { name: /Next/ }));
+    await screen.findByRole('heading', { name: 'What is a token?' });
+    // leave unanswered
+    await user.click(screen.getByRole('button', { name: /Submit quiz/ }));
+    await waitFor(() => expect(window.location.hash).toMatch(/^#\/quiz\/topic-a\/result\//));
+
+    play.unmount();
+    const attemptId = window.location.hash.split('/').pop() as string;
+    render(<QuizResultPage slug="topic-a" attemptId={attemptId} />);
+
+    expect(await screen.findByText('What does RAG stand for?')).toBeInTheDocument();
+    expect(screen.getByText('What is a token?')).toBeInTheDocument();
+    expect(screen.getAllByText('Retrieval-augmented generation').length).toBeGreaterThan(0);
+    expect(screen.getByText('A unit of text a model reads')).toBeInTheDocument();
+    expect(screen.getByText('No answer selected')).toBeInTheDocument();
+    expect(screen.getByText('RAG grounds the answer in retrieved documents.')).toBeInTheDocument();
+    expect(screen.getByText('A token is a unit of text, not a credential.')).toBeInTheDocument();
   });
 });

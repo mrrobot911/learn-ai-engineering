@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ListChecks, Trophy } from 'lucide-react';
 import { api, isApiError } from '@/api';
-import type { QuizAnswerResult, QuizQuestion, QuizResult, Topic } from '@/api';
+import type { QuizQuestion, QuizResult, Topic } from '@/api';
 import { Link, Spinner, EmptyState, ErrorState, ProgressBar } from '@/components/ui';
 import { routeToHash } from '@/router';
 
@@ -10,10 +10,17 @@ function isNotFound(error: unknown): boolean {
     && (error as { status?: number }).status === 404;
 }
 
-// The play screen hands the submission response to the result screen in memory
-// only: nothing is written to browser storage, so reloading the result route
-// shows the empty state instead of a stale result.
-let submittedResult: { id: string; slug: string; topicTitle: string; result: QuizResult } | null = null;
+// The play screen hands the server's grading plus the in-memory questions and
+// selections to the result screen: nothing is written to browser storage, so
+// reloading the result route shows the empty state instead of a stale result.
+let submittedResult: {
+  id: string;
+  slug: string;
+  topicTitle: string;
+  result: QuizResult;
+  questions: QuizQuestion[];
+  selections: Record<string, string | null>;
+} | null = null;
 
 export function QuizStartPage({ slug }: { slug: string }) {
   const [topic, setTopic] = useState<Topic | null>(null);
@@ -174,15 +181,19 @@ export function QuizPlayPage({ slug }: { slug: string }) {
     setSubmitting(true);
     setSubmitError(null);
     try {
+      const selections: Record<string, string | null> = {};
+      for (const question of quizQuestions) {
+        selections[question.id] = answers[question.id] ?? null;
+      }
       const result = await api.submitQuiz({
         topicSlug: slug,
         answers: quizQuestions.map((question) => ({
           questionId: question.id,
-          optionId: answers[question.id] ?? null,
+          optionId: selections[question.id],
         })),
       });
       const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-      submittedResult = { id, slug, topicTitle: topic.title, result };
+      submittedResult = { id, slug, topicTitle: topic.title, result, questions: quizQuestions, selections };
       window.location.hash = routeToHash({ name: 'quiz-result', params: { slug, attemptId: id } });
     } catch (error) {
       setSubmitting(false);
@@ -309,7 +320,8 @@ export function QuizResultPage({ slug, attemptId }: { slug: string; attemptId: s
     );
   }
 
-  const { topicTitle, result } = attempt;
+  const { topicTitle, result, questions, selections } = attempt;
+  const questionById = new Map(questions.map((question) => [question.id, question]));
 
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
@@ -326,39 +338,46 @@ export function QuizResultPage({ slug, attemptId }: { slug: string; attemptId: s
 
       <h2 className="text-sm font-semibold text-ink-500 uppercase tracking-wider mb-3">Review answers</h2>
       <div className="space-y-3">
-        {result.answers.map((a: QuizAnswerResult) => (
-          <div key={a.questionId} className="card p-5">
-            <div className="flex items-start gap-3 mb-3">
-              <div
-                role="img"
-                aria-label={a.isCorrect ? 'Correct' : 'Incorrect'}
-                className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-mono ${
-                  a.isCorrect ? 'bg-brand-600' : 'bg-error-500'
-                }`}
-              >
-                {a.isCorrect ? <Check className="w-3.5 h-3.5" /> : '✕'}
-              </div>
-              <p className="text-sm font-medium text-ink-900 flex-1">{a.questionText}</p>
-            </div>
+        {result.answers.map((a) => {
+          const question = questionById.get(a.questionId);
+          const selectedId = selections[a.questionId] ?? null;
+          const selectedOption = question?.options.find((option) => option.id === selectedId);
+          const selectedText = selectedOption?.text ?? '';
 
-            <div className="space-y-1.5 ml-9">
-              <div className="flex items-start gap-2 text-sm">
-                <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Your answer</span>
-                <span className={a.isCorrect ? 'text-brand-700' : 'text-error-700'}>
-                  {a.selectedOptionText || <span className="text-ink-400 italic">No answer selected</span>}
-                </span>
+          return (
+            <div key={a.questionId} className="card p-5">
+              <div className="flex items-start gap-3 mb-3">
+                <div
+                  role="img"
+                  aria-label={a.isCorrect ? 'Correct' : 'Incorrect'}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-mono ${
+                    a.isCorrect ? 'bg-brand-600' : 'bg-error-500'
+                  }`}
+                >
+                  {a.isCorrect ? <Check className="w-3.5 h-3.5" /> : '✕'}
+                </div>
+                <p className="text-sm font-medium text-ink-900 flex-1">{question?.text ?? ''}</p>
               </div>
-              <div className="flex items-start gap-2 text-sm">
-                <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Correct</span>
-                <span className="text-brand-700 font-medium">{a.correctOptionText}</span>
-              </div>
-              <div className="flex items-start gap-2 text-sm mt-2 pt-2 border-t border-ink-100">
-                <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Why</span>
-                <span className="text-ink-600 leading-relaxed">{a.explanation}</span>
+
+              <div className="space-y-1.5 ml-9">
+                <div className="flex items-start gap-2 text-sm">
+                  <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Your answer</span>
+                  <span className={a.isCorrect ? 'text-brand-700' : 'text-error-700'}>
+                    {selectedText || <span className="text-ink-400 italic">No answer selected</span>}
+                  </span>
+                </div>
+                <div className="flex items-start gap-2 text-sm">
+                  <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Correct</span>
+                  <span className="text-brand-700 font-medium">{a.correctOptionText}</span>
+                </div>
+                <div className="flex items-start gap-2 text-sm mt-2 pt-2 border-t border-ink-100">
+                  <span className="text-ink-400 w-16 shrink-0 text-xs mt-0.5">Why</span>
+                  <span className="text-ink-600 leading-relaxed">{a.explanation}</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mt-6">
