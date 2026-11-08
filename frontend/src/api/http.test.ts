@@ -112,6 +112,58 @@ describe('http client', () => {
     });
   });
 
+  it('attaches the CSRF header to submitQuiz when a session token is present', async () => {
+    const client = createHttpClient();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-1' }),
+    );
+    await client.login({ email: 'a@b.c', password: 'secret' });
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse([{ id: 'q1', text: 'Q?', options: [{ id: 'o1', text: 'A' }] }]),
+    );
+    await client.startQuiz('llms');
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        score: 0,
+        total: 1,
+        answers: [{ question_id: 'q1', is_correct: false, correct_option_text: 'A', explanation: 'Because.' }],
+      }),
+    );
+    await client.submitQuiz({
+      topicSlug: 'llms',
+      answers: [{ questionId: 'q1', optionId: null }],
+    });
+
+    const submitCall = fetchMock.mock.calls[2][1] as RequestInit;
+    expect(submitCall.headers).toMatchObject({ 'X-CSRF-Token': 'csrf-1' });
+  });
+
+  it('sends no CSRF header for an anonymous submitQuiz and still returns the graded result', async () => {
+    const client = createHttpClient();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse([{ id: 'q1', text: 'Q?', options: [{ id: 'o1', text: 'A' }] }]),
+    );
+    await client.startQuiz('llms');
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        score: 1,
+        total: 1,
+        answers: [{ question_id: 'q1', is_correct: true, correct_option_text: 'A', explanation: 'Because.' }],
+      }),
+    );
+    const result = await client.submitQuiz({
+      topicSlug: 'llms',
+      answers: [{ questionId: 'q1', optionId: 'o1' }],
+    });
+
+    const submitCall = fetchMock.mock.calls[1][1] as RequestInit;
+    expect((submitCall.headers as Record<string, string>)['X-CSRF-Token']).toBeUndefined();
+    expect(result).toMatchObject({ score: 1, total: 1 });
+  });
+
   it('keeps CSRF token in memory from auth/session and sends X-CSRF-Token on state-changing requests', async () => {
     const client = createHttpClient();
     fetchMock.mockResolvedValueOnce(
@@ -153,6 +205,7 @@ describe('http client', () => {
   it('maps HTTP failures to ApiError with status and contract code', async () => {
     const client = createHttpClient();
     const cases: Array<[number, string, string]> = [
+      [400, 'validation_error', 'The submission contains a question that does not belong to the topic.'],
       [401, 'authentication_error', 'No session'],
       [403, 'forbidden', 'CSRF failed'],
       [404, 'not_found', 'Missing'],

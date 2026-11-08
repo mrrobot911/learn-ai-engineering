@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ListChecks, Trophy } from 'lucide-react';
-import { api } from '@/api';
+import { api, isApiError } from '@/api';
 import type { QuizAnswerResult, QuizQuestion, QuizResult, Topic } from '@/api';
 import { Link, Spinner, EmptyState, ErrorState, ProgressBar } from '@/components/ui';
 import { routeToHash } from '@/router';
@@ -99,7 +99,7 @@ export function QuizPlayPage({ slug }: { slug: string }) {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | null>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(false);
+  const [submitError, setSubmitError] = useState<{ message: string; validation: boolean } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -172,7 +172,7 @@ export function QuizPlayPage({ slug }: { slug: string }) {
   async function handleSubmit() {
     if (!topic) return;
     setSubmitting(true);
-    setSubmitError(false);
+    setSubmitError(null);
     try {
       const result = await api.submitQuiz({
         topicSlug: slug,
@@ -184,9 +184,13 @@ export function QuizPlayPage({ slug }: { slug: string }) {
       const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
       submittedResult = { id, slug, topicTitle: topic.title, result };
       window.location.hash = routeToHash({ name: 'quiz-result', params: { slug, attemptId: id } });
-    } catch {
+    } catch (error) {
       setSubmitting(false);
-      setSubmitError(true);
+      if (isApiError(error) && error.status === 400) {
+        setSubmitError({ message: error.message || 'This submission is not valid for this quiz.', validation: true });
+      } else {
+        setSubmitError({ message: "Couldn't submit the quiz. Your answers are still here.", validation: false });
+      }
     }
   }
 
@@ -276,10 +280,12 @@ export function QuizPlayPage({ slug }: { slug: string }) {
 
       {submitError && (
         <div role="alert" className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-error-700">
-          <span>Couldn't submit the quiz. Your answers are still here.</span>
-          <button type="button" className="btn-secondary" onClick={() => { void handleSubmit(); }}>
-            Try again
-          </button>
+          <span>{submitError.message}</span>
+          {!submitError.validation && (
+            <button type="button" className="btn-secondary" onClick={() => { void handleSubmit(); }}>
+              Try again
+            </button>
+          )}
         </div>
       )}
     </div>

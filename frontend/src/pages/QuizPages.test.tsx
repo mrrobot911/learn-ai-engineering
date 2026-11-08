@@ -2,17 +2,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { api } from '@/api';
+import { ApiError, api } from '@/api';
 import type { QuizQuestion, QuizResult, Topic } from '@/api';
 import { QuizPlayPage, QuizResultPage, QuizStartPage } from './QuizPages';
 
-vi.mock('@/api', () => ({
-  api: {
-    getTopic: vi.fn(),
-    startQuiz: vi.fn(),
-    submitQuiz: vi.fn(),
-  },
-}));
+vi.mock('@/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api')>();
+  return {
+    ...actual,
+    api: {
+      getTopic: vi.fn(),
+      startQuiz: vi.fn(),
+      submitQuiz: vi.fn(),
+    },
+  };
+});
 
 const getTopic = vi.mocked(api.getTopic);
 const startQuiz = vi.mocked(api.startQuiz);
@@ -170,6 +174,52 @@ describe('QuizPlayPage', () => {
     expect(screen.queryByText('Correct')).not.toBeInTheDocument();
   });
 
+  it('renders five questions in the server order when startQuiz returns five', async () => {
+    const five: QuizQuestion[] = [
+      { id: 'q1', text: 'First?', options: [{ id: 'q1-a', text: 'A' }] },
+      { id: 'q2', text: 'Second?', options: [{ id: 'q2-a', text: 'B' }] },
+      { id: 'q3', text: 'Third?', options: [{ id: 'q3-a', text: 'C' }] },
+      { id: 'q4', text: 'Fourth?', options: [{ id: 'q4-a', text: 'D' }] },
+      { id: 'q5', text: 'Fifth?', options: [{ id: 'q5-a', text: 'E' }] },
+    ];
+    getTopic.mockResolvedValue(topic);
+    startQuiz.mockResolvedValue(five);
+
+    const user = userEvent.setup();
+    render(<QuizPlayPage slug="topic-a" />);
+
+    expect(await screen.findByRole('heading', { name: 'First?' })).toBeInTheDocument();
+    expect(screen.getByText((_, el) => el?.tagName === 'SPAN' && el.textContent === 'Question 1 of 5')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Next/ }));
+    expect(await screen.findByRole('heading', { name: 'Second?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Next/ }));
+    expect(await screen.findByRole('heading', { name: 'Third?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Next/ }));
+    expect(await screen.findByRole('heading', { name: 'Fourth?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Next/ }));
+    expect(await screen.findByRole('heading', { name: 'Fifth?' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Submit quiz/ })).toBeInTheDocument();
+  });
+
+  it('renders fewer than five questions when the topic has fewer', async () => {
+    const two: QuizQuestion[] = [
+      { id: 'q1', text: 'Only first?', options: [{ id: 'q1-a', text: 'A' }] },
+      { id: 'q2', text: 'Only second?', options: [{ id: 'q2-a', text: 'B' }] },
+    ];
+    getTopic.mockResolvedValue(topic);
+    startQuiz.mockResolvedValue(two);
+
+    const user = userEvent.setup();
+    render(<QuizPlayPage slug="topic-a" />);
+
+    expect(await screen.findByRole('heading', { name: 'Only first?' })).toBeInTheDocument();
+    expect(screen.getByText((_, el) => el?.tagName === 'SPAN' && el.textContent === 'Question 1 of 2')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Next/ }));
+    expect(await screen.findByRole('heading', { name: 'Only second?' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Submit quiz/ })).toBeInTheDocument();
+  });
+
   it('selects, clears and submits unanswered questions as optionId: null, then shows the response result', async () => {
     getTopic.mockResolvedValue(topic);
     startQuiz.mockResolvedValue(questions);
@@ -246,6 +296,27 @@ describe('QuizPlayPage', () => {
         { questionId: 'q2', optionId: null },
       ],
     });
+  });
+
+  it('shows a foreign-question 400 response as a validation error', async () => {
+    getTopic.mockResolvedValue(topic);
+    startQuiz.mockResolvedValue(questions);
+    submitQuiz.mockRejectedValue(
+      new ApiError(400, 'validation_error', 'The submission contains a question that does not belong to the topic.'),
+    );
+
+    const user = userEvent.setup();
+    render(<QuizPlayPage slug="topic-a" />);
+    await screen.findByRole('heading', { name: 'What does RAG stand for?' });
+    await user.click(optionButton(/Retrieval-augmented generation/));
+    await user.click(screen.getByRole('button', { name: /Next/ }));
+    await screen.findByRole('heading', { name: 'What is a token?' });
+    await user.click(screen.getByRole('button', { name: /Submit quiz/ }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('The submission contains a question that does not belong to the topic.');
+    expect(within(alert).queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+    expect(submitQuiz).toHaveBeenCalledTimes(1);
   });
 
   it('shows the loading state while startQuiz is pending', async () => {
