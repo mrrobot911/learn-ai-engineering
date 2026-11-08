@@ -6,10 +6,7 @@
 import { useMemo, type JSX } from 'react';
 
 function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function renderInline(text: string): string {
@@ -19,7 +16,10 @@ function renderInline(text: string): string {
   // bold
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   // links [text](url)
-  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-brand-600 underline hover:text-brand-700">$1</a>');
+  out = out.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-brand-600 underline hover:text-brand-700">$1</a>',
+  );
   return out;
 }
 
@@ -39,7 +39,10 @@ function parseBlocks(md: string): Block[] {
     const line = lines[i];
 
     // blank line
-    if (/^\s*$/.test(line)) { i++; continue; }
+    if (/^\s*$/.test(line)) {
+      i++;
+      continue;
+    }
 
     // fenced code block
     const fence = line.match(/^```(\w*)\s*$/);
@@ -58,11 +61,23 @@ function parseBlocks(md: string): Block[] {
 
     // heading
     const h3 = line.match(/^###\s+(.*)$/);
-    if (h3) { blocks.push({ type: 'h3', content: h3[1] }); i++; continue; }
+    if (h3) {
+      blocks.push({ type: 'h3', content: h3[1] });
+      i++;
+      continue;
+    }
     const h2 = line.match(/^##\s+(.*)$/);
-    if (h2) { blocks.push({ type: 'h2', content: h2[1] }); i++; continue; }
+    if (h2) {
+      blocks.push({ type: 'h2', content: h2[1] });
+      i++;
+      continue;
+    }
     const h1 = line.match(/^#\s+(.*)$/);
-    if (h1) { blocks.push({ type: 'h2', content: h1[1] }); i++; continue; }
+    if (h1) {
+      blocks.push({ type: 'h2', content: h1[1] });
+      i++;
+      continue;
+    }
 
     // blockquote
     if (/^>\s?/.test(line)) {
@@ -128,19 +143,76 @@ export function Markdown({ source }: { source: string }): JSX.Element {
     <div className="prose-lesson">
       {blocks.map((b, idx) => {
         switch (b.type) {
-          case 'h2': return <h2 key={idx} dangerouslySetInnerHTML={{ __html: renderInline(b.content || '') }} />;
-          case 'h3': return <h3 key={idx} dangerouslySetInnerHTML={{ __html: renderInline(b.content || '') }} />;
-          case 'p': return <p key={idx} dangerouslySetInnerHTML={{ __html: renderInline(b.content || '') }} />;
-          case 'blockquote': return <blockquote key={idx} dangerouslySetInnerHTML={{ __html: renderInline(b.content || '') }} />;
+          case 'h2':
+            return (
+              <h2
+                key={idx}
+                dangerouslySetInnerHTML={{
+                  __html: renderInline(b.content || ''),
+                }}
+              />
+            );
+          case 'h3':
+            return (
+              <h3
+                key={idx}
+                dangerouslySetInnerHTML={{
+                  __html: renderInline(b.content || ''),
+                }}
+              />
+            );
+          case 'p':
+            return (
+              <p
+                key={idx}
+                dangerouslySetInnerHTML={{
+                  __html: renderInline(b.content || ''),
+                }}
+              />
+            );
+          case 'blockquote':
+            return (
+              <blockquote
+                key={idx}
+                dangerouslySetInnerHTML={{
+                  __html: renderInline(b.content || ''),
+                }}
+              />
+            );
           case 'ul':
-            return <ul key={idx}>{(b.items || []).map((it, j) => <li key={j} dangerouslySetInnerHTML={{ __html: renderInline(it) }} />)}</ul>;
+            return (
+              <ul key={idx}>
+                {(b.items || []).map((it, j) => (
+                  <li
+                    key={j}
+                    dangerouslySetInnerHTML={{ __html: renderInline(it) }}
+                  />
+                ))}
+              </ul>
+            );
           case 'ol':
-            return <ol key={idx}>{(b.items || []).map((it, j) => <li key={j} dangerouslySetInnerHTML={{ __html: renderInline(it) }} />)}</ol>;
+            return (
+              <ol key={idx}>
+                {(b.items || []).map((it, j) => (
+                  <li
+                    key={j}
+                    dangerouslySetInnerHTML={{ __html: renderInline(it) }}
+                  />
+                ))}
+              </ol>
+            );
           case 'pre':
             return (
-              <pre key={idx}><code dangerouslySetInnerHTML={{ __html: escapeHtml(b.content || '') }} /></pre>
+              <pre key={idx}>
+                <code
+                  dangerouslySetInnerHTML={{
+                    __html: escapeHtml(b.content || ''),
+                  }}
+                />
+              </pre>
             );
-          default: return null;
+          default:
+            return null;
         }
       })}
     </div>

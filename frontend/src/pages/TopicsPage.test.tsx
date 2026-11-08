@@ -37,7 +37,10 @@ const topicB: TopicSummary = {
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
   return { promise, resolve, reject };
 }
 
@@ -53,8 +56,12 @@ describe('TopicsPage', () => {
 
     render(<TopicsPage />);
 
-    expect(await screen.findByRole('heading', { name: 'Topic A', level: 2 })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Topic B', level: 2 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Topic A', level: 2 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Topic B', level: 2 }),
+    ).toBeInTheDocument();
     expect(screen.getByText('The first topic')).toBeInTheDocument();
     expect(screen.getByText('The second topic')).toBeInTheDocument();
 
@@ -70,7 +77,9 @@ describe('TopicsPage', () => {
     render(<TopicsPage />);
 
     expect(await screen.findByText('Loading topics…')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Topic A' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Topic A' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows the empty state when listTopics() resolves with []', async () => {
@@ -95,7 +104,9 @@ describe('TopicsPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Try again' }));
 
-    expect(await screen.findByRole('heading', { name: 'Topic A', level: 2 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Topic A', level: 2 }),
+    ).toBeInTheDocument();
     expect(listTopics).toHaveBeenCalledTimes(2);
     expect(screen.queryByText('Something went wrong')).not.toBeInTheDocument();
   });

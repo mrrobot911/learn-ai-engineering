@@ -22,7 +22,10 @@ function parseHash(hash: string): Route {
       const action = rest[1];
       if (!topicSlug) return { name: 'topics', params: {} };
       if (action === 'result' && rest[2]) {
-        return { name: 'quiz-result', params: { slug: topicSlug, attemptId: rest[2] } };
+        return {
+          name: 'quiz-result',
+          params: { slug: topicSlug, attemptId: rest[2] },
+        };
       }
       if (action === 'play') {
         return { name: 'quiz', params: { slug: topicSlug } };
@@ -30,7 +33,8 @@ function parseHash(hash: string): Route {
       return { name: 'quiz-start', params: { slug: topicSlug } };
     }
     case 'history':
-      if (rest[0]) return { name: 'history-detail', params: { attemptId: rest[0] } };
+      if (rest[0])
+        return { name: 'history-detail', params: { attemptId: rest[0] } };
       return { name: 'history', params: {} };
     case 'login':
       return { name: 'login', params: {} };
@@ -43,21 +47,33 @@ function parseHash(hash: string): Route {
 
 export function routeToHash(route: Route): string {
   switch (route.name) {
-    case 'topics': return '#/topics';
-    case 'topic': return `#/topic/${route.params.slug}`;
-    case 'lesson': return `#/lesson/${route.params.id}`;
-    case 'quiz-start': return `#/quiz/${route.params.slug}`;
-    case 'quiz': return `#/quiz/${route.params.slug}/play`;
-    case 'quiz-result': return `#/quiz/${route.params.slug}/result/${route.params.attemptId}`;
-    case 'history': return '#/history';
-    case 'history-detail': return `#/history/${route.params.attemptId}`;
-    case 'login': return '#/login';
-    case 'register': return '#/register';
+    case 'topics':
+      return '#/topics';
+    case 'topic':
+      return `#/topic/${route.params.slug}`;
+    case 'lesson':
+      return `#/lesson/${route.params.id}`;
+    case 'quiz-start':
+      return `#/quiz/${route.params.slug}`;
+    case 'quiz':
+      return `#/quiz/${route.params.slug}/play`;
+    case 'quiz-result':
+      return `#/quiz/${route.params.slug}/result/${route.params.attemptId}`;
+    case 'history':
+      return '#/history';
+    case 'history-detail':
+      return `#/history/${route.params.attemptId}`;
+    case 'login':
+      return '#/login';
+    case 'register':
+      return '#/register';
   }
 }
 
 export function useRouter() {
-  const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));
+  const [route, setRoute] = useState<Route>(() =>
+    parseHash(window.location.hash),
+  );
 
   useEffect(() => {
     const onHash = () => {

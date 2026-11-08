@@ -25,8 +25,6 @@ const useSessionMock = vi.mocked(useSession);
 const loggedInUser: User = {
   id: 'u1',
   email: 'user@example.com',
-  isMaintainer: false,
-  createdAt: '2024-01-01T00:00:00.000Z',
 };
 
 function setSession(user: User | null) {
@@ -79,12 +77,18 @@ const topicA: Topic = {
   position: 1,
   lessons: [lessonOne, lessonTwo],
 };
-const topicAThree: Topic = { ...topicA, lessons: [lessonOne, lessonTwo, lessonThree] };
+const topicAThree: Topic = {
+  ...topicA,
+  lessons: [lessonOne, lessonTwo, lessonThree],
+};
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
   return { promise, resolve, reject };
 }
 
@@ -105,12 +109,17 @@ describe('TopicPage', () => {
 
     render(<TopicPage slug="topic-a" />);
 
-    expect(await screen.findByRole('heading', { name: 'Topic A', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Topic A', level: 1 }),
+    ).toBeInTheDocument();
     expect(screen.getByText('The first topic')).toBeInTheDocument();
     expect(getTopic).toHaveBeenCalledWith('topic-a');
 
     const lessonHeadings = screen.getAllByRole('heading', { level: 3 });
-    expect(lessonHeadings.map((h) => h.textContent)).toEqual(['Lesson One', 'Lesson Two']);
+    expect(lessonHeadings.map((h) => h.textContent)).toEqual([
+      'Lesson One',
+      'Lesson Two',
+    ]);
 
     const lessonLinks = screen
       .getAllByRole('link')
@@ -126,7 +135,9 @@ describe('TopicPage', () => {
     render(<TopicPage slug="topic-a" />);
 
     expect(await screen.findByText('Loading topic…')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Topic A' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Topic A' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows an error state whose retry button repeats the client call', async () => {
@@ -142,7 +153,9 @@ describe('TopicPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Try again' }));
 
-    expect(await screen.findByRole('heading', { name: 'Topic A', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Topic A', level: 1 }),
+    ).toBeInTheDocument();
     expect(getTopic).toHaveBeenCalledTimes(2);
     expect(screen.queryByText('Something went wrong')).not.toBeInTheDocument();
   });
@@ -164,10 +177,14 @@ describe('TopicPage', () => {
     render(<TopicPage slug="topic-a" />);
 
     expect(await screen.findByText('No lessons yet')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Lessons' })).toBeInTheDocument();
-    expect(screen.queryAllByRole('link').filter(
-      (a) => a.getAttribute('href')?.startsWith('#/lesson/'),
-    )).toHaveLength(0);
+    expect(
+      screen.getByRole('heading', { name: 'Lessons' }),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .queryAllByRole('link')
+        .filter((a) => a.getAttribute('href')?.startsWith('#/lesson/')),
+    ).toHaveLength(0);
   });
 
   it('shows the completed count and one Completed badge per completed lesson', async () => {
@@ -198,7 +215,9 @@ describe('TopicPage', () => {
 
     render(<TopicPage slug="topic-a" />);
 
-    expect(await screen.findByRole('heading', { name: 'Topic A', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Topic A', level: 1 }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('0 of 3')).not.toBeInTheDocument();
     expect(screen.queryByText('Completed')).not.toBeInTheDocument();
     expect(getProgress).not.toHaveBeenCalled();
@@ -211,7 +230,9 @@ describe('TopicPage', () => {
 
     render(<TopicPage slug="topic-a" />);
 
-    expect(await screen.findByRole('heading', { name: 'Topic A', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Topic A', level: 1 }),
+    ).toBeInTheDocument();
     expect(screen.getByText('The first lesson')).toBeInTheDocument();
     expect(screen.queryByText('0 of 3')).not.toBeInTheDocument();
     expect(screen.queryByText('Completed')).not.toBeInTheDocument();

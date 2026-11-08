@@ -17,7 +17,8 @@ function Routes() {
   if (!authReady) {
     return (
       <div className="flex items-center justify-center py-32 text-ink-400">
-        <Spinner className="w-5 h-5" /> <span className="ml-2 text-sm">Loading…</span>
+        <Spinner className="w-5 h-5" />{' '}
+        <span className="ml-2 text-sm">Loading…</span>
       </div>
     );
   }
@@ -34,7 +35,12 @@ function Routes() {
     case 'quiz':
       return <QuizPlayPage slug={route.params.slug} />;
     case 'quiz-result':
-      return <QuizResultPage slug={route.params.slug} attemptId={route.params.attemptId} />;
+      return (
+        <QuizResultPage
+          slug={route.params.slug}
+          attemptId={route.params.attemptId}
+        />
+      );
     case 'history':
       return <HistoryPage />;
     case 'history-detail':

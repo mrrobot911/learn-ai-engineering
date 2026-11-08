@@ -74,7 +74,9 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       }
     } catch (err) {
       setSubmitting(false);
-      setFormError(err instanceof Error ? err.message : 'Something went wrong.');
+      setFormError(
+        err instanceof Error ? err.message : 'Something went wrong.',
+      );
       setPassword('');
     }
   }
@@ -89,18 +91,28 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           {isRegister ? 'Create your account' : 'Welcome back'}
         </h1>
         <p className="text-sm text-ink-500 text-center mb-6">
-          {isRegister ? 'Save your lesson progress and quiz history.' : 'Log in to pick up where you left off.'}
+          {isRegister
+            ? 'Save your lesson progress and quiz history.'
+            : 'Log in to pick up where you left off.'}
         </p>
 
         {formError && (
-          <div role="alert" className="mb-4 p-3 rounded-lg bg-error-50 border border-error-100 text-error-700 text-sm flex items-start gap-2">
+          <div
+            role="alert"
+            className="mb-4 p-3 rounded-lg bg-error-50 border border-error-100 text-error-700 text-sm flex items-start gap-2"
+          >
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
         <form onSubmit={onSubmit} noValidate className="space-y-4">
-          <Field label="Email" id="email" icon={<Mail className="w-4 h-4" />} error={errors.email}>
+          <Field
+            label="Email"
+            id="email"
+            icon={<Mail className="w-4 h-4" />}
+            error={errors.email}
+          >
             <input
               id="email"
               type="email"
@@ -114,7 +126,12 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             />
           </Field>
 
-          <Field label="Password" id="password" icon={<Lock className="w-4 h-4" />} error={errors.password}>
+          <Field
+            label="Password"
+            id="password"
+            icon={<Lock className="w-4 h-4" />}
+            error={errors.password}
+          >
             <input
               id="password"
               type="password"
@@ -128,14 +145,20 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             />
           </Field>
 
-          <button type="submit" className="btn-brand w-full" disabled={submitting}>
+          <button
+            type="submit"
+            className="btn-brand w-full"
+            disabled={submitting}
+          >
             {submitting ? (
               <>
-                <Spinner className="w-4 h-4" /> {isRegister ? 'Creating account…' : 'Logging in…'}
+                <Spinner className="w-4 h-4" />{' '}
+                {isRegister ? 'Creating account…' : 'Logging in…'}
               </>
             ) : (
               <>
-                {isRegister ? 'Create account' : 'Log in'} <ArrowRight className="w-4 h-4" />
+                {isRegister ? 'Create account' : 'Log in'}{' '}
+                <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
@@ -145,14 +168,20 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           {isRegister ? (
             <>
               Already have an account?{' '}
-              <Link to={{ name: 'login', params: {} }} className="text-brand-600 font-medium hover:text-brand-700">
+              <Link
+                to={{ name: 'login', params: {} }}
+                className="text-brand-600 font-medium hover:text-brand-700"
+              >
                 Log in
               </Link>
             </>
           ) : (
             <>
               New here?{' '}
-              <Link to={{ name: 'register', params: {} }} className="text-brand-600 font-medium hover:text-brand-700">
+              <Link
+                to={{ name: 'register', params: {} }}
+                className="text-brand-600 font-medium hover:text-brand-700"
+              >
                 Create an account
               </Link>
             </>
@@ -178,11 +207,16 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-ink-700 mb-1.5">
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-ink-700 mb-1.5"
+      >
         {label}
       </label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400">{icon}</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400">
+          {icon}
+        </span>
         {children}
       </div>
       {error && (

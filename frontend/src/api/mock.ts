@@ -5,7 +5,10 @@ import {
   seedQuizHistory,
   topics,
 } from '@/data/content';
-import type { Question as FixtureQuestion, Topic as FixtureTopic } from '@/types';
+import type {
+  Question as FixtureQuestion,
+  Topic as FixtureTopic,
+} from '@/types';
 import type {
   ApiClient,
   QuizAnswerResult,
@@ -29,8 +32,6 @@ function seedUsers(): User[] {
     {
       id: 'usr-demo',
       email: 'demo@forge.dev',
-      isMaintainer: true,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
     },
   ];
 }
@@ -99,7 +100,10 @@ function toQuizQuestion(question: FixtureQuestion): QuizQuestion {
 
 // US-2: the server grades; an unanswered question or an option from another
 // question counts as incorrect.
-function grade(question: FixtureQuestion, optionId: string | null): QuizAnswerResult {
+function grade(
+  question: FixtureQuestion,
+  optionId: string | null,
+): QuizAnswerResult {
   const correct = question.options.find((option) => option.isCorrect);
   const selected = optionId
     ? question.options.find((option) => option.id === optionId)
@@ -127,12 +131,18 @@ function progressOf(userId: string): Set<string> {
   return done;
 }
 
-function toApiLesson(lesson: FixtureTopic['lessons'][number], topicSlug: string) {
+function toApiLesson(
+  lesson: FixtureTopic['lessons'][number],
+  topicSlug: string,
+) {
   return { ...lesson, topicSlug };
 }
 
 function toApiTopic(topic: FixtureTopic) {
-  return { ...topic, lessons: topic.lessons.map((lesson) => toApiLesson(lesson, topic.slug)) };
+  return {
+    ...topic,
+    lessons: topic.lessons.map((lesson) => toApiLesson(lesson, topic.slug)),
+  };
 }
 
 export const mockClient: ApiClient = {
@@ -157,7 +167,8 @@ export const mockClient: ApiClient = {
   async startQuiz(slug) {
     const topic = requireTopicBySlug(slug);
     const questions = getQuestionsForTopic(topic.id);
-    if (questions.length === 0) throw new Error(`Topic "${slug}" has no published questions.`);
+    if (questions.length === 0)
+      throw new Error(`Topic "${slug}" has no published questions.`);
     return pickRandom(questions, QUIZ_SIZE).map(toQuizQuestion);
   },
 
@@ -166,7 +177,10 @@ export const mockClient: ApiClient = {
     const byId = new Map(getQuestionsForTopic(topic.id).map((q) => [q.id, q]));
     const graded = answers.map((answer) => {
       const question = byId.get(answer.questionId);
-      if (!question) throw new Error(`Question "${answer.questionId}" does not belong to topic "${topicSlug}".`);
+      if (!question)
+        throw new Error(
+          `Question "${answer.questionId}" does not belong to topic "${topicSlug}".`,
+        );
       return grade(question, answer.optionId);
     });
     const result: QuizResult = {
@@ -196,8 +210,6 @@ export const mockClient: ApiClient = {
     const user: User = {
       id: `usr-${address.replace(/[^a-z0-9]/g, '-')}`,
       email: address,
-      isMaintainer: false,
-      createdAt: new Date().toISOString(),
     };
     users.push(user);
     sessionUserId = user.id;
@@ -207,7 +219,9 @@ export const mockClient: ApiClient = {
   // The mock stores no password at all: it only checks that the account exists.
   // Password checks belong to the backend the real client (#27-#30) will call.
   async login({ email }) {
-    const found = users.find((user) => user.email === email.trim().toLowerCase());
+    const found = users.find(
+      (user) => user.email === email.trim().toLowerCase(),
+    );
     if (!found) throw new Error('No account found with that email.');
     sessionUserId = found.id;
     return found;
@@ -219,13 +233,17 @@ export const mockClient: ApiClient = {
 
   async getSession() {
     if (!sessionUserId) {
-      const error = new Error('No valid session.') as Error & { status: number };
+      const error = new Error('No valid session.') as Error & {
+        status: number;
+      };
       error.status = 401;
       throw error;
     }
     const user = users.find((u) => u.id === sessionUserId);
     if (!user) {
-      const error = new Error('No valid session.') as Error & { status: number };
+      const error = new Error('No valid session.') as Error & {
+        status: number;
+      };
       error.status = 401;
       throw error;
     }
@@ -254,7 +272,9 @@ export const mockClient: ApiClient = {
 
   async getAttempt(attemptId) {
     const userId = requireSession();
-    const found = attempts.find((attempt) => attempt.userId === userId && attempt.id === attemptId);
+    const found = attempts.find(
+      (attempt) => attempt.userId === userId && attempt.id === attemptId,
+    );
     if (!found) throw new Error(`No attempt with id "${attemptId}".`);
     return found;
   },

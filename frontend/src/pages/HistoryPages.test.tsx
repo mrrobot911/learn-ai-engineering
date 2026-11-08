@@ -25,8 +25,6 @@ const useSessionMock = vi.mocked(useSession);
 const loggedInUser: User = {
   id: 'u1',
   email: 'user@example.com',
-  isMaintainer: false,
-  createdAt: '2026-01-01T00:00:00.000Z',
 };
 
 /** The visitor of the page: anonymous by default, logged in on demand. */
@@ -116,7 +114,10 @@ function attemptLinks() {
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
   return { promise, resolve, reject };
 }
 
@@ -134,7 +135,9 @@ describe('HistoryPage', () => {
 
     render(<HistoryPage />);
 
-    expect(await screen.findByRole('heading', { name: 'Quiz history', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Quiz history', level: 1 }),
+    ).toBeInTheDocument();
     expect(listAttempts).toHaveBeenCalledTimes(1);
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
     expect(attemptLinks().map((link) => link.getAttribute('href'))).toEqual([
@@ -151,10 +154,15 @@ describe('HistoryPage', () => {
     render(<HistoryPage />);
 
     const row = await screen.findByRole('listitem');
-    expect(within(row).getByText('Retrieval-Augmented Generation')).toBeInTheDocument();
+    expect(
+      within(row).getByText('Retrieval-Augmented Generation'),
+    ).toBeInTheDocument();
     expect(within(row).getByText('3/5')).toBeInTheDocument();
     expect(within(row).getByText('2026-10-15')).toBeInTheDocument();
-    expect(within(row).getByRole('link')).toHaveAttribute('href', '#/history/att-1');
+    expect(within(row).getByRole('link')).toHaveAttribute(
+      'href',
+      '#/history/att-1',
+    );
   });
 
   it('shows the empty state when the client resolves no attempts', async () => {
@@ -163,14 +171,19 @@ describe('HistoryPage', () => {
 
     render(<HistoryPage />);
 
-    expect(await screen.findByRole('heading', { name: 'No quiz attempts yet' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'No quiz attempts yet' }),
+    ).toBeInTheDocument();
     expect(attemptLinks()).toHaveLength(0);
   });
 
   it('asks an anonymous visitor to log in and never reads the attempts', async () => {
     render(<HistoryPage />);
 
-    expect(await screen.findByRole('link', { name: 'Log in' })).toHaveAttribute('href', '#/login');
+    expect(await screen.findByRole('link', { name: 'Log in' })).toHaveAttribute(
+      'href',
+      '#/login',
+    );
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
     expect(listAttempts).not.toHaveBeenCalled();
   });
@@ -194,14 +207,18 @@ describe('HistoryPage', () => {
     const user = userEvent.setup();
     render(<HistoryPage />);
 
-    expect(await screen.findByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Something went wrong' }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Try again' }));
 
     expect(await screen.findByRole('listitem')).toBeInTheDocument();
     expect(listAttempts).toHaveBeenCalledTimes(2);
-    expect(screen.queryByRole('heading', { name: 'Something went wrong' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Something went wrong' }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -212,7 +229,12 @@ describe('HistoryDetailPage', () => {
 
     render(<HistoryDetailPage attemptId="att-1" />);
 
-    expect(await screen.findByRole('heading', { name: 'Retrieval-Augmented Generation', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Retrieval-Augmented Generation',
+        level: 1,
+      }),
+    ).toBeInTheDocument();
     expect(getAttempt).toHaveBeenCalledTimes(1);
     expect(getAttempt).toHaveBeenCalledWith('att-1');
 
@@ -220,15 +242,31 @@ describe('HistoryDetailPage', () => {
     expect(answers).toHaveLength(3);
 
     expect(within(answers[0]).getByText('What is RAG?')).toBeInTheDocument();
-    expect(within(answers[0]).getAllByText('Retrieval-augmented generation')).toHaveLength(2);
+    expect(
+      within(answers[0]).getAllByText('Retrieval-augmented generation'),
+    ).toHaveLength(2);
 
-    expect(within(answers[1]).getByText('What breaks a naive chunking?')).toBeInTheDocument();
-    expect(within(answers[1]).getByText('Fine-tuning every document')).toBeInTheDocument();
-    expect(within(answers[1]).getByText('Chunks too small lose the surrounding context')).toBeInTheDocument();
+    expect(
+      within(answers[1]).getByText('What breaks a naive chunking?'),
+    ).toBeInTheDocument();
+    expect(
+      within(answers[1]).getByText('Fine-tuning every document'),
+    ).toBeInTheDocument();
+    expect(
+      within(answers[1]).getByText(
+        'Chunks too small lose the surrounding context',
+      ),
+    ).toBeInTheDocument();
 
-    expect(within(answers[2]).getByText('What is a token?')).toBeInTheDocument();
-    expect(within(answers[2]).getByText('No answer selected')).toBeInTheDocument();
-    expect(within(answers[2]).getByText('A unit of text the model reads')).toBeInTheDocument();
+    expect(
+      within(answers[2]).getByText('What is a token?'),
+    ).toBeInTheDocument();
+    expect(
+      within(answers[2]).getByText('No answer selected'),
+    ).toBeInTheDocument();
+    expect(
+      within(answers[2]).getByText('A unit of text the model reads'),
+    ).toBeInTheDocument();
   });
 
   it('shows the wording stored with the attempt, not the current wording of the question', async () => {
@@ -238,7 +276,8 @@ describe('HistoryDetailPage', () => {
       answers: [
         {
           ...attempt.answers[0],
-          questionText: 'What is the main training objective of a large language model?',
+          questionText:
+            'What is the main training objective of a large language model?',
           selectedOptionText: 'Predict the next word in a sequence',
           correctOptionText: 'Predict the next word in a sequence',
         },
@@ -247,15 +286,28 @@ describe('HistoryDetailPage', () => {
 
     render(<HistoryDetailPage attemptId="att-seed-1" />);
 
-    expect(await screen.findByText('What is the main training objective of a large language model?')).toBeInTheDocument();
-    expect(screen.getAllByText('Predict the next word in a sequence')).toHaveLength(2);
-    expect(screen.queryByText('What is the core training objective of a large language model during pre-training?')).not.toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'What is the main training objective of a large language model?',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText('Predict the next word in a sequence'),
+    ).toHaveLength(2);
+    expect(
+      screen.queryByText(
+        'What is the core training objective of a large language model during pre-training?',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('asks an anonymous visitor to log in and never reads the attempt', async () => {
     render(<HistoryDetailPage attemptId="att-1" />);
 
-    expect(await screen.findByRole('link', { name: 'Log in' })).toHaveAttribute('href', '#/login');
+    expect(await screen.findByRole('link', { name: 'Log in' })).toHaveAttribute(
+      'href',
+      '#/login',
+    );
     expect(screen.queryByText('What is RAG?')).not.toBeInTheDocument();
     expect(getAttempt).not.toHaveBeenCalled();
   });
@@ -279,7 +331,9 @@ describe('HistoryDetailPage', () => {
     const user = userEvent.setup();
     render(<HistoryDetailPage attemptId="att-1" />);
 
-    expect(await screen.findByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Something went wrong' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('What is RAG?')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Try again' }));
@@ -287,6 +341,8 @@ describe('HistoryDetailPage', () => {
     expect(await screen.findByText('What is RAG?')).toBeInTheDocument();
     expect(getAttempt).toHaveBeenCalledTimes(2);
     expect(getAttempt).toHaveBeenLastCalledWith('att-1');
-    expect(screen.queryByRole('heading', { name: 'Something went wrong' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Something went wrong' }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react';
-import { dismissToast, subscribeToToasts, type ToastItem, type ToastKind } from './toast';
+import {
+  dismissToast,
+  subscribeToToasts,
+  type ToastItem,
+  type ToastKind,
+} from './toast';
 
 const icons: Record<ToastKind, typeof CheckCircle2> = {
-  success: CheckCircle2, error: XCircle, warning: AlertTriangle, info: Info,
+  success: CheckCircle2,
+  error: XCircle,
+  warning: AlertTriangle,
+  info: Info,
 };
 const colors: Record<ToastKind, string> = {
   success: 'bg-brand-50 text-brand-800 border-brand-200',

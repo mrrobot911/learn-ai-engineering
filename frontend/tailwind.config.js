@@ -4,8 +4,22 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        sans: [
+          'Inter',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
+        mono: [
+          '"JetBrains Mono"',
+          'ui-monospace',
+          'SFMono-Regular',
+          'Menlo',
+          'monospace',
+        ],
       },
       colors: {
         ink: {
@@ -68,7 +82,8 @@ export default {
       },
       boxShadow: {
         card: '0 1px 2px rgba(15, 18, 25, 0.04), 0 4px 12px rgba(15, 18, 25, 0.06)',
-        'card-hover': '0 6px 18px rgba(15, 18, 25, 0.10), 0 2px 6px rgba(15, 18, 25, 0.06)',
+        'card-hover':
+          '0 6px 18px rgba(15, 18, 25, 0.10), 0 2px 6px rgba(15, 18, 25, 0.06)',
       },
       keyframes: {
         'fade-in': {

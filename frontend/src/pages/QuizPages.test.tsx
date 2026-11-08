@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ApiError, api } from '@/api';
 import type { QuizQuestion, QuizResult, Topic } from '@/api';
@@ -86,7 +92,10 @@ const result: QuizResult = {
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
   return { promise, resolve, reject };
 }
 
@@ -110,9 +119,14 @@ describe('QuizStartPage', () => {
 
     render(<QuizStartPage slug="topic-a" />);
 
-    expect(await screen.findByRole('heading', { name: 'Topic A Quiz', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Topic A Quiz', level: 1 }),
+    ).toBeInTheDocument();
     expect(getTopic).toHaveBeenCalledWith('topic-a');
-    expect(screen.getByRole('link', { name: /Start quiz/ })).toHaveAttribute('href', '#/quiz/topic-a/play');
+    expect(screen.getByRole('link', { name: /Start quiz/ })).toHaveAttribute(
+      'href',
+      '#/quiz/topic-a/play',
+    );
 
     expect(screen.queryByText('In bank')).not.toBeInTheDocument();
     expect(screen.queryByText('Attempts')).not.toBeInTheDocument();
@@ -140,7 +154,9 @@ describe('QuizStartPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Try again' }));
 
-    expect(await screen.findByRole('heading', { name: 'Topic A Quiz', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Topic A Quiz', level: 1 }),
+    ).toBeInTheDocument();
     expect(getTopic).toHaveBeenCalledTimes(2);
   });
 
@@ -160,7 +176,9 @@ describe('QuizPlayPage', () => {
 
     render(<QuizPlayPage slug="topic-a" />);
 
-    expect(await screen.findByRole('heading', { name: 'What does RAG stand for?' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'What does RAG stand for?' }),
+    ).toBeInTheDocument();
     expect(startQuiz).toHaveBeenCalledWith('topic-a');
 
     const optionTexts = screen
@@ -173,7 +191,9 @@ describe('QuizPlayPage', () => {
       'CRandom access generation',
     ]);
 
-    expect(screen.queryByText('RAG grounds the answer in retrieved documents.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('RAG grounds the answer in retrieved documents.'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Correct')).not.toBeInTheDocument();
   });
 
@@ -191,18 +211,35 @@ describe('QuizPlayPage', () => {
     const user = userEvent.setup();
     render(<QuizPlayPage slug="topic-a" />);
 
-    expect(await screen.findByRole('heading', { name: 'First?' })).toBeInTheDocument();
-    expect(screen.getByText((_, el) => el?.tagName === 'SPAN' && el.textContent === 'Question 1 of 5')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'First?' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, el) =>
+          el?.tagName === 'SPAN' && el.textContent === 'Question 1 of 5',
+      ),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Next/ }));
-    expect(await screen.findByRole('heading', { name: 'Second?' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Second?' }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Next/ }));
-    expect(await screen.findByRole('heading', { name: 'Third?' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Third?' }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Next/ }));
-    expect(await screen.findByRole('heading', { name: 'Fourth?' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Fourth?' }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Next/ }));
-    expect(await screen.findByRole('heading', { name: 'Fifth?' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Submit quiz/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Fifth?' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Submit quiz/ }),
+    ).toBeInTheDocument();
   });
 
   it('renders fewer than five questions when the topic has fewer', async () => {
@@ -216,11 +253,22 @@ describe('QuizPlayPage', () => {
     const user = userEvent.setup();
     render(<QuizPlayPage slug="topic-a" />);
 
-    expect(await screen.findByRole('heading', { name: 'Only first?' })).toBeInTheDocument();
-    expect(screen.getByText((_, el) => el?.tagName === 'SPAN' && el.textContent === 'Question 1 of 2')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Only first?' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, el) =>
+          el?.tagName === 'SPAN' && el.textContent === 'Question 1 of 2',
+      ),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Next/ }));
-    expect(await screen.findByRole('heading', { name: 'Only second?' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Submit quiz/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Only second?' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Submit quiz/ }),
+    ).toBeInTheDocument();
   });
 
   it('selects, clears and submits unanswered questions as optionId: null, then shows the response result', async () => {
@@ -233,9 +281,15 @@ describe('QuizPlayPage', () => {
     await screen.findByRole('heading', { name: 'What does RAG stand for?' });
 
     await user.click(optionButton(/Retrieval-augmented generation/));
-    expect(optionButton(/Retrieval-augmented generation/)).toHaveAttribute('aria-pressed', 'true');
+    expect(optionButton(/Retrieval-augmented generation/)).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     await user.click(optionButton(/Retrieval-augmented generation/));
-    expect(optionButton(/Retrieval-augmented generation/)).toHaveAttribute('aria-pressed', 'false');
+    expect(optionButton(/Retrieval-augmented generation/)).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     await user.click(optionButton(/Retrieval-augmented generation/));
 
     await user.click(screen.getByRole('button', { name: /Next/ }));
@@ -261,7 +315,9 @@ describe('QuizPlayPage', () => {
     const attemptId = window.location.hash.split('/').pop() as string;
     render(<QuizResultPage slug="topic-a" attemptId={attemptId} />);
 
-    expect(await screen.findByText('Topic A · Quiz result')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Topic A · Quiz result'),
+    ).toBeInTheDocument();
     const total = screen.getByText('/ 2');
     expect(total.previousElementSibling?.textContent).toBe('1');
     expect(screen.getByRole('img', { name: 'Correct' })).toBeInTheDocument();
@@ -284,10 +340,15 @@ describe('QuizPlayPage', () => {
     await user.click(screen.getByRole('button', { name: /Submit quiz/ }));
 
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent("Couldn't submit the quiz. Your answers are still here.");
+    expect(alert).toHaveTextContent(
+      "Couldn't submit the quiz. Your answers are still here.",
+    );
 
     await user.click(screen.getByRole('button', { name: /Go to question 1/ }));
-    expect(optionButton(/Retrieval-augmented generation/)).toHaveAttribute('aria-pressed', 'true');
+    expect(optionButton(/Retrieval-augmented generation/)).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
     await user.click(within(alert).getByRole('button', { name: 'Try again' }));
 
@@ -305,7 +366,11 @@ describe('QuizPlayPage', () => {
     getTopic.mockResolvedValue(topic);
     startQuiz.mockResolvedValue(questions);
     submitQuiz.mockRejectedValue(
-      new ApiError(400, 'validation_error', 'The submission contains a question that does not belong to the topic.'),
+      new ApiError(
+        400,
+        'validation_error',
+        'The submission contains a question that does not belong to the topic.',
+      ),
     );
 
     const user = userEvent.setup();
@@ -317,8 +382,12 @@ describe('QuizPlayPage', () => {
     await user.click(screen.getByRole('button', { name: /Submit quiz/ }));
 
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('The submission contains a question that does not belong to the topic.');
-    expect(within(alert).queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+    expect(alert).toHaveTextContent(
+      'The submission contains a question that does not belong to the topic.',
+    );
+    expect(
+      within(alert).queryByRole('button', { name: 'Try again' }),
+    ).not.toBeInTheDocument();
     expect(submitQuiz).toHaveBeenCalledTimes(1);
   });
 
@@ -344,7 +413,9 @@ describe('QuizPlayPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Try again' }));
 
-    expect(await screen.findByRole('heading', { name: 'What does RAG stand for?' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'What does RAG stand for?' }),
+    ).toBeInTheDocument();
     expect(startQuiz).toHaveBeenCalledTimes(2);
   });
 
@@ -359,9 +430,15 @@ describe('QuizPlayPage', () => {
     const option = optionButton(/Retrieval-augmented generation/);
     option.focus();
     await user.keyboard('{Enter}');
-    expect(optionButton(/Retrieval-augmented generation/)).toHaveAttribute('aria-pressed', 'true');
+    expect(optionButton(/Retrieval-augmented generation/)).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     await user.keyboard(' ');
-    expect(optionButton(/Retrieval-augmented generation/)).toHaveAttribute('aria-pressed', 'false');
+    expect(optionButton(/Retrieval-augmented generation/)).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   });
 });
 
@@ -385,13 +462,17 @@ describe('QuizResultPage', () => {
     await user.click(screen.getByRole('button', { name: /Next/ }));
     await screen.findByRole('heading', { name: 'What is a token?' });
     await user.click(screen.getByRole('button', { name: /Submit quiz/ }));
-    await waitFor(() => expect(window.location.hash).toMatch(/^#\/quiz\/topic-a\/result\//));
+    await waitFor(() =>
+      expect(window.location.hash).toMatch(/^#\/quiz\/topic-a\/result\//),
+    );
 
     play.unmount();
     const attemptId = window.location.hash.split('/').pop() as string;
     render(<QuizResultPage slug="topic-a" attemptId={attemptId} />);
 
-    expect(await screen.findByText('Topic A · Quiz result')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Topic A · Quiz result'),
+    ).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('/ 2')).toBeInTheDocument();
     expect(screen.getAllByRole('img', { name: 'Correct' })).toHaveLength(1);
@@ -411,18 +492,30 @@ describe('QuizResultPage', () => {
     await screen.findByRole('heading', { name: 'What is a token?' });
     // leave unanswered
     await user.click(screen.getByRole('button', { name: /Submit quiz/ }));
-    await waitFor(() => expect(window.location.hash).toMatch(/^#\/quiz\/topic-a\/result\//));
+    await waitFor(() =>
+      expect(window.location.hash).toMatch(/^#\/quiz\/topic-a\/result\//),
+    );
 
     play.unmount();
     const attemptId = window.location.hash.split('/').pop() as string;
     render(<QuizResultPage slug="topic-a" attemptId={attemptId} />);
 
-    expect(await screen.findByText('What does RAG stand for?')).toBeInTheDocument();
+    expect(
+      await screen.findByText('What does RAG stand for?'),
+    ).toBeInTheDocument();
     expect(screen.getByText('What is a token?')).toBeInTheDocument();
-    expect(screen.getAllByText('Retrieval-augmented generation').length).toBeGreaterThan(0);
-    expect(screen.getByText('A unit of text a model reads')).toBeInTheDocument();
+    expect(
+      screen.getAllByText('Retrieval-augmented generation').length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByText('A unit of text a model reads'),
+    ).toBeInTheDocument();
     expect(screen.getByText('No answer selected')).toBeInTheDocument();
-    expect(screen.getByText('RAG grounds the answer in retrieved documents.')).toBeInTheDocument();
-    expect(screen.getByText('A token is a unit of text, not a credential.')).toBeInTheDocument();
+    expect(
+      screen.getByText('RAG grounds the answer in retrieved documents.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('A token is a unit of text, not a credential.'),
+    ).toBeInTheDocument();
   });
 });

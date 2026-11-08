@@ -1,5 +1,9 @@
 export type ToastKind = 'success' | 'error' | 'warning' | 'info';
-export interface ToastItem { id: number; kind: ToastKind; message: string; }
+export interface ToastItem {
+  id: number;
+  kind: ToastKind;
+  message: string;
+}
 
 let toastSeq = 0;
 let currentToasts: ToastItem[] = [];
@@ -16,9 +20,13 @@ export function toast(message: string, kind: ToastKind = 'info') {
 }
 
 /** Subscribes to the toast queue; the returned function unsubscribes. */
-export function subscribeToToasts(fn: (items: ToastItem[]) => void): () => void {
+export function subscribeToToasts(
+  fn: (items: ToastItem[]) => void,
+): () => void {
   TOAST_LISTENERS.add(fn);
-  return () => { TOAST_LISTENERS.delete(fn); };
+  return () => {
+    TOAST_LISTENERS.delete(fn);
+  };
 }
 
 /** Removes one toast from the queue (used by the host's dismiss button). */

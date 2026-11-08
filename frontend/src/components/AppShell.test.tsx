@@ -40,20 +40,28 @@ describe('AppShell', () => {
         <AppShell>hi</AppShell>
       </Wrapper>,
     );
-    expect(screen.getAllByRole('link', { name: /log in/i })[0]).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /sign up/i })[0]).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: /log in/i })[0],
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: /sign up/i })[0],
+    ).toBeInTheDocument();
     expect(screen.queryByText(/log out/i)).not.toBeInTheDocument();
   });
 
   it('shows logged-in header with email and logout control, and logs out', async () => {
     const user = userEvent.setup();
-    login.mockResolvedValue({ id: 'u1', email: 'user@example.com', isMaintainer: false, createdAt: new Date().toISOString() });
+    login.mockResolvedValue({ id: 'u1', email: 'user@example.com' });
     logout.mockResolvedValue();
     // We need to set user in session - render a helper component
     const { useSession } = await import('@/session');
     function LoginHelper() {
       const s = useSession();
-      return <button onClick={() => s.login('user@example.com', 'password123')}>do</button>;
+      return (
+        <button onClick={() => s.login('user@example.com', 'password123')}>
+          do
+        </button>
+      );
     }
     render(
       <Wrapper>
@@ -62,7 +70,9 @@ describe('AppShell', () => {
       </Wrapper>,
     );
     await user.click(screen.getByText('do'));
-    await waitFor(() => expect(screen.getByText('user@example.com')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('user@example.com')).toBeInTheDocument(),
+    );
     expect(screen.queryByText(/log in/i)).not.toBeInTheDocument();
     expect(screen.queryByText('Ada Demo')).not.toBeInTheDocument();
     expect(screen.queryByText(/name/i)).not.toBeInTheDocument();

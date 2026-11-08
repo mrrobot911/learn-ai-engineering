@@ -46,17 +46,30 @@ describe('snake/camel conversion', () => {
 
 describe('presentation-field mapper', () => {
   it('maps icon and color from the topic slug', () => {
-    expect(presentationForSlug('llms')).toEqual({ icon: 'BrainCircuit', color: 'brand' });
-    expect(presentationForSlug('rag')).toEqual({ icon: 'Search', color: 'brand' });
-    expect(presentationForSlug('agents')).toEqual({ icon: 'Bot', color: 'accent' });
+    expect(presentationForSlug('llms')).toEqual({
+      icon: 'BrainCircuit',
+      color: 'brand',
+    });
+    expect(presentationForSlug('rag')).toEqual({
+      icon: 'Search',
+      color: 'brand',
+    });
+    expect(presentationForSlug('agents')).toEqual({
+      icon: 'Bot',
+      color: 'accent',
+    });
   });
 
   it('falls back for an unknown slug', () => {
-    expect(presentationForSlug('unknown-topic')).toEqual({ icon: 'BookOpen', color: 'brand' });
+    expect(presentationForSlug('unknown-topic')).toEqual({
+      icon: 'BookOpen',
+      color: 'brand',
+    });
   });
 
   it('derives summary from the first body paragraph', () => {
-    const body = '# Title\n\nFirst paragraph with useful text.\n\nSecond paragraph.';
+    const body =
+      '# Title\n\nFirst paragraph with useful text.\n\nSecond paragraph.';
     expect(summaryFromBody(body)).toBe('First paragraph with useful text.');
   });
 
@@ -67,7 +80,10 @@ describe('presentation-field mapper', () => {
   });
 
   it('computes durationMin from body word count at the documented rate', () => {
-    const words = Array.from({ length: READING_WPM * 2 + 1 }, () => 'word').join(' ');
+    const words = Array.from(
+      { length: READING_WPM * 2 + 1 },
+      () => 'word',
+    ).join(' ');
     expect(durationMinFromBody(words)).toBe(3);
     expect(durationMinFromBody('short body here')).toBe(1);
   });
@@ -80,7 +96,13 @@ describe('presentation-field mapper', () => {
       description: 'desc',
       position: 1,
       lessons: [
-        { id: 'l1', topicId: 't1', title: 'Lesson', body: 'Hello world content.', position: 1 },
+        {
+          id: 'l1',
+          topicId: 't1',
+          title: 'Lesson',
+          body: 'Hello world content.',
+          position: 1,
+        },
       ],
     });
     expect(topic).toMatchObject({
@@ -88,13 +110,39 @@ describe('presentation-field mapper', () => {
       slug: 'llms',
       icon: 'BrainCircuit',
       color: 'brand',
-      lessons: [{ id: 'l1', topicId: 't1', topicSlug: 'llms', summary: 'Hello world content.', durationMin: 1 }],
+      lessons: [
+        {
+          id: 'l1',
+          topicId: 't1',
+          topicSlug: 'llms',
+          summary: 'Hello world content.',
+          durationMin: 1,
+        },
+      ],
     });
 
-    const summary = mapTopicSummary({ id: 't2', slug: 'mcp', title: 'MCP', description: 'd', position: 2 });
+    const summary = mapTopicSummary({
+      id: 't2',
+      slug: 'mcp',
+      title: 'MCP',
+      description: 'd',
+      position: 2,
+    });
     expect(summary).toMatchObject({ icon: 'Plug', color: 'warning' });
 
-    const lesson = mapLesson({ id: 'l2', topicId: 't1', topicSlug: 'llms', title: 'Empty', body: '', position: 2 });
-    expect(lesson).toMatchObject({ topicSlug: 'llms', summary: '', durationMin: 0, body: '' });
+    const lesson = mapLesson({
+      id: 'l2',
+      topicId: 't1',
+      topicSlug: 'llms',
+      title: 'Empty',
+      body: '',
+      position: 2,
+    });
+    expect(lesson).toMatchObject({
+      topicSlug: 'llms',
+      summary: '',
+      durationMin: 0,
+      body: '',
+    });
   });
 });

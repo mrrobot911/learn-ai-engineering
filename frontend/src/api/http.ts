@@ -54,8 +54,9 @@ function baseUrl(): string {
 
 function captureCsrf(payload: unknown): void {
   if (!payload || typeof payload !== 'object') return;
-  const token = (payload as { csrfToken?: unknown; csrf_token?: unknown }).csrfToken
-    ?? (payload as { csrf_token?: unknown }).csrf_token;
+  const token =
+    (payload as { csrfToken?: unknown; csrf_token?: unknown }).csrfToken ??
+    (payload as { csrf_token?: unknown }).csrf_token;
   if (typeof token === 'string' && token) csrfToken = token;
 }
 
@@ -70,7 +71,10 @@ function topicTitleFor(id?: string | null, slug?: string | null): string {
   return slug ?? id ?? '';
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function doRequest<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
   const { method = 'GET', body, csrf = false } = options;
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -85,7 +89,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       credentials: 'include',
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Network request failed.';
+    const message =
+      error instanceof Error ? error.message : 'Network request failed.';
     throw new ApiError(0, 'network_error', message);
   }
 
@@ -100,12 +105,20 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   if (!response.ok) {
-    const err = (payload && typeof payload === 'object' ? snakeToCamel<Record<string, unknown>>(payload) : {}) as {
+    const err = (
+      payload && typeof payload === 'object'
+        ? snakeToCamel<Record<string, unknown>>(payload)
+        : {}
+    ) as {
       code?: string;
       message?: string;
     };
-    const code = typeof err.code === 'string' ? err.code : `http_${response.status}`;
-    const message = typeof err.message === 'string' ? err.message : response.statusText || 'Request failed.';
+    const code =
+      typeof err.code === 'string' ? err.code : `http_${response.status}`;
+    const message =
+      typeof err.message === 'string'
+        ? err.message
+        : response.statusText || 'Request failed.';
     throw new ApiError(response.status, code, message);
   }
 
@@ -113,8 +126,28 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return snakeToCamel<T>(payload);
 }
 
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  try {
+    return await doRequest<T>(path, options);
+  } catch (error) {
+    if (
+      options.csrf &&
+      error instanceof ApiError &&
+      error.status === 403 &&
+      error.code === 'forbidden'
+    ) {
+      await doRequest<RawAuthResponse>('/auth/session');
+      return doRequest<T>(path, options);
+    }
+    throw error;
+  }
+}
+
 interface RawAuthResponse {
-  user: { id: string; email: string; isMaintainer?: boolean; createdAt?: string };
+  user: { id: string; email: string };
   csrfToken: string;
 }
 
@@ -122,8 +155,6 @@ function mapUser(raw: RawAuthResponse['user']): User {
   return {
     id: raw.id,
     email: raw.email,
-    isMaintainer: raw.isMaintainer ?? false,
-    createdAt: raw.createdAt ?? '',
   };
 }
 
@@ -142,7 +173,9 @@ function mapQuizResult(
   submitted: QuizAnswerInput[],
 ): QuizResult {
   const qById = new Map(questions.map((q) => [q.id, q]));
-  const submittedById = new Map(submitted.map((a) => [a.questionId, a.optionId]));
+  const submittedById = new Map(
+    submitted.map((a) => [a.questionId, a.optionId]),
+  );
   return {
     score: raw.score,
     total: raw.total,
@@ -216,9 +249,15 @@ function mapAttempt(raw: {
 export function createHttpClient(): ApiClient {
   return {
     async listTopics(): Promise<TopicSummary[]> {
-      const raw = await request<Array<{
-        id: string; slug: string; title: string; description: string; position: number;
-      }>>('/topics');
+      const raw = await request<
+        Array<{
+          id: string;
+          slug: string;
+          title: string;
+          description: string;
+          position: number;
+        }>
+      >('/topics');
       const topics = raw.map(mapTopicSummary);
       for (const t of topics) cacheTopicTitle(t.id, t.slug, t.title);
       return topics;
@@ -226,8 +265,18 @@ export function createHttpClient(): ApiClient {
 
     async getTopic(slug: string): Promise<Topic> {
       const raw = await request<{
-        id: string; slug: string; title: string; description: string; position: number;
-        lessons: Array<{ id: string; topicId: string; title: string; body: string; position: number }>;
+        id: string;
+        slug: string;
+        title: string;
+        description: string;
+        position: number;
+        lessons: Array<{
+          id: string;
+          topicId: string;
+          title: string;
+          body: string;
+          position: number;
+        }>;
       }>(`/topics/${encodeURIComponent(slug)}`);
       cacheTopicTitle(raw.id, raw.slug, raw.title);
       return mapTopic(raw);
@@ -235,13 +284,27 @@ export function createHttpClient(): ApiClient {
 
     async getLesson(lessonId: string): Promise<Lesson> {
       const raw = await request<{
-        id: string; topicId: string; topicSlug?: string; title: string; body: string; position: number;
+        id: string;
+        topicId: string;
+        topicSlug?: string;
+        title: string;
+        body: string;
+        position: number;
       }>(`/lessons/${encodeURIComponent(lessonId)}`);
       let topicSlug = raw.topicSlug;
       if (!topicSlug) {
-        const topics = await request<Array<{ id: string; slug: string; title: string; description: string; position: number }>>('/topics');
+        const topics = await request<
+          Array<{
+            id: string;
+            slug: string;
+            title: string;
+            description: string;
+            position: number;
+          }>
+        >('/topics');
         const topic = topics.find((t) => t.id === raw.topicId);
-        if (!topic) throw new ApiError(404, 'not_found', 'Topic not found for lesson.');
+        if (!topic)
+          throw new ApiError(404, 'not_found', 'Topic not found for lesson.');
         cacheTopicTitle(topic.id, topic.slug, topic.title);
         topicSlug = topic.slug;
       }
@@ -249,9 +312,12 @@ export function createHttpClient(): ApiClient {
     },
 
     async startQuiz(slug: string): Promise<QuizQuestion[]> {
-      const raw = await request<QuizQuestion[]>(`/topics/${encodeURIComponent(slug)}/quiz`, {
-        method: 'POST',
-      });
+      const raw = await request<QuizQuestion[]>(
+        `/topics/${encodeURIComponent(slug)}/quiz`,
+        {
+          method: 'POST',
+        },
+      );
       quizQuestionsCache.set(slug, raw);
       return raw;
     },
@@ -307,32 +373,53 @@ export function createHttpClient(): ApiClient {
     },
 
     async markLessonComplete(lessonId: string): Promise<void> {
-      await request<unknown>(`/me/progress/lessons/${encodeURIComponent(lessonId)}`, {
-        method: 'PUT',
-        csrf: true,
-      });
+      await request<unknown>(
+        `/me/progress/lessons/${encodeURIComponent(lessonId)}`,
+        {
+          method: 'PUT',
+          csrf: true,
+        },
+      );
     },
 
     async undoLessonComplete(lessonId: string): Promise<void> {
-      await request<unknown>(`/me/progress/lessons/${encodeURIComponent(lessonId)}`, {
-        method: 'DELETE',
-        csrf: true,
-      });
+      await request<unknown>(
+        `/me/progress/lessons/${encodeURIComponent(lessonId)}`,
+        {
+          method: 'DELETE',
+          csrf: true,
+        },
+      );
     },
 
     async listAttempts(): Promise<QuizAttemptSummary[]> {
-      const raw = await request<Array<{
-        id: string; topicId: string; topicSlug: string; score: number; total: number; createdAt: string;
-      }>>('/me/attempts');
+      const raw = await request<
+        Array<{
+          id: string;
+          topicId: string;
+          topicSlug: string;
+          score: number;
+          total: number;
+          createdAt: string;
+        }>
+      >('/me/attempts');
       return raw.map(mapAttemptSummary);
     },
 
     async getAttempt(attemptId: string): Promise<QuizAttempt> {
       const raw = await request<{
-        id: string; topicId: string; topicSlug: string; score: number; total: number; createdAt: string;
+        id: string;
+        topicId: string;
+        topicSlug: string;
+        score: number;
+        total: number;
+        createdAt: string;
         answers: Array<{
-          questionId: string | null; questionText: string; selectedOptionText: string;
-          correctOptionText: string; isCorrect: boolean;
+          questionId: string | null;
+          questionText: string;
+          selectedOptionText: string;
+          correctOptionText: string;
+          isCorrect: boolean;
         }>;
       }>(`/me/attempts/${encodeURIComponent(attemptId)}`);
       return mapAttempt(raw);

@@ -33,8 +33,6 @@ const useSessionMock = vi.mocked(useSession);
 const loggedInUser: User = {
   id: 'u1',
   email: 'user@example.com',
-  isMaintainer: false,
-  createdAt: '2024-01-01T00:00:00.000Z',
 };
 
 function setSession(user: User | null) {
@@ -87,13 +85,18 @@ const markdownBody = [
 ].join('\n');
 
 function notFoundError(): Error & { status: number } {
-  return Object.assign(new Error('No lesson with id "les-1".'), { status: 404 });
+  return Object.assign(new Error('No lesson with id "les-1".'), {
+    status: 404,
+  });
 }
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
   return { promise, resolve, reject };
 }
 
@@ -114,13 +117,23 @@ describe('LessonPage', () => {
   it('loads the lesson and its topic through the client and shows them', async () => {
     render(<LessonPage id="les-1" />);
 
-    expect(await screen.findByRole('heading', { name: 'Why tokens matter', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Why tokens matter',
+        level: 1,
+      }),
+    ).toBeInTheDocument();
     expect(getLesson).toHaveBeenCalledWith('les-1');
     expect(getTopic).toHaveBeenCalledWith('graph-rag');
     expect(listTopics).not.toHaveBeenCalled();
-    expect(screen.getByRole('link', { name: 'Graph RAG' })).toHaveAttribute('href', '#/topic/graph-rag');
+    expect(screen.getByRole('link', { name: 'Graph RAG' })).toHaveAttribute(
+      'href',
+      '#/topic/graph-rag',
+    );
     expect(screen.getByText(lesson.summary)).toBeInTheDocument();
-    expect(screen.getByText('Tokens are how the model sees text.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Tokens are how the model sees text.'),
+    ).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
@@ -130,16 +143,23 @@ describe('LessonPage', () => {
     const { container } = render(<LessonPage id="les-1" />);
     await screen.findByRole('heading', { name: 'Why tokens matter', level: 1 });
 
-    const heading = screen.getByRole('heading', { name: 'Key takeaway', level: 2 });
+    const heading = screen.getByRole('heading', {
+      name: 'Key takeaway',
+      level: 2,
+    });
     expect(heading).toBeInTheDocument();
     expect(heading.textContent).not.toContain('##');
 
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent('Cost scales with tokens');
-    expect(items[1]).toHaveTextContent('Context windows are measured in tokens');
+    expect(items[1]).toHaveTextContent(
+      'Context windows are measured in tokens',
+    );
 
-    const code = screen.getByText('const tokens = text.split(/\\s+/);').closest('pre');
+    const code = screen
+      .getByText('const tokens = text.split(/\\s+/);')
+      .closest('pre');
     expect(code).not.toBeNull();
     expect(code?.querySelector('code')).not.toBeNull();
 
@@ -156,11 +176,18 @@ describe('LessonPage', () => {
     render(<LessonPage id="les-1" />);
 
     expect(await screen.findByText('Loading lesson…')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Why tokens matter' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Why tokens matter' }),
+    ).not.toBeInTheDocument();
 
     lessonCall.resolve(lesson);
     topicCall.resolve(topicWithLesson);
-    expect(await screen.findByRole('heading', { name: 'Why tokens matter', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Why tokens matter',
+        level: 1,
+      }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Loading lesson…')).not.toBeInTheDocument();
   });
 
@@ -177,7 +204,12 @@ describe('LessonPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Try again' }));
 
-    expect(await screen.findByRole('heading', { name: 'Why tokens matter', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Why tokens matter',
+        level: 1,
+      }),
+    ).toBeInTheDocument();
     expect(getLesson).toHaveBeenCalledTimes(2);
     expect(getTopic).toHaveBeenCalledWith('graph-rag');
     expect(listTopics).not.toHaveBeenCalled();
@@ -190,7 +222,9 @@ describe('LessonPage', () => {
     render(<LessonPage id="les-1" />);
 
     expect(await screen.findByText('Lesson not found')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to topics' })).toHaveAttribute('href', '#/topics');
+    expect(
+      screen.getByRole('link', { name: 'Back to topics' }),
+    ).toHaveAttribute('href', '#/topics');
   });
 
   it('shows the error state when getTopic rejects without the not-found signal', async () => {
@@ -199,7 +233,9 @@ describe('LessonPage', () => {
     render(<LessonPage id="les-1" />);
 
     expect(await screen.findByText('Something went wrong')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Try again' }),
+    ).toBeInTheDocument();
   });
 
   it('shows a not-found state with a way back when getLesson rejects with the 404 signal', async () => {
@@ -225,7 +261,9 @@ describe('LessonPage', () => {
 
     await user.click(button);
 
-    await waitFor(() => expect(markLessonComplete).toHaveBeenCalledWith('les-1'));
+    await waitFor(() =>
+      expect(markLessonComplete).toHaveBeenCalledWith('les-1'),
+    );
     await waitFor(() => expect(button).toHaveAttribute('aria-pressed', 'true'));
   });
 
@@ -241,8 +279,12 @@ describe('LessonPage', () => {
 
     await user.click(button);
 
-    await waitFor(() => expect(undoLessonComplete).toHaveBeenCalledWith('les-1'));
-    await waitFor(() => expect(button).toHaveAttribute('aria-pressed', 'false'));
+    await waitFor(() =>
+      expect(undoLessonComplete).toHaveBeenCalledWith('les-1'),
+    );
+    await waitFor(() =>
+      expect(button).toHaveAttribute('aria-pressed', 'false'),
+    );
   });
 
   it('disables the control while the toggle is pending and ignores a second activation', async () => {
@@ -291,18 +333,29 @@ describe('LessonPage', () => {
     button.focus();
 
     await user.keyboard('{Enter}');
-    await waitFor(() => expect(markLessonComplete).toHaveBeenCalledWith('les-1'));
+    await waitFor(() =>
+      expect(markLessonComplete).toHaveBeenCalledWith('les-1'),
+    );
     await waitFor(() => expect(button).toHaveAttribute('aria-pressed', 'true'));
 
     await user.keyboard(' ');
-    await waitFor(() => expect(undoLessonComplete).toHaveBeenCalledWith('les-1'));
+    await waitFor(() =>
+      expect(undoLessonComplete).toHaveBeenCalledWith('les-1'),
+    );
   });
 
   it('shows no completion control and never reads the progress for an anonymous visitor', async () => {
     render(<LessonPage id="les-1" />);
 
-    expect(await screen.findByRole('heading', { name: 'Why tokens matter', level: 1 })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /complete/i })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Why tokens matter',
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /complete/i }),
+    ).not.toBeInTheDocument();
     expect(getProgress).not.toHaveBeenCalled();
   });
 
@@ -312,7 +365,14 @@ describe('LessonPage', () => {
 
     render(<LessonPage id="les-1" />);
 
-    expect(await screen.findByRole('heading', { name: 'Why tokens matter', level: 1 })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /complete/i })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Why tokens matter',
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /complete/i }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -18,7 +18,10 @@
   *:focus-visible {
     @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-ink-50 rounded;
   }
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     @apply text-ink-900 font-semibold tracking-tight;
     line-height: 1.2;
   }
@@ -105,7 +108,16 @@
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { @apply bg-ink-200 rounded; }
-::-webkit-scrollbar-thumb:hover { @apply bg-ink-300; }
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-ink-200 rounded;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-ink-300;
+}

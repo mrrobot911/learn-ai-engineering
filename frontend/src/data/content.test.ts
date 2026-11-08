@@ -5,8 +5,12 @@ import { allQuestions, seedQuizHistory } from './content';
 // edit of the question does not change a past attempt.
 describe('the seeded quiz history', () => {
   it('stores the wording of the attempt, not the current wording of the question', () => {
-    const attempt = seedQuizHistory.find((seeded) => seeded.id === 'att-seed-1');
-    const answer = attempt?.answers.find((stored) => stored.questionId === 'q-llm-1');
+    const attempt = seedQuizHistory.find(
+      (seeded) => seeded.id === 'att-seed-1',
+    );
+    const answer = attempt?.answers.find(
+      (stored) => stored.questionId === 'q-llm-1',
+    );
     const question = allQuestions.find((current) => current.id === 'q-llm-1');
     const correct = question?.options.find((option) => option.isCorrect);
 

@@ -38,7 +38,9 @@ describe('AuthPage', () => {
     const user = userEvent.setup();
     renderWithProviders(<AuthPage mode="login" />);
     await user.click(screen.getByRole('button', { name: /log in/i }));
-    expect(await screen.findByText(/Enter a valid email address|Email is required/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Enter a valid email address|Email is required/i),
+    ).toBeInTheDocument();
     expect(login).not.toHaveBeenCalled();
     expect(register).not.toHaveBeenCalled();
   });
@@ -49,43 +51,68 @@ describe('AuthPage', () => {
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'short');
     await user.click(screen.getByRole('button', { name: /create account/i }));
-    expect(await screen.findByText(/Password must be between 8 and 128 characters/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Password must be between 8 and 128 characters/i),
+    ).toBeInTheDocument();
     expect(register).not.toHaveBeenCalled();
     expect(login).not.toHaveBeenCalled();
   });
 
   it('calls api.register once with email and password only on valid submission', async () => {
     const user = userEvent.setup();
-    register.mockResolvedValue({ id: 'u1', email: 'test@example.com', isMaintainer: false, createdAt: new Date().toISOString() });
+    register.mockResolvedValue({ id: 'u1', email: 'test@example.com' });
     renderWithProviders(<AuthPage mode="register" />);
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'password123');
     await user.click(screen.getByRole('button', { name: /create account/i }));
     await waitFor(() => expect(register).toHaveBeenCalledTimes(1));
-    expect(register).toHaveBeenCalledWith({ email: 'test@example.com', password: 'password123' });
-    const callArg = register.mock.calls[0][0] as unknown as Record<string, unknown>;
+    expect(register).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'password123',
+    });
+    const callArg = register.mock.calls[0][0] as unknown as Record<
+      string,
+      unknown
+    >;
     expect(callArg).not.toHaveProperty('name');
   });
 
-  it('shows duplicate email error message when register fails', async () => {
+  it('shows duplicate email error message when register fails (409 conflict)', async () => {
     const user = userEvent.setup();
-    register.mockRejectedValue(new Error('An account with that email already exists.'));
+    register.mockRejectedValue(
+      new Error('An account with that email already exists.'),
+    );
     renderWithProviders(<AuthPage mode="register" />);
     await user.type(screen.getByLabelText(/email/i), 'dup@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'password123');
     await user.click(screen.getByRole('button', { name: /create account/i }));
-    expect(await screen.findByText(/An account with that email already exists/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/An account with that email already exists/i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows validation error message from Error.message when register fails (400)', async () => {
+    const user = userEvent.setup();
+    register.mockRejectedValue(new Error('Email is invalid.'));
+    renderWithProviders(<AuthPage mode="register" />);
+    await user.type(screen.getByLabelText(/email/i), 'valid@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'password123');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+    expect(await screen.findByText('Email is invalid.')).toBeInTheDocument();
   });
 
   it('calls api.login once with email and password only on valid login', async () => {
     const user = userEvent.setup();
-    login.mockResolvedValue({ id: 'u1', email: 'test@example.com', isMaintainer: false, createdAt: new Date().toISOString() });
+    login.mockResolvedValue({ id: 'u1', email: 'test@example.com' });
     renderWithProviders(<AuthPage mode="login" />);
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'password123');
     await user.click(screen.getByRole('button', { name: /log in/i }));
     await waitFor(() => expect(login).toHaveBeenCalledTimes(1));
-    expect(login).toHaveBeenCalledWith({ email: 'test@example.com', password: 'password123' });
+    expect(login).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'password123',
+    });
   });
 
   it('shows error and stays logged out when login fails', async () => {
@@ -100,7 +127,9 @@ describe('AuthPage', () => {
 
   it('does not render password in DOM or error messages', async () => {
     const user = userEvent.setup();
-    register.mockRejectedValue(new Error('An account with that email already exists.'));
+    register.mockRejectedValue(
+      new Error('An account with that email already exists.'),
+    );
     const { container } = renderWithProviders(<AuthPage mode="register" />);
     const pwd = 'supersecret123';
     await user.type(screen.getByLabelText(/email/i), 'dup@example.com');
@@ -108,5 +137,19 @@ describe('AuthPage', () => {
     await user.click(screen.getByRole('button', { name: /create account/i }));
     await screen.findByText(/already exists/i);
     expect(container.innerHTML).not.toContain(pwd);
+  });
+
+  it('does not write session tokens, CSRF tokens, or passwords to browser storage', async () => {
+    const user = userEvent.setup();
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    register.mockResolvedValue({ id: 'u1', email: 'test@example.com' });
+    renderWithProviders(<AuthPage mode="register" />);
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'password123');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+    await waitFor(() => expect(register).toHaveBeenCalled());
+    expect(window.localStorage.length).toBe(0);
+    expect(window.sessionStorage.length).toBe(0);
   });
 });

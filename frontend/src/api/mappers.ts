@@ -9,7 +9,8 @@ export function snakeToCamel<T>(value: unknown): T {
   if (value && typeof value === 'object') {
     const out: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-      out[key.replace(SNAKE_RE, (_, c: string) => c.toUpperCase())] = snakeToCamel(val);
+      out[key.replace(SNAKE_RE, (_, c: string) => c.toUpperCase())] =
+        snakeToCamel(val);
     }
     return out as T;
   }
@@ -22,7 +23,8 @@ export function camelToSnake(value: unknown): unknown {
   if (value && typeof value === 'object') {
     const out: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-      out[key.replace(CAMEL_BOUNDARY_RE, '$1_$2').toLowerCase()] = camelToSnake(val);
+      out[key.replace(CAMEL_BOUNDARY_RE, '$1_$2').toLowerCase()] =
+        camelToSnake(val);
     }
     return out;
   }
@@ -47,7 +49,10 @@ const DEFAULT_PRESENTATION = { icon: 'BookOpen', color: 'brand' };
 /** Words per minute used to estimate reading time. Documented rate: 200 wpm. */
 export const READING_WPM = 200;
 
-export function presentationForSlug(slug: string): { icon: string; color: string } {
+export function presentationForSlug(slug: string): {
+  icon: string;
+  color: string;
+} {
   return TOPIC_PRESENTATION[slug] ?? DEFAULT_PRESENTATION;
 }
 
@@ -63,7 +68,8 @@ export function summaryFromBody(body: string): string {
       .replace(/[*_~>[\]()!-]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    if (text) return text.length > 160 ? `${text.slice(0, 157).trimEnd()}...` : text;
+    if (text)
+      return text.length > 160 ? `${text.slice(0, 157).trimEnd()}...` : text;
   }
   return '';
 }
