@@ -11,11 +11,14 @@ vi.mock('@/api', () => ({
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
+    getSession: vi.fn(),
   },
+  setOnUnauthorized: vi.fn(),
 }));
 
 const login = vi.mocked(api.login);
 const logout = vi.mocked(api.logout);
+const getSession = vi.mocked(api.getSession);
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <SessionProvider>{children}</SessionProvider>;
@@ -23,6 +26,9 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  getSession.mockRejectedValue(
+    Object.assign(new Error('No session'), { status: 401 }),
+  );
   Object.defineProperty(window, 'location', {
     value: { hash: '#/topics' },
     writable: true,

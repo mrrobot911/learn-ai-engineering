@@ -1,11 +1,45 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { User } from '@/api/types';
-import { api } from '@/api';
+import { api, setOnUnauthorized } from '@/api';
+import { toast } from '@/components/toast';
 import { SessionContext, type SessionState } from './context';
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [authReady] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const currentUser = await api.getSession();
+        if (active) setUser(currentUser);
+      } catch {
+        // A missing or expired session is not an error state.
+      } finally {
+        if (active) setAuthReady(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      setUser(null);
+      toast('Your session expired. Please log in again.', 'error');
+    });
+    return () => {
+      setOnUnauthorized(null);
+    };
+  }, []);
 
   const login = useCallback<SessionState['login']>(async (email, password) => {
     try {

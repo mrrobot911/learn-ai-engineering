@@ -11,11 +11,14 @@ vi.mock('@/api', () => ({
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
+    getSession: vi.fn(),
   },
+  setOnUnauthorized: vi.fn(),
 }));
 
 const login = vi.mocked(api.login);
 const register = vi.mocked(api.register);
+const getSession = vi.mocked(api.getSession);
 
 function renderWithProviders(ui: React.ReactElement) {
   return render(<SessionProvider>{ui}</SessionProvider>);
@@ -23,6 +26,9 @@ function renderWithProviders(ui: React.ReactElement) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  getSession.mockRejectedValue(
+    Object.assign(new Error('No session'), { status: 401 }),
+  );
   Object.defineProperty(window, 'location', {
     value: { hash: '' },
     writable: true,
