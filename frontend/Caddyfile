@@ -1,0 +1,17 @@
+{
+	admin off
+}
+
+:80 {
+	encode gzip
+
+	handle_path /api/* {
+		reverse_proxy {$API_UPSTREAM:backend:8080}
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
