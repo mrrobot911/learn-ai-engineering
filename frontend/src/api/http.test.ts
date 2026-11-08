@@ -362,48 +362,72 @@ describe('http client', () => {
     );
     await client.listTopics();
 
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse([
-        {
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/me/attempts')) {
+        return jsonResponse([
+          {
+            id: 'a1',
+            topic_id: 't1',
+            topic_slug: 'llms',
+            score: 3,
+            total: 5,
+            created_at: '2026-01-01T00:00:00Z',
+          },
+        ]);
+      }
+      if (url.endsWith('/topics')) {
+        return jsonResponse([
+          {
+            id: 't1',
+            slug: 'llms',
+            title: 'LLMs',
+            description: 'd',
+            position: 1,
+            status: 'published',
+          },
+        ]);
+      }
+      if (url.endsWith('/me/attempts/a1')) {
+        return jsonResponse({
           id: 'a1',
           topic_id: 't1',
           topic_slug: 'llms',
           score: 3,
           total: 5,
           created_at: '2026-01-01T00:00:00Z',
-        },
-      ]),
-    );
+          answers: [
+            {
+              question_id: null,
+              question_text: 'Q',
+              selected_option_text: '',
+              correct_option_text: 'A',
+              is_correct: false,
+            },
+          ],
+        });
+      }
+      return jsonResponse({}, 404);
+    });
+
     const attempts = await client.listAttempts();
-    expect(fetchMock.mock.calls[1][0]).toBe('https://api.test/me/attempts');
     expect(attempts[0]).toMatchObject({
       id: 'a1',
       topicId: 't1',
       topicTitle: 'LLMs',
       createdAt: '2026-01-01T00:00:00Z',
     });
-
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        id: 'a1',
-        topic_id: 't1',
-        topic_slug: 'llms',
-        score: 3,
-        total: 5,
-        created_at: '2026-01-01T00:00:00Z',
-        answers: [
-          {
-            question_id: null,
-            question_text: 'Q',
-            selected_option_text: '',
-            correct_option_text: 'A',
-            is_correct: false,
-          },
-        ],
-      }),
+    expect(fetchMock.mock.calls.map((c) => String(c[0]))).toEqual(
+      expect.arrayContaining([
+        'https://api.test/me/attempts',
+        'https://api.test/topics',
+      ]),
     );
+
     const attempt = await client.getAttempt('a1');
-    expect(fetchMock.mock.calls[2][0]).toBe('https://api.test/me/attempts/a1');
+    expect(fetchMock.mock.calls.map((c) => String(c[0]))).toContain(
+      'https://api.test/me/attempts/a1',
+    );
     expect(attempt.answers[0]).toMatchObject({
       questionId: '',
       questionText: 'Q',

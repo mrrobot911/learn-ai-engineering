@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   CheckCircle2,
   Clock,
   History,
@@ -16,6 +17,22 @@ import { Link, Spinner, EmptyState, ErrorState } from '@/components/ui';
 /** The UTC day of an ISO timestamp, so the date does not depend on the locale. */
 function utcDay(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
+}
+
+function statusOf(error: unknown): number | undefined {
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    const { status } = error as { status?: unknown };
+    return typeof status === 'number' ? status : undefined;
+  }
+  return undefined;
+}
+
+function redirectToLogin() {
+  const current = window.location.hash || '#/history';
+  if (!current.startsWith('#/login') && !current.startsWith('#/register')) {
+    sessionStorage.setItem('authReturnTo', current);
+  }
+  window.location.hash = '#/login';
 }
 
 export function HistoryPage() {
@@ -38,8 +55,12 @@ export function HistoryPage() {
         setAttempts(list);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
         if (cancelled) return;
+        if (statusOf(error) === 401) {
+          redirectToLogin();
+          return;
+        }
         setFailed(true);
         setLoading(false);
       });
@@ -152,6 +173,7 @@ export function HistoryDetailPage({ attemptId }: { attemptId: string }) {
   const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const [retry, setRetry] = useState(0);
   const userId = user?.id;
 
@@ -160,6 +182,7 @@ export function HistoryDetailPage({ attemptId }: { attemptId: string }) {
     let cancelled = false;
     setLoading(true);
     setFailed(false);
+    setNotFound(false);
     api
       .getAttempt(attemptId)
       .then((loaded) => {
@@ -167,9 +190,14 @@ export function HistoryDetailPage({ attemptId }: { attemptId: string }) {
         setAttempt(loaded);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
         if (cancelled) return;
-        setFailed(true);
+        if (statusOf(error) === 401) {
+          redirectToLogin();
+          return;
+        }
+        if (statusOf(error) === 404) setNotFound(true);
+        else setFailed(true);
         setLoading(false);
       });
     return () => {
@@ -179,12 +207,27 @@ export function HistoryDetailPage({ attemptId }: { attemptId: string }) {
 
   const retryLoad = () => {
     setFailed(false);
+    setNotFound(false);
     setLoading(true);
     setRetry((count) => count + 1);
   };
 
   if (!user) return <SignInPrompt />;
   if (loading) return <HistoryDetailSkeleton />;
+  if (notFound) {
+    return (
+      <EmptyState
+        icon={BookOpen}
+        title="Attempt not found"
+        description="This quiz attempt could not be found."
+        action={
+          <Link to={{ name: 'history', params: {} }} className="btn-secondary">
+            Back to history
+          </Link>
+        }
+      />
+    );
+  }
   if (failed || !attempt) {
     return (
       <ErrorState
@@ -225,8 +268,8 @@ export function HistoryDetailPage({ attemptId }: { attemptId: string }) {
         Answers
       </h2>
       <ul className="space-y-3">
-        {attempt.answers.map((answer) => (
-          <AnswerCard key={answer.questionId} answer={answer} />
+        {attempt.answers.map((answer, index) => (
+          <AnswerCard key={index} answer={answer} />
         ))}
       </ul>
 
