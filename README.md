@@ -140,8 +140,12 @@ docker compose up -d db
 # backend integration tests (uses TEST_DATABASE_URL, or DATABASE_URL; must point to an isolated test database, never dev)
 (cd backend && go test -tags=integration ./...)
 
-# frontend tests
+# frontend unit tests (excludes frontend/tests/integration/)
 (cd frontend && bun install && bun run test)
+
+# frontend integration tests (real backend + seeded test database, never the dev database)
+# Starts an isolated test DB and backend, applies migrations and seed, inserts test fixtures.
+bash scripts/frontend-integration.sh
 
 # checks that do not change files
 (cd backend && gofmt -l . && go vet ./...)
