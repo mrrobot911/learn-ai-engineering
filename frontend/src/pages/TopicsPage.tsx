@@ -7,8 +7,16 @@ import { TopicIcon } from '@/components/TopicIcon';
 
 const colorMap: Record<string, { bg: string; text: string; ring: string }> = {
   brand: { bg: 'bg-brand-50', text: 'text-brand-600', ring: 'ring-brand-100' },
-  accent: { bg: 'bg-accent-50', text: 'text-accent-600', ring: 'ring-accent-100' },
-  warning: { bg: 'bg-warning-50', text: 'text-warning-600', ring: 'ring-warning-100' },
+  accent: {
+    bg: 'bg-accent-50',
+    text: 'text-accent-600',
+    ring: 'ring-accent-100',
+  },
+  warning: {
+    bg: 'bg-warning-50',
+    text: 'text-warning-600',
+    ring: 'ring-warning-100',
+  },
 };
 
 export function TopicsPage() {
@@ -33,7 +41,9 @@ export function TopicsPage() {
         setLoading(false);
       },
     );
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [reloadKey]);
 
   return (
@@ -43,8 +53,9 @@ export function TopicsPage() {
           Learn AI engineering, one topic at a time.
         </h1>
         <p className="text-ink-600 text-base sm:text-lg max-w-2xl leading-relaxed">
-          Structured lessons on LLMs, agents, MCP, RAG, embeddings, evaluation, and deployment —
-          each paired with a short quiz to check what you actually understood.
+          Structured lessons on LLMs, agents, MCP, RAG, embeddings, evaluation,
+          and deployment — each paired with a short quiz to check what you
+          actually understood.
         </p>
       </section>
 
@@ -69,7 +80,9 @@ export function TopicsPage() {
                 className="card p-5 hover:shadow-card-hover hover:border-ink-300/80 transition-all duration-200 group animate-fade-in"
               >
                 <div className="flex items-start gap-4">
-                  <div className={`w-11 h-11 rounded-xl ${c.bg} ${c.text} flex items-center justify-center ring-4 ${c.ring} shrink-0`}>
+                  <div
+                    className={`w-11 h-11 rounded-xl ${c.bg} ${c.text} flex items-center justify-center ring-4 ${c.ring} shrink-0`}
+                  >
                     <TopicIcon name={t.icon} className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -79,7 +92,9 @@ export function TopicsPage() {
                       </h2>
                       <ArrowRight className="w-4 h-4 text-ink-300 group-hover:text-ink-600 group-hover:translate-x-0.5 transition-all shrink-0" />
                     </div>
-                    <p className="text-sm text-ink-500 leading-relaxed line-clamp-2">{t.description}</p>
+                    <p className="text-sm text-ink-500 leading-relaxed line-clamp-2">
+                      {t.description}
+                    </p>
                   </div>
                 </div>
               </Link>

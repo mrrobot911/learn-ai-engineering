@@ -13,7 +13,9 @@ import { TopicPage } from '@/pages/TopicPage';
 /** The seeded account of the mock, logged in when the page mounts. */
 function LoginOnMount() {
   const { login } = useSession();
-  useEffect(() => { void login('demo@forge.dev', 'password123'); }, [login]);
+  useEffect(() => {
+    void login('demo@forge.dev', 'password123');
+  }, [login]);
   return null;
 }
 

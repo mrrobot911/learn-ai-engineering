@@ -12,7 +12,9 @@ import { allQuestions, seedQuizHistory } from '@/data/content';
 /** The seeded account of the mock, logged in when the page mounts. */
 function LoginOnMount() {
   const { login } = useSession();
-  useEffect(() => { void login('demo@forge.dev', 'password123'); }, [login]);
+  useEffect(() => {
+    void login('demo@forge.dev', 'password123');
+  }, [login]);
   return null;
 }
 
@@ -53,19 +55,32 @@ describe('quiz history', () => {
       </SessionProvider>,
     );
 
-    const attempt = seedQuizHistory.find((seeded) => seeded.id === 'att-seed-1');
-    const stored = attempt?.answers.find((answer) => answer.questionId === 'q-llm-1');
+    const attempt = seedQuizHistory.find(
+      (seeded) => seeded.id === 'att-seed-1',
+    );
+    const stored = attempt?.answers.find(
+      (answer) => answer.questionId === 'q-llm-1',
+    );
     const question = allQuestions.find((current) => current.id === 'q-llm-1');
     const currentCorrect = question?.options.find((option) => option.isCorrect);
 
-    expect(await screen.findByText(stored?.questionText ?? '')).toBeInTheDocument();
-    expect(screen.getAllByText(stored?.correctOptionText ?? '')).toHaveLength(2);
+    expect(
+      await screen.findByText(stored?.questionText ?? ''),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(stored?.correctOptionText ?? '')).toHaveLength(
+      2,
+    );
     expect(screen.queryByText(question?.text ?? '')).not.toBeInTheDocument();
-    expect(screen.queryByText(currentCorrect?.text ?? '')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(currentCorrect?.text ?? ''),
+    ).not.toBeInTheDocument();
   });
 
   it('shows only the attempts of the signed-in account', async () => {
-    await mockClient.register({ email: 'other@forge.dev', password: 'password123' });
+    await mockClient.register({
+      email: 'other@forge.dev',
+      password: 'password123',
+    });
 
     expect(await mockClient.listAttempts()).toEqual([]);
     await expect(mockClient.getAttempt('att-seed-1')).rejects.toThrow();

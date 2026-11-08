@@ -10,8 +10,6 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-
-
 describe('http client', () => {
   const fetchMock = vi.fn<typeof fetch>();
 
@@ -30,7 +28,16 @@ describe('http client', () => {
   it('maps path/method and sends cookies for topic and lesson reads', async () => {
     const client = createHttpClient();
     fetchMock.mockResolvedValueOnce(
-      jsonResponse([{ id: 't1', slug: 'llms', title: 'LLMs', description: 'd', position: 1, status: 'published' }]),
+      jsonResponse([
+        {
+          id: 't1',
+          slug: 'llms',
+          title: 'LLMs',
+          description: 'd',
+          position: 1,
+          status: 'published',
+        },
+      ]),
     );
     await client.listTopics();
     expect(fetchMock).toHaveBeenCalledWith(
@@ -40,8 +47,22 @@ describe('http client', () => {
 
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
-        id: 't1', slug: 'llms', title: 'LLMs', description: 'd', position: 1, status: 'published',
-        lessons: [{ id: 'l1', topic_id: 't1', title: 'L', body: 'Body text here.', position: 1, status: 'published' }],
+        id: 't1',
+        slug: 'llms',
+        title: 'LLMs',
+        description: 'd',
+        position: 1,
+        status: 'published',
+        lessons: [
+          {
+            id: 'l1',
+            topic_id: 't1',
+            title: 'L',
+            body: 'Body text here.',
+            position: 1,
+            status: 'published',
+          },
+        ],
       }),
     );
     const topic = await client.getTopic('llms');
@@ -49,14 +70,37 @@ describe('http client', () => {
       'https://api.test/topics/llms',
       expect.objectContaining({ method: 'GET', credentials: 'include' }),
     );
-    expect(topic).toMatchObject({ slug: 'llms', icon: 'BrainCircuit', color: 'brand' });
-    expect(topic.lessons[0]).toMatchObject({ topicId: 't1', summary: 'Body text here.', body: 'Body text here.' });
+    expect(topic).toMatchObject({
+      slug: 'llms',
+      icon: 'BrainCircuit',
+      color: 'brand',
+    });
+    expect(topic.lessons[0]).toMatchObject({
+      topicId: 't1',
+      summary: 'Body text here.',
+      body: 'Body text here.',
+    });
 
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ id: 'l1', topic_id: 't1', title: 'L', body: '', position: 1, status: 'published' }),
+      jsonResponse({
+        id: 'l1',
+        topic_id: 't1',
+        title: 'L',
+        body: '',
+        position: 1,
+        status: 'published',
+      }),
     );
     fetchMock.mockResolvedValueOnce(
-      jsonResponse([{ id: 't1', slug: 'llms', title: 'LLMs', description: 'd', position: 1 }]),
+      jsonResponse([
+        {
+          id: 't1',
+          slug: 'llms',
+          title: 'LLMs',
+          description: 'd',
+          position: 1,
+        },
+      ]),
     );
     const lesson = await client.getLesson('l1');
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -69,26 +113,44 @@ describe('http client', () => {
       'https://api.test/topics',
       expect.objectContaining({ method: 'GET', credentials: 'include' }),
     );
-    expect(lesson).toMatchObject({ topicId: 't1', topicSlug: 'llms', summary: '', durationMin: 0 });
+    expect(lesson).toMatchObject({
+      topicId: 't1',
+      topicSlug: 'llms',
+      summary: '',
+      durationMin: 0,
+    });
   });
 
   it('maps quiz operations to slug paths and converts submission body to snake_case', async () => {
     const client = createHttpClient();
     fetchMock.mockResolvedValueOnce(
-      jsonResponse([{ id: 'q1', text: 'Q?', options: [{ id: 'o1', text: 'A' }] }]),
+      jsonResponse([
+        { id: 'q1', text: 'Q?', options: [{ id: 'o1', text: 'A' }] },
+      ]),
     );
     const questions = await client.startQuiz('llms');
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.test/topics/llms/quiz',
       expect.objectContaining({ method: 'POST', credentials: 'include' }),
     );
-    expect(questions[0]).toEqual({ id: 'q1', text: 'Q?', options: [{ id: 'o1', text: 'A' }] });
+    expect(questions[0]).toEqual({
+      id: 'q1',
+      text: 'Q?',
+      options: [{ id: 'o1', text: 'A' }],
+    });
 
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         score: 1,
         total: 1,
-        answers: [{ question_id: 'q1', is_correct: true, correct_option_text: 'A', explanation: 'Because.' }],
+        answers: [
+          {
+            question_id: 'q1',
+            is_correct: true,
+            correct_option_text: 'A',
+            explanation: 'Because.',
+          },
+        ],
       }),
     );
     const result = await client.submitQuiz({
@@ -96,7 +158,9 @@ describe('http client', () => {
       answers: [{ questionId: 'q1', optionId: 'o1' }],
     });
     const submitCall = fetchMock.mock.calls[1][1] as RequestInit;
-    expect(fetchMock.mock.calls[1][0]).toBe('https://api.test/topics/llms/quiz/submissions');
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'https://api.test/topics/llms/quiz/submissions',
+    );
     expect(submitCall.method).toBe('POST');
     expect(JSON.parse(String(submitCall.body))).toEqual({
       answers: [{ question_id: 'q1', option_id: 'o1' }],
@@ -116,12 +180,17 @@ describe('http client', () => {
   it('attaches the CSRF header to submitQuiz when a session token is present', async () => {
     const client = createHttpClient();
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-1' }),
+      jsonResponse({
+        user: { id: 'u1', email: 'a@b.c' },
+        csrf_token: 'csrf-1',
+      }),
     );
     await client.login({ email: 'a@b.c', password: 'secret' });
 
     fetchMock.mockResolvedValueOnce(
-      jsonResponse([{ id: 'q1', text: 'Q?', options: [{ id: 'o1', text: 'A' }] }]),
+      jsonResponse([
+        { id: 'q1', text: 'Q?', options: [{ id: 'o1', text: 'A' }] },
+      ]),
     );
     await client.startQuiz('llms');
 
@@ -129,7 +198,14 @@ describe('http client', () => {
       jsonResponse({
         score: 0,
         total: 1,
-        answers: [{ question_id: 'q1', is_correct: false, correct_option_text: 'A', explanation: 'Because.' }],
+        answers: [
+          {
+            question_id: 'q1',
+            is_correct: false,
+            correct_option_text: 'A',
+            explanation: 'Because.',
+          },
+        ],
       }),
     );
     await client.submitQuiz({
@@ -144,7 +220,9 @@ describe('http client', () => {
   it('sends no CSRF header for an anonymous submitQuiz and still returns the graded result', async () => {
     const client = createHttpClient();
     fetchMock.mockResolvedValueOnce(
-      jsonResponse([{ id: 'q1', text: 'Q?', options: [{ id: 'o1', text: 'A' }] }]),
+      jsonResponse([
+        { id: 'q1', text: 'Q?', options: [{ id: 'o1', text: 'A' }] },
+      ]),
     );
     await client.startQuiz('llms');
 
@@ -152,7 +230,14 @@ describe('http client', () => {
       jsonResponse({
         score: 1,
         total: 1,
-        answers: [{ question_id: 'q1', is_correct: true, correct_option_text: 'A', explanation: 'Because.' }],
+        answers: [
+          {
+            question_id: 'q1',
+            is_correct: true,
+            correct_option_text: 'A',
+            explanation: 'Because.',
+          },
+        ],
       }),
     );
     const result = await client.submitQuiz({
@@ -161,14 +246,19 @@ describe('http client', () => {
     });
 
     const submitCall = fetchMock.mock.calls[1][1] as RequestInit;
-    expect((submitCall.headers as Record<string, string>)['X-CSRF-Token']).toBeUndefined();
+    expect(
+      (submitCall.headers as Record<string, string>)['X-CSRF-Token'],
+    ).toBeUndefined();
     expect(result).toMatchObject({ score: 1, total: 1 });
   });
 
   it('keeps CSRF token in memory from auth/session and sends X-CSRF-Token on state-changing requests', async () => {
     const client = createHttpClient();
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-1' }),
+      jsonResponse({
+        user: { id: 'u1', email: 'a@b.c' },
+        csrf_token: 'csrf-1',
+      }),
     );
     await client.login({ email: 'a@b.c', password: 'secret' });
     expect(getCsrfToken()).toBe('csrf-1');
@@ -176,37 +266,53 @@ describe('http client', () => {
 
     fetchMock.mockResolvedValueOnce(jsonResponse(['l1']));
     await client.getProgress();
-    const progressHeaders = (fetchMock.mock.calls[1][1] as RequestInit).headers as Record<string, string>;
+    const progressHeaders = (fetchMock.mock.calls[1][1] as RequestInit)
+      .headers as Record<string, string>;
     expect(progressHeaders['X-CSRF-Token']).toBeUndefined();
 
     fetchMock.mockResolvedValueOnce(jsonResponse(['l1', 'l2']));
     await client.markLessonComplete('l2');
-    const putHeaders = (fetchMock.mock.calls[2][1] as RequestInit).headers as Record<string, string>;
+    const putHeaders = (fetchMock.mock.calls[2][1] as RequestInit)
+      .headers as Record<string, string>;
     expect(putHeaders['X-CSRF-Token']).toBe('csrf-1');
-    expect(fetchMock.mock.calls[2][0]).toBe('https://api.test/me/progress/lessons/l2');
+    expect(fetchMock.mock.calls[2][0]).toBe(
+      'https://api.test/me/progress/lessons/l2',
+    );
     expect((fetchMock.mock.calls[2][1] as RequestInit).method).toBe('PUT');
 
-    fetchMock.mockResolvedValueOnce(jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-2' }));
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        user: { id: 'u1', email: 'a@b.c' },
+        csrf_token: 'csrf-2',
+      }),
+    );
     await client.getSession();
     expect(getCsrfToken()).toBe('csrf-2');
     expect(fetchMock.mock.calls[3][0]).toBe('https://api.test/auth/session');
 
     fetchMock.mockResolvedValueOnce(jsonResponse(['l1']));
     await client.undoLessonComplete('l2');
-    const delHeaders = (fetchMock.mock.calls[4][1] as RequestInit).headers as Record<string, string>;
+    const delHeaders = (fetchMock.mock.calls[4][1] as RequestInit)
+      .headers as Record<string, string>;
     expect(delHeaders['X-CSRF-Token']).toBe('csrf-2');
     expect((fetchMock.mock.calls[4][1] as RequestInit).method).toBe('DELETE');
 
     fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }));
     await client.logout();
-    expect((fetchMock.mock.calls[5][1] as RequestInit).headers).toMatchObject({ 'X-CSRF-Token': 'csrf-2' });
+    expect((fetchMock.mock.calls[5][1] as RequestInit).headers).toMatchObject({
+      'X-CSRF-Token': 'csrf-2',
+    });
     expect(getCsrfToken()).toBeNull();
   });
 
   it('maps HTTP failures to ApiError with status and contract code', async () => {
     const client = createHttpClient();
     const cases: Array<[number, string, string]> = [
-      [400, 'validation_error', 'The submission contains a question that does not belong to the topic.'],
+      [
+        400,
+        'validation_error',
+        'The submission contains a question that does not belong to the topic.',
+      ],
       [401, 'authentication_error', 'No session'],
       [403, 'forbidden', 'CSRF failed'],
       [404, 'not_found', 'Missing'],
@@ -216,7 +322,12 @@ describe('http client', () => {
     for (const [status, code, message] of cases) {
       fetchMock.mockResolvedValueOnce(jsonResponse({ code, message }, status));
       await expect(client.getSession()).rejects.toSatisfy((err: unknown) => {
-        return err instanceof ApiError && err.status === status && err.code === code && err.message === message;
+        return (
+          err instanceof ApiError &&
+          err.status === status &&
+          err.code === code &&
+          err.message === message
+        );
       });
     }
   });
@@ -233,21 +344,57 @@ describe('http client', () => {
   it('maps progress and attempt endpoints with snake_case conversion', async () => {
     const client = createHttpClient();
     fetchMock.mockResolvedValueOnce(
-      jsonResponse([{ id: 't1', slug: 'llms', title: 'LLMs', description: 'd', position: 1, status: 'published' }]),
+      jsonResponse([
+        {
+          id: 't1',
+          slug: 'llms',
+          title: 'LLMs',
+          description: 'd',
+          position: 1,
+          status: 'published',
+        },
+      ]),
     );
     await client.listTopics();
 
     fetchMock.mockResolvedValueOnce(
-      jsonResponse([{ id: 'a1', topic_id: 't1', topic_slug: 'llms', score: 3, total: 5, created_at: '2026-01-01T00:00:00Z' }]),
+      jsonResponse([
+        {
+          id: 'a1',
+          topic_id: 't1',
+          topic_slug: 'llms',
+          score: 3,
+          total: 5,
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ]),
     );
     const attempts = await client.listAttempts();
     expect(fetchMock.mock.calls[1][0]).toBe('https://api.test/me/attempts');
-    expect(attempts[0]).toMatchObject({ id: 'a1', topicId: 't1', topicTitle: 'LLMs', createdAt: '2026-01-01T00:00:00Z' });
+    expect(attempts[0]).toMatchObject({
+      id: 'a1',
+      topicId: 't1',
+      topicTitle: 'LLMs',
+      createdAt: '2026-01-01T00:00:00Z',
+    });
 
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
-        id: 'a1', topic_id: 't1', topic_slug: 'llms', score: 3, total: 5, created_at: '2026-01-01T00:00:00Z',
-        answers: [{ question_id: null, question_text: 'Q', selected_option_text: '', correct_option_text: 'A', is_correct: false }],
+        id: 'a1',
+        topic_id: 't1',
+        topic_slug: 'llms',
+        score: 3,
+        total: 5,
+        created_at: '2026-01-01T00:00:00Z',
+        answers: [
+          {
+            question_id: null,
+            question_text: 'Q',
+            selected_option_text: '',
+            correct_option_text: 'A',
+            is_correct: false,
+          },
+        ],
       }),
     );
     const attempt = await client.getAttempt('a1');
@@ -264,23 +411,35 @@ describe('http client', () => {
   it('retries a CSRF 403 forbidden once after refreshing the token via GET /auth/session', async () => {
     const client = createHttpClient();
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-old' }),
+      jsonResponse({
+        user: { id: 'u1', email: 'a@b.c' },
+        csrf_token: 'csrf-old',
+      }),
     );
     await client.login({ email: 'a@b.c', password: 'secret' });
 
-    fetchMock.mockResolvedValueOnce(jsonResponse({ code: 'forbidden', message: 'CSRF failed' }, 403));
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-new' }),
+      jsonResponse({ code: 'forbidden', message: 'CSRF failed' }, 403),
+    );
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        user: { id: 'u1', email: 'a@b.c' },
+        csrf_token: 'csrf-new',
+      }),
     );
     fetchMock.mockResolvedValueOnce(jsonResponse(['l1']));
 
     await expect(client.markLessonComplete('l1')).resolves.toBeUndefined();
 
     expect(fetchMock).toHaveBeenCalledTimes(4);
-    expect(fetchMock.mock.calls[1][0]).toBe('https://api.test/me/progress/lessons/l1');
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'https://api.test/me/progress/lessons/l1',
+    );
     expect(fetchMock.mock.calls[2][0]).toBe('https://api.test/auth/session');
     expect((fetchMock.mock.calls[2][1] as RequestInit).method).toBe('GET');
-    expect(fetchMock.mock.calls[3][0]).toBe('https://api.test/me/progress/lessons/l1');
+    expect(fetchMock.mock.calls[3][0]).toBe(
+      'https://api.test/me/progress/lessons/l1',
+    );
     expect((fetchMock.mock.calls[3][1] as RequestInit).headers).toMatchObject({
       'X-CSRF-Token': 'csrf-new',
     });
@@ -289,12 +448,18 @@ describe('http client', () => {
   it('does not retry a 403 authorization_error', async () => {
     const client = createHttpClient();
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-1' }),
+      jsonResponse({
+        user: { id: 'u1', email: 'a@b.c' },
+        csrf_token: 'csrf-1',
+      }),
     );
     await client.login({ email: 'a@b.c', password: 'secret' });
 
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ code: 'authorization_error', message: 'Not allowed' }, 403),
+      jsonResponse(
+        { code: 'authorization_error', message: 'Not allowed' },
+        403,
+      ),
     );
 
     await expect(client.markLessonComplete('l1')).rejects.toMatchObject({
@@ -309,12 +474,21 @@ describe('http client', () => {
     window.localStorage.clear();
     window.sessionStorage.clear();
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ user: { id: 'u1', email: 'a@b.c' }, csrf_token: 'csrf-1' }),
+      jsonResponse({
+        user: { id: 'u1', email: 'a@b.c' },
+        csrf_token: 'csrf-1',
+      }),
     );
     await client.login({ email: 'a@b.c', password: 'secret' });
     expect(getCsrfToken()).toBe('csrf-1');
     expect(window.localStorage.length).toBe(0);
     expect(window.sessionStorage.length).toBe(0);
-    expect(JSON.stringify([...Array(window.localStorage.length)].map((_, i) => window.localStorage.key(i)))).not.toContain('csrf');
+    expect(
+      JSON.stringify(
+        [...Array(window.localStorage.length)].map((_, i) =>
+          window.localStorage.key(i),
+        ),
+      ),
+    ).not.toContain('csrf');
   });
 });

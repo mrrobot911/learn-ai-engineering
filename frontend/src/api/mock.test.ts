@@ -46,7 +46,9 @@ describe('content operations', () => {
   });
 
   it('getLesson rejects an unknown id with the 404 not-found signal', async () => {
-    await expect(mockClient.getLesson('les-does-not-exist')).rejects.toMatchObject({ status: 404 });
+    await expect(
+      mockClient.getLesson('les-does-not-exist'),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });
 
@@ -78,7 +80,9 @@ describe('quiz operations', () => {
       topicSlug: TOPIC_SLUG,
       answers: questions.map((question) => ({
         questionId: question.id,
-        optionId: fixtures.get(question.id)!.options.find((option) => option.isCorrect)!.id,
+        optionId: fixtures
+          .get(question.id)!
+          .options.find((option) => option.isCorrect)!.id,
       })),
     });
     expect(result).toMatchObject({ score: 5, total: 5 });
@@ -86,7 +90,9 @@ describe('quiz operations', () => {
       expect(answer.isCorrect).toBe(true);
       expect(answer.questionText).toBe(questions[index].text);
       expect(answer.correctOptionText).not.toBe('');
-      expect(answer.explanation).toBe(fixtures.get(answer.questionId)!.explanation);
+      expect(answer.explanation).toBe(
+        fixtures.get(answer.questionId)!.explanation,
+      );
     }
   });
 
@@ -118,13 +124,18 @@ describe('quiz operations', () => {
   it('submitQuiz returns an anonymous result without storing it', async () => {
     await startAndAnswerFirstOption();
     await mockClient.login(DEMO);
-    expect(await mockClient.listAttempts()).toHaveLength(seedQuizHistory.length);
+    expect(await mockClient.listAttempts()).toHaveLength(
+      seedQuizHistory.length,
+    );
   });
 });
 
 describe('account operations', () => {
   it('register returns the new account and signs in', async () => {
-    const user = await mockClient.register({ email: 'New@Forge.dev', password: 'password123' });
+    const user = await mockClient.register({
+      email: 'New@Forge.dev',
+      password: 'password123',
+    });
     expect(user).toMatchObject({ email: 'new@forge.dev' });
     expect(user).not.toHaveProperty('isMaintainer');
     expect(user).not.toHaveProperty('createdAt');
@@ -134,7 +145,9 @@ describe('account operations', () => {
   it('login signs in and exposes the seeded history of that account', async () => {
     const user = await mockClient.login(DEMO);
     expect(user).toMatchObject({ id: 'usr-demo', email: 'demo@forge.dev' });
-    expect(await mockClient.listAttempts()).toHaveLength(seedQuizHistory.length);
+    expect(await mockClient.listAttempts()).toHaveLength(
+      seedQuizHistory.length,
+    );
   });
 
   it('logout ends the session', async () => {
@@ -145,11 +158,15 @@ describe('account operations', () => {
 
   it('getSession returns the current user when logged in', async () => {
     await mockClient.login(DEMO);
-    await expect(mockClient.getSession()).resolves.toMatchObject({ email: 'demo@forge.dev' });
+    await expect(mockClient.getSession()).resolves.toMatchObject({
+      email: 'demo@forge.dev',
+    });
   });
 
   it('getSession rejects when anonymous', async () => {
-    await expect(mockClient.getSession()).rejects.toMatchObject({ status: 401 });
+    await expect(mockClient.getSession()).rejects.toMatchObject({
+      status: 401,
+    });
   });
 });
 
@@ -217,7 +234,10 @@ describe('attempt operations', () => {
     await mockClient.login(DEMO);
     await startAndAnswerFirstOption();
     await mockClient.logout();
-    await mockClient.register({ email: 'fresh@forge.dev', password: 'password123' });
+    await mockClient.register({
+      email: 'fresh@forge.dev',
+      password: 'password123',
+    });
     expect(await mockClient.listAttempts()).toEqual([]);
     await expect(mockClient.getAttempt('att-seed-1')).rejects.toThrow();
   });

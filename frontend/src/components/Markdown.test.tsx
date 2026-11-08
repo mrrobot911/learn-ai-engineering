@@ -9,7 +9,8 @@ afterEach(() => {
 
 describe('Markdown', () => {
   it('renders a body that starts with # followed by a paragraph, ## heading, and list', () => {
-    const source = '# Intro\n\nThis is a paragraph.\n\n## Subheading\n\n- item 1\n- item 2';
+    const source =
+      '# Intro\n\nThis is a paragraph.\n\n## Subheading\n\n- item 1\n- item 2';
     render(<Markdown source={source} />);
 
     const headings = screen.getAllByRole('heading', { level: 2 });

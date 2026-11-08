@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, ChevronLeft, ChevronRight,
-  BookOpen, ListChecks,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Circle,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  ListChecks,
 } from 'lucide-react';
 import { api } from '@/api';
 import type { Lesson, Topic } from '@/api';
@@ -11,14 +18,19 @@ import { Link, Spinner, EmptyState, ErrorState, Badge } from '@/components/ui';
 import { Markdown } from '@/components/Markdown';
 
 function isNotFound(error: unknown): boolean {
-  return typeof error === 'object' && error !== null
-    && (error as { status?: number }).status === 404;
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { status?: number }).status === 404
+  );
 }
 
 export function LessonPage({ id }: { id: string }) {
   const { user } = useSession();
   const { ids, failed: progressFailed, setComplete } = useProgress(user?.id);
-  const [record, setRecord] = useState<{ lesson: Lesson; topic: Topic } | undefined>(undefined);
+  const [record, setRecord] = useState<
+    { lesson: Lesson; topic: Topic } | undefined
+  >(undefined);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
@@ -47,7 +59,9 @@ export function LessonPage({ id }: { id: string }) {
         setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [id, reloadKey]);
 
   const { prev, next } = useMemo(() => {
@@ -72,7 +86,11 @@ export function LessonPage({ id }: { id: string }) {
         icon={BookOpen}
         title="Lesson not found"
         description="This lesson doesn't exist or isn't published."
-        action={<Link to={{ name: 'topics', params: {} }} className="btn-secondary">Back to topics</Link>}
+        action={
+          <Link to={{ name: 'topics', params: {} }} className="btn-secondary">
+            Back to topics
+          </Link>
+        }
       />
     );
   }
@@ -88,7 +106,9 @@ export function LessonPage({ id }: { id: string }) {
     try {
       await setComplete(lesson.id, !completed);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'The request failed.');
+      setSaveError(
+        error instanceof Error ? error.message : 'The request failed.',
+      );
     } finally {
       setSaving(false);
     }
@@ -98,21 +118,40 @@ export function LessonPage({ id }: { id: string }) {
     <div className="animate-fade-in max-w-3xl mx-auto">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-sm text-ink-500 mb-5 flex-wrap">
-        <Link to={{ name: 'topics', params: {} }} className="hover:text-ink-800 transition-colors">Topics</Link>
+        <Link
+          to={{ name: 'topics', params: {} }}
+          className="hover:text-ink-800 transition-colors"
+        >
+          Topics
+        </Link>
         <span className="text-ink-300">/</span>
-        <Link to={{ name: 'topic', params: { slug: topic.slug } }} className="hover:text-ink-800 transition-colors">{topic.title}</Link>
+        <Link
+          to={{ name: 'topic', params: { slug: topic.slug } }}
+          className="hover:text-ink-800 transition-colors"
+        >
+          {topic.title}
+        </Link>
         <span className="text-ink-300">/</span>
         <span className="text-ink-700 truncate">Lesson {idxInTopic}</span>
       </div>
 
       <article>
         <div className="flex items-center gap-3 text-xs text-ink-400 mb-3">
-          <Badge tone="neutral"><ListChecks className="w-3 h-3" /> Lesson {idxInTopic} of {topic.lessons.length}</Badge>
-          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {lesson.durationMin} min read</span>
+          <Badge tone="neutral">
+            <ListChecks className="w-3 h-3" /> Lesson {idxInTopic} of{' '}
+            {topic.lessons.length}
+          </Badge>
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" /> {lesson.durationMin} min read
+          </span>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-bold text-ink-900 tracking-tight mb-3">{lesson.title}</h1>
-        <p className="text-ink-600 text-base sm:text-lg leading-relaxed mb-6">{lesson.summary}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-ink-900 tracking-tight mb-3">
+          {lesson.title}
+        </h1>
+        <p className="text-ink-600 text-base sm:text-lg leading-relaxed mb-6">
+          {lesson.summary}
+        </p>
 
         <div className="h-px bg-ink-200/70 mb-6" />
 
@@ -124,9 +163,17 @@ export function LessonPage({ id }: { id: string }) {
       {user && ids && (
         <div className="mt-8 card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            {completed
-              ? <CheckCircle2 className="w-5 h-5 text-brand-600 shrink-0" aria-hidden="true" />
-              : <Circle className="w-5 h-5 text-ink-300 shrink-0" aria-hidden="true" />}
+            {completed ? (
+              <CheckCircle2
+                className="w-5 h-5 text-brand-600 shrink-0"
+                aria-hidden="true"
+              />
+            ) : (
+              <Circle
+                className="w-5 h-5 text-ink-300 shrink-0"
+                aria-hidden="true"
+              />
+            )}
             <div>
               <p className="text-sm font-medium text-ink-900">
                 {completed ? 'You finished this lesson' : 'Finished reading?'}
@@ -140,14 +187,18 @@ export function LessonPage({ id }: { id: string }) {
           </div>
           <button
             type="button"
-            onClick={() => { void handleToggle(); }}
+            onClick={() => {
+              void handleToggle();
+            }}
             disabled={saving}
             aria-pressed={completed}
             className={completed ? 'btn-secondary' : 'btn-brand'}
           >
-            {saving
-              ? <Spinner className="w-4 h-4" />
-              : <CheckCircle2 className="w-4 h-4" aria-hidden="true" />}
+            {saving ? (
+              <Spinner className="w-4 h-4" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+            )}
             Mark as complete
           </button>
         </div>
@@ -175,19 +226,29 @@ export function LessonPage({ id }: { id: string }) {
           >
             <ChevronLeft className="w-5 h-5 text-ink-400 group-hover:text-ink-700 shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] text-ink-400 uppercase tracking-wider">Previous</div>
-              <div className="text-sm font-medium text-ink-900 truncate">{prev.title}</div>
+              <div className="text-[11px] text-ink-400 uppercase tracking-wider">
+                Previous
+              </div>
+              <div className="text-sm font-medium text-ink-900 truncate">
+                {prev.title}
+              </div>
             </div>
           </Link>
-        ) : <div />}
+        ) : (
+          <div />
+        )}
         {next ? (
           <Link
             to={{ name: 'lesson', params: { id: next.id } }}
             className="card p-4 hover:shadow-card-hover transition-all group flex items-center gap-3 text-right"
           >
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] text-ink-400 uppercase tracking-wider">Next</div>
-              <div className="text-sm font-medium text-ink-900 truncate">{next.title}</div>
+              <div className="text-[11px] text-ink-400 uppercase tracking-wider">
+                Next
+              </div>
+              <div className="text-sm font-medium text-ink-900 truncate">
+                {next.title}
+              </div>
             </div>
             <ChevronRight className="w-5 h-5 text-ink-400 group-hover:text-ink-600 group-hover:translate-x-0.5 transition-all shrink-0" />
           </Link>
@@ -197,8 +258,12 @@ export function LessonPage({ id }: { id: string }) {
             className="card p-4 hover:shadow-card-hover transition-all group flex items-center gap-3 bg-brand-50/60 border-brand-200/70"
           >
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] text-brand-700 uppercase tracking-wider">Up next</div>
-              <div className="text-sm font-medium text-brand-800 truncate">Take the {topic.title} quiz</div>
+              <div className="text-[11px] text-brand-700 uppercase tracking-wider">
+                Up next
+              </div>
+              <div className="text-sm font-medium text-brand-800 truncate">
+                Take the {topic.title} quiz
+              </div>
             </div>
             <ArrowRight className="w-5 h-5 text-brand-600 group-hover:translate-x-0.5 transition-all shrink-0" />
           </Link>
@@ -206,7 +271,10 @@ export function LessonPage({ id }: { id: string }) {
       </nav>
 
       <div className="mt-6">
-        <Link to={{ name: 'topic', params: { slug: topic.slug } }} className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-ink-800 transition-colors">
+        <Link
+          to={{ name: 'topic', params: { slug: topic.slug } }}
+          className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-ink-800 transition-colors"
+        >
           <ArrowLeft className="w-4 h-4" /> Back to {topic.title}
         </Link>
       </div>
@@ -226,7 +294,11 @@ function LessonSkeleton() {
       <div className="skeleton h-4 w-full mb-6" />
       <div className="space-y-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="skeleton h-4 w-full" style={{ width: `${85 + (i % 3) * 5}%` }} />
+          <div
+            key={i}
+            className="skeleton h-4 w-full"
+            style={{ width: `${85 + (i % 3) * 5}%` }}
+          />
         ))}
       </div>
       <div className="flex items-center justify-center gap-2 text-ink-400 text-sm py-6">

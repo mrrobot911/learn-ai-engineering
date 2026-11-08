@@ -6,7 +6,8 @@ const lessons_llms: Lesson[] = [
     id: 'les-llm-1',
     topicId: 'top-llms',
     title: 'What Is a Large Language Model?',
-    summary: 'The mental model: tokens, next-token prediction, and why scale changes behavior.',
+    summary:
+      'The mental model: tokens, next-token prediction, and why scale changes behavior.',
     position: 1,
     durationMin: 8,
     status: 'published',
@@ -45,7 +46,8 @@ An LLM is a next-token predictor trained at scale. Everything you build on top �
     id: 'les-llm-2',
     topicId: 'top-llms',
     title: 'Context Windows and Token Limits',
-    summary: 'How context length affects cost, latency, and what your app can actually do.',
+    summary:
+      'How context length affects cost, latency, and what your app can actually do.',
     position: 2,
     durationMin: 7,
     status: 'published',
@@ -84,7 +86,8 @@ Bigger context windows aren't a free lunch. They cost more, run slower, and can 
     id: 'les-llm-3',
     topicId: 'top-llms',
     title: 'Sampling: Temperature, Top-p, and Why They Matter',
-    summary: 'Turning probabilities into text, and how to tune it for your use case.',
+    summary:
+      'Turning probabilities into text, and how to tune it for your use case.',
     position: 3,
     durationMin: 6,
     status: 'published',
@@ -121,11 +124,24 @@ const questions_llms: Question[] = [
     id: 'q-llm-1',
     topicId: 'top-llms',
     text: 'What is the core training objective of a large language model during pre-training?',
-    explanation: 'LLMs are trained with next-token prediction: maximize the probability of the correct next token given the preceding context.',
+    explanation:
+      'LLMs are trained with next-token prediction: maximize the probability of the correct next token given the preceding context.',
     options: [
-      { id: 'o1', text: 'Classify sentences into categories', isCorrect: false },
-      { id: 'o2', text: 'Predict the next token in a sequence', isCorrect: true },
-      { id: 'o3', text: 'Minimize the length of generated text', isCorrect: false },
+      {
+        id: 'o1',
+        text: 'Classify sentences into categories',
+        isCorrect: false,
+      },
+      {
+        id: 'o2',
+        text: 'Predict the next token in a sequence',
+        isCorrect: true,
+      },
+      {
+        id: 'o3',
+        text: 'Minimize the length of generated text',
+        isCorrect: false,
+      },
       { id: 'o4', text: 'Translate between language pairs', isCorrect: false },
     ],
   },
@@ -133,7 +149,8 @@ const questions_llms: Question[] = [
     id: 'q-llm-2',
     topicId: 'top-llms',
     text: 'Roughly how many characters does one token correspond to in English text?',
-    explanation: 'A useful rule of thumb is 1 token ≈ 4 characters, or about 750 tokens per 1,000 words.',
+    explanation:
+      'A useful rule of thumb is 1 token ≈ 4 characters, or about 750 tokens per 1,000 words.',
     options: [
       { id: 'o1', text: 'About 1 character', isCorrect: false },
       { id: 'o2', text: 'About 4 characters', isCorrect: true },
@@ -145,7 +162,8 @@ const questions_llms: Question[] = [
     id: 'q-llm-3',
     topicId: 'top-llms',
     text: 'Which stage of training teaches the model to follow instructions in a chat format?',
-    explanation: 'Supervised fine-tuning (SFT) trains on instruction/response pairs so the model follows instructions; RLHF then aligns it to preferences.',
+    explanation:
+      'Supervised fine-tuning (SFT) trains on instruction/response pairs so the model follows instructions; RLHF then aligns it to preferences.',
     options: [
       { id: 'o1', text: 'Pre-training on web text', isCorrect: false },
       { id: 'o2', text: 'Supervised fine-tuning (SFT)', isCorrect: true },
@@ -157,10 +175,15 @@ const questions_llms: Question[] = [
     id: 'q-llm-4',
     topicId: 'top-llms',
     text: 'What does a temperature of 0 do during sampling?',
-    explanation: 'Temperature 0 makes sampling greedy: the highest-probability token is always selected, giving deterministic output.',
+    explanation:
+      'Temperature 0 makes sampling greedy: the highest-probability token is always selected, giving deterministic output.',
     options: [
       { id: 'o1', text: 'Randomizes outputs maximally', isCorrect: false },
-      { id: 'o2', text: 'Always picks the highest-probability token', isCorrect: true },
+      {
+        id: 'o2',
+        text: 'Always picks the highest-probability token',
+        isCorrect: true,
+      },
       { id: 'o3', text: 'Disables the model entirely', isCorrect: false },
       { id: 'o4', text: 'Doubles the context window', isCorrect: false },
     ],
@@ -169,34 +192,73 @@ const questions_llms: Question[] = [
     id: 'q-llm-5',
     topicId: 'top-llms',
     text: 'What is the "lost-in-the-middle" phenomenon?',
-    explanation: 'Models attend less reliably to information in the middle of long contexts; placing key facts at the start or end improves recall.',
+    explanation:
+      'Models attend less reliably to information in the middle of long contexts; placing key facts at the start or end improves recall.',
     options: [
       { id: 'o1', text: 'Models forget their system prompt', isCorrect: false },
-      { id: 'o2', text: 'Models attend less reliably to information in the middle of long contexts', isCorrect: true },
-      { id: 'o3', text: 'Output gets cut off at 50% of max tokens', isCorrect: false },
-      { id: 'o4', text: 'The middle layers of the network degrade first', isCorrect: false },
+      {
+        id: 'o2',
+        text: 'Models attend less reliably to information in the middle of long contexts',
+        isCorrect: true,
+      },
+      {
+        id: 'o3',
+        text: 'Output gets cut off at 50% of max tokens',
+        isCorrect: false,
+      },
+      {
+        id: 'o4',
+        text: 'The middle layers of the network degrade first',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-llm-6',
     topicId: 'top-llms',
     text: 'Why does doubling the context length often more than double latency?',
-    explanation: 'Standard transformer attention is roughly O(n²) in sequence length, so doubling context can quadruple the core attention cost.',
+    explanation:
+      'Standard transformer attention is roughly O(n²) in sequence length, so doubling context can quadruple the core attention cost.',
     options: [
-      { id: 'o1', text: 'Because API providers charge a minimum fee', isCorrect: false },
-      { id: 'o2', text: 'Because attention computation scales roughly quadratically with sequence length', isCorrect: true },
-      { id: 'o3', text: 'Because longer contexts always use a slower model variant', isCorrect: false },
-      { id: 'o4', text: 'It does not — latency is constant regardless of context', isCorrect: false },
+      {
+        id: 'o1',
+        text: 'Because API providers charge a minimum fee',
+        isCorrect: false,
+      },
+      {
+        id: 'o2',
+        text: 'Because attention computation scales roughly quadratically with sequence length',
+        isCorrect: true,
+      },
+      {
+        id: 'o3',
+        text: 'Because longer contexts always use a slower model variant',
+        isCorrect: false,
+      },
+      {
+        id: 'o4',
+        text: 'It does not — latency is constant regardless of context',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-llm-7',
     topicId: 'top-llms',
     text: 'What does top-p (nucleus) sampling do?',
-    explanation: 'Top-p sampling restricts the candidate set to the smallest group of tokens whose cumulative probability exceeds p, cutting off the long tail.',
+    explanation:
+      'Top-p sampling restricts the candidate set to the smallest group of tokens whose cumulative probability exceeds p, cutting off the long tail.',
     options: [
-      { id: 'o1', text: 'Picks the top p tokens regardless of probability', isCorrect: false },
-      { id: 'o2', text: 'Samples only from the smallest token set whose cumulative probability exceeds p', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'Picks the top p tokens regardless of probability',
+        isCorrect: false,
+      },
+      {
+        id: 'o2',
+        text: 'Samples only from the smallest token set whose cumulative probability exceeds p',
+        isCorrect: true,
+      },
       { id: 'o3', text: 'Truncates the context to p tokens', isCorrect: false },
       { id: 'o4', text: 'Sets temperature to p', isCorrect: false },
     ],
@@ -208,7 +270,8 @@ const lessons_agents: Lesson[] = [
     id: 'les-agt-1',
     topicId: 'top-agents',
     title: 'What Is an AI Agent?',
-    summary: 'Beyond single completions: loops, tools, and the model as a decision-maker.',
+    summary:
+      'Beyond single completions: loops, tools, and the model as a decision-maker.',
     position: 1,
     durationMin: 9,
     status: 'published',
@@ -350,10 +413,15 @@ const questions_agents: Question[] = [
     id: 'q-agt-1',
     topicId: 'top-agents',
     text: 'What distinguishes an AI agent from a single chat completion?',
-    explanation: 'An agent runs the model in a loop, deciding next steps and calling tools, rather than producing one answer.',
+    explanation:
+      'An agent runs the model in a loop, deciding next steps and calling tools, rather than producing one answer.',
     options: [
       { id: 'o1', text: 'It uses a larger model', isCorrect: false },
-      { id: 'o2', text: 'It runs the model in a loop with tools to decide next steps', isCorrect: true },
+      {
+        id: 'o2',
+        text: 'It runs the model in a loop with tools to decide next steps',
+        isCorrect: true,
+      },
       { id: 'o3', text: 'It always streams the response', isCorrect: false },
       { id: 'o4', text: 'It does not use any prompts', isCorrect: false },
     ],
@@ -362,7 +430,8 @@ const questions_agents: Question[] = [
     id: 'q-agt-2',
     topicId: 'top-agents',
     text: 'Who actually executes a tool call emitted by the model?',
-    explanation: 'The model only emits a structured call; your code is responsible for executing the tool and returning the result.',
+    explanation:
+      'The model only emits a structured call; your code is responsible for executing the tool and returning the result.',
     options: [
       { id: 'o1', text: 'The model itself, inside the API', isCorrect: false },
       { id: 'o2', text: 'Your application code', isCorrect: true },
@@ -374,33 +443,68 @@ const questions_agents: Question[] = [
     id: 'q-agt-3',
     topicId: 'top-agents',
     text: 'What is the ReAct pattern?',
-    explanation: 'ReAct alternates reasoning (Thought) and action (tool call), observing results before reasoning again.',
+    explanation:
+      'ReAct alternates reasoning (Thought) and action (tool call), observing results before reasoning again.',
     options: [
-      { id: 'o1', text: 'Reasoning + acting in alternating steps, observing between them', isCorrect: true },
-      { id: 'o2', text: 'A single forward pass with no tools', isCorrect: false },
-      { id: 'o3', text: 'Reinforcement learning from tool feedback', isCorrect: false },
-      { id: 'o4', text: 'A reduced-attention transformer variant', isCorrect: false },
+      {
+        id: 'o1',
+        text: 'Reasoning + acting in alternating steps, observing between them',
+        isCorrect: true,
+      },
+      {
+        id: 'o2',
+        text: 'A single forward pass with no tools',
+        isCorrect: false,
+      },
+      {
+        id: 'o3',
+        text: 'Reinforcement learning from tool feedback',
+        isCorrect: false,
+      },
+      {
+        id: 'o4',
+        text: 'A reduced-attention transformer variant',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-agt-4',
     topicId: 'top-agents',
     text: 'Why must you validate the arguments the model sends to a tool?',
-    explanation: 'The model can emit malformed or out-of-bounds arguments; validating types, ranges, and permissions prevents unsafe execution.',
+    explanation:
+      'The model can emit malformed or out-of-bounds arguments; validating types, ranges, and permissions prevents unsafe execution.',
     options: [
       { id: 'o1', text: 'To reduce API latency', isCorrect: false },
-      { id: 'o2', text: 'Because the model can emit malformed or unsafe arguments', isCorrect: true },
-      { id: 'o3', text: 'Because JSON is illegal in some regions', isCorrect: false },
-      { id: 'o4', text: 'Validation is optional and rarely needed', isCorrect: false },
+      {
+        id: 'o2',
+        text: 'Because the model can emit malformed or unsafe arguments',
+        isCorrect: true,
+      },
+      {
+        id: 'o3',
+        text: 'Because JSON is illegal in some regions',
+        isCorrect: false,
+      },
+      {
+        id: 'o4',
+        text: 'Validation is optional and rarely needed',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-agt-5',
     topicId: 'top-agents',
     text: 'What is a tool spiral failure mode?',
-    explanation: 'A tool spiral is when an agent repeatedly calls the same tool with slightly different arguments without making progress.',
+    explanation:
+      'A tool spiral is when an agent repeatedly calls the same tool with slightly different arguments without making progress.',
     options: [
-      { id: 'o1', text: 'Calling the same tool repeatedly with slightly different arguments', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'Calling the same tool repeatedly with slightly different arguments',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'Running out of API quota', isCorrect: false },
       { id: 'o3', text: 'The model refusing to use tools', isCorrect: false },
       { id: 'o4', text: 'A tool that returns circular JSON', isCorrect: false },
@@ -410,7 +514,8 @@ const questions_agents: Question[] = [
     id: 'q-agt-6',
     topicId: 'top-agents',
     text: 'Which is an essential safeguard for any agent loop?',
-    explanation: 'A maximum number of steps prevents runaway loops; every agent should have a cap, timeouts, and a stop condition.',
+    explanation:
+      'A maximum number of steps prevents runaway loops; every agent should have a cap, timeouts, and a stop condition.',
     options: [
       { id: 'o1', text: 'A maximum number of steps', isCorrect: true },
       { id: 'o2', text: 'A temperature above 1.0', isCorrect: false },
@@ -422,11 +527,20 @@ const questions_agents: Question[] = [
     id: 'q-agt-7',
     topicId: 'top-agents',
     text: 'In plan-then-execute, why separate planning from execution?',
-    explanation: 'Separating planning lets you inspect or validate the plan before running expensive or irreversible steps.',
+    explanation:
+      'Separating planning lets you inspect or validate the plan before running expensive or irreversible steps.',
     options: [
       { id: 'o1', text: 'It makes the model faster', isCorrect: false },
-      { id: 'o2', text: 'It lets you check the plan before running costly or irreversible steps', isCorrect: true },
-      { id: 'o3', text: 'It avoids paying API costs entirely', isCorrect: false },
+      {
+        id: 'o2',
+        text: 'It lets you check the plan before running costly or irreversible steps',
+        isCorrect: true,
+      },
+      {
+        id: 'o3',
+        text: 'It avoids paying API costs entirely',
+        isCorrect: false,
+      },
       { id: 'o4', text: 'It is required by the OpenAI API', isCorrect: false },
     ],
   },
@@ -437,7 +551,8 @@ const lessons_mcp: Lesson[] = [
     id: 'les-mcp-1',
     topicId: 'top-mcp',
     title: 'Introducing the Model Context Protocol',
-    summary: 'A standard way for models to reach tools, resources, and prompts.',
+    summary:
+      'A standard way for models to reach tools, resources, and prompts.',
     position: 1,
     durationMin: 8,
     status: 'published',
@@ -509,10 +624,19 @@ const questions_mcp: Question[] = [
     id: 'q-mcp-1',
     topicId: 'top-mcp',
     text: 'What is the Model Context Protocol (MCP)?',
-    explanation: 'MCP is an open standard for connecting language models to external data sources and tools, reducing bespoke integrations.',
+    explanation:
+      'MCP is an open standard for connecting language models to external data sources and tools, reducing bespoke integrations.',
     options: [
-      { id: 'o1', text: 'A proprietary OpenAI API for embeddings', isCorrect: false },
-      { id: 'o2', text: 'An open standard for connecting models to tools, resources, and prompts', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'A proprietary OpenAI API for embeddings',
+        isCorrect: false,
+      },
+      {
+        id: 'o2',
+        text: 'An open standard for connecting models to tools, resources, and prompts',
+        isCorrect: true,
+      },
       { id: 'o3', text: 'A Go framework for building APIs', isCorrect: false },
       { id: 'o4', text: 'A model-quantization algorithm', isCorrect: false },
     ],
@@ -521,7 +645,8 @@ const questions_mcp: Question[] = [
     id: 'q-mcp-2',
     topicId: 'top-mcp',
     text: 'Which is NOT one of the three MCP primitives?',
-    explanation: 'MCP servers expose tools, resources, and prompts. "Datasets" is not a primitive.',
+    explanation:
+      'MCP servers expose tools, resources, and prompts. "Datasets" is not a primitive.',
     options: [
       { id: 'o1', text: 'Tools', isCorrect: false },
       { id: 'o2', text: 'Resources', isCorrect: false },
@@ -533,9 +658,14 @@ const questions_mcp: Question[] = [
     id: 'q-mcp-3',
     topicId: 'top-mcp',
     text: 'In MCP, what is the "host"?',
-    explanation: 'The host is the user-facing app (e.g. an IDE or chat client) that contains one or more MCP clients.',
+    explanation:
+      'The host is the user-facing app (e.g. an IDE or chat client) that contains one or more MCP clients.',
     options: [
-      { id: 'o1', text: 'The user-facing application that contains MCP clients', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'The user-facing application that contains MCP clients',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'The remote integration server', isCorrect: false },
       { id: 'o3', text: 'The model provider', isCorrect: false },
       { id: 'o4', text: 'The physical server hardware', isCorrect: false },
@@ -545,19 +675,33 @@ const questions_mcp: Question[] = [
     id: 'q-mcp-4',
     topicId: 'top-mcp',
     text: 'When should you use the stdio transport?',
-    explanation: 'stdio is ideal when the server runs locally on the user machine alongside the host, with no network needed.',
+    explanation:
+      'stdio is ideal when the server runs locally on the user machine alongside the host, with no network needed.',
     options: [
-      { id: 'o1', text: 'When the server runs locally on the user machine alongside the host', isCorrect: true },
-      { id: 'o2', text: 'When the server is shared by many users over the network', isCorrect: false },
+      {
+        id: 'o1',
+        text: 'When the server runs locally on the user machine alongside the host',
+        isCorrect: true,
+      },
+      {
+        id: 'o2',
+        text: 'When the server is shared by many users over the network',
+        isCorrect: false,
+      },
       { id: 'o3', text: 'When you need TLS and OAuth', isCorrect: false },
-      { id: 'o4', text: 'When the host is a web browser only', isCorrect: false },
+      {
+        id: 'o4',
+        text: 'When the host is a web browser only',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-mcp-5',
     topicId: 'top-mcp',
     text: 'Which transport is better for a shared, remote MCP server?',
-    explanation: 'HTTP + SSE supports remote, multi-client servers and handles server-initiated messages via Server-Sent Events.',
+    explanation:
+      'HTTP + SSE supports remote, multi-client servers and handles server-initiated messages via Server-Sent Events.',
     options: [
       { id: 'o1', text: 'stdio', isCorrect: false },
       { id: 'o2', text: 'HTTP + SSE', isCorrect: true },
@@ -569,10 +713,19 @@ const questions_mcp: Question[] = [
     id: 'q-mcp-6',
     topicId: 'top-mcp',
     text: 'What is a key benefit of MCP standardizing integrations?',
-    explanation: 'A single MCP server can be used by any MCP-aware client, so you write the integration once.',
+    explanation:
+      'A single MCP server can be used by any MCP-aware client, so you write the integration once.',
     options: [
-      { id: 'o1', text: 'It removes the need for any prompts', isCorrect: false },
-      { id: 'o2', text: 'Write a server once and any MCP-aware client can use it', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'It removes the need for any prompts',
+        isCorrect: false,
+      },
+      {
+        id: 'o2',
+        text: 'Write a server once and any MCP-aware client can use it',
+        isCorrect: true,
+      },
       { id: 'o3', text: 'It makes models train themselves', isCorrect: false },
       { id: 'o4', text: 'It eliminates API authentication', isCorrect: false },
     ],
@@ -584,7 +737,8 @@ const lessons_rag: Lesson[] = [
     id: 'les-rag-1',
     topicId: 'top-rag',
     title: 'Retrieval-Augmented Generation: The Idea',
-    summary: 'Give the model the right context at query time instead of relying on memorized facts.',
+    summary:
+      'Give the model the right context at query time instead of relying on memorized facts.',
     position: 1,
     durationMin: 9,
     status: 'published',
@@ -660,7 +814,8 @@ Chunking decides what the retriever can find. Pick a sensible size (400–800 to
     id: 'les-rag-3',
     topicId: 'top-rag',
     title: 'Hybrid Search and Reranking',
-    summary: "Vector search alone isn't always enough; combining signals beats any single method.",
+    summary:
+      "Vector search alone isn't always enough; combining signals beats any single method.",
     position: 3,
     durationMin: 7,
     status: 'published',
@@ -701,10 +856,19 @@ const questions_rag: Question[] = [
     id: 'q-rag-1',
     topicId: 'top-rag',
     text: 'What is the core idea of retrieval-augmented generation?',
-    explanation: 'RAG retrieves relevant documents at query time and conditions the model on them, rather than relying on memorized training knowledge.',
+    explanation:
+      'RAG retrieves relevant documents at query time and conditions the model on them, rather than relying on memorized training knowledge.',
     options: [
-      { id: 'o1', text: 'Fine-tune the model on every query', isCorrect: false },
-      { id: 'o2', text: 'Retrieve relevant context at query time, then generate using it', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'Fine-tune the model on every query',
+        isCorrect: false,
+      },
+      {
+        id: 'o2',
+        text: 'Retrieve relevant context at query time, then generate using it',
+        isCorrect: true,
+      },
       { id: 'o3', text: 'Cache model outputs forever', isCorrect: false },
       { id: 'o4', text: 'Train without any text data', isCorrect: false },
     ],
@@ -713,10 +877,19 @@ const questions_rag: Question[] = [
     id: 'q-rag-2',
     topicId: 'top-rag',
     text: 'Which is a common failure mode caused by bad chunking?',
-    explanation: 'Poorly sized chunks either dilute relevance (too big) or lose surrounding context (too small), hurting retrieval quality.',
+    explanation:
+      'Poorly sized chunks either dilute relevance (too big) or lose surrounding context (too small), hurting retrieval quality.',
     options: [
-      { id: 'o1', text: 'Chunks too small lose surrounding context needed to answer', isCorrect: true },
-      { id: 'o2', text: 'The model refuses to answer any question', isCorrect: false },
+      {
+        id: 'o1',
+        text: 'Chunks too small lose surrounding context needed to answer',
+        isCorrect: true,
+      },
+      {
+        id: 'o2',
+        text: 'The model refuses to answer any question',
+        isCorrect: false,
+      },
       { id: 'o3', text: 'Embeddings become integers', isCorrect: false },
       { id: 'o4', text: 'The vector index deletes itself', isCorrect: false },
     ],
@@ -725,21 +898,39 @@ const questions_rag: Question[] = [
     id: 'q-rag-3',
     topicId: 'top-rag',
     text: 'Why add overlap between chunks?',
-    explanation: 'Overlap ensures facts that straddle a chunk boundary are not lost, preserving context across the split.',
+    explanation:
+      'Overlap ensures facts that straddle a chunk boundary are not lost, preserving context across the split.',
     options: [
       { id: 'o1', text: 'To reduce storage cost', isCorrect: false },
-      { id: 'o2', text: 'So a fact that straddles a boundary is not lost', isCorrect: true },
-      { id: 'o3', text: 'To increase the embedding dimension', isCorrect: false },
-      { id: 'o4', text: 'Overlap is required by all vector databases', isCorrect: false },
+      {
+        id: 'o2',
+        text: 'So a fact that straddles a boundary is not lost',
+        isCorrect: true,
+      },
+      {
+        id: 'o3',
+        text: 'To increase the embedding dimension',
+        isCorrect: false,
+      },
+      {
+        id: 'o4',
+        text: 'Overlap is required by all vector databases',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-rag-4',
     topicId: 'top-rag',
     text: 'What does hybrid search combine?',
-    explanation: 'Hybrid search blends BM25 keyword search with vector similarity search to cover both exact and semantic matches.',
+    explanation:
+      'Hybrid search blends BM25 keyword search with vector similarity search to cover both exact and semantic matches.',
     options: [
-      { id: 'o1', text: 'BM25 keyword search and vector similarity search', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'BM25 keyword search and vector similarity search',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'Two different LLMs voting', isCorrect: false },
       { id: 'o3', text: 'SQL and GraphQL', isCorrect: false },
       { id: 'o4', text: 'Pre-training and fine-tuning', isCorrect: false },
@@ -749,11 +940,20 @@ const questions_rag: Question[] = [
     id: 'q-rag-5',
     topicId: 'top-rag',
     text: 'What does a cross-encoder reranker do that a bi-encoder retriever does not?',
-    explanation: 'A cross-encoder scores the query and document together, capturing fine-grained relevance the bi-encoder scores separately and misses.',
+    explanation:
+      'A cross-encoder scores the query and document together, capturing fine-grained relevance the bi-encoder scores separately and misses.',
     options: [
-      { id: 'o1', text: 'Scores query and document together for finer relevance', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'Scores query and document together for finer relevance',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'Generates the final answer', isCorrect: false },
-      { id: 'o3', text: 'Compresses the embedding to 1 dimension', isCorrect: false },
+      {
+        id: 'o3',
+        text: 'Compresses the embedding to 1 dimension',
+        isCorrect: false,
+      },
       { id: 'o4', text: 'Translates the query to SQL', isCorrect: false },
     ],
   },
@@ -761,10 +961,15 @@ const questions_rag: Question[] = [
     id: 'q-rag-6',
     topicId: 'top-rag',
     text: 'Why attach metadata to chunks?',
-    explanation: 'Metadata lets you filter before retrieval (e.g. by source, section, or date), narrowing the search to relevant subsets.',
+    explanation:
+      'Metadata lets you filter before retrieval (e.g. by source, section, or date), narrowing the search to relevant subsets.',
     options: [
       { id: 'o1', text: 'To increase embedding dimensions', isCorrect: false },
-      { id: 'o2', text: 'To allow filtering before retrieval by source, section, or date', isCorrect: true },
+      {
+        id: 'o2',
+        text: 'To allow filtering before retrieval by source, section, or date',
+        isCorrect: true,
+      },
       { id: 'o3', text: 'To avoid needing a vector index', isCorrect: false },
       { id: 'o4', text: 'Metadata is purely decorative', isCorrect: false },
     ],
@@ -773,7 +978,8 @@ const questions_rag: Question[] = [
     id: 'q-rag-7',
     topicId: 'top-rag',
     text: 'Which RAG step usually dominates answer quality?',
-    explanation: 'Retrieval quality dominates: if the right document is not in the top-k, no model can rescue the answer.',
+    explanation:
+      'Retrieval quality dominates: if the right document is not in the top-k, no model can rescue the answer.',
     options: [
       { id: 'o1', text: 'The retrieval step', isCorrect: true },
       { id: 'o2', text: 'The font used in the UI', isCorrect: false },
@@ -870,10 +1076,15 @@ const questions_embeddings: Question[] = [
     id: 'q-emb-1',
     topicId: 'top-emb',
     text: 'What does an embedding represent?',
-    explanation: 'An embedding is a fixed-size vector where semantically similar content maps to nearby points in vector space.',
+    explanation:
+      'An embedding is a fixed-size vector where semantically similar content maps to nearby points in vector space.',
     options: [
       { id: 'o1', text: 'A count of words in a document', isCorrect: false },
-      { id: 'o2', text: 'A vector where similar content gets similar vectors', isCorrect: true },
+      {
+        id: 'o2',
+        text: 'A vector where similar content gets similar vectors',
+        isCorrect: true,
+      },
       { id: 'o3', text: 'A compressed image format', isCorrect: false },
       { id: 'o4', text: 'A type of database index', isCorrect: false },
     ],
@@ -882,22 +1093,40 @@ const questions_embeddings: Question[] = [
     id: 'q-emb-2',
     topicId: 'top-emb',
     text: 'Can you compare embeddings from two different embedding models?',
-    explanation: 'No — embeddings are model-specific; dimensions and geometry differ and are not comparable across models.',
+    explanation:
+      'No — embeddings are model-specific; dimensions and geometry differ and are not comparable across models.',
     options: [
       { id: 'o1', text: 'Yes, they are interchangeable', isCorrect: false },
-      { id: 'o2', text: 'No, embeddings are model-specific and not comparable across models', isCorrect: true },
+      {
+        id: 'o2',
+        text: 'No, embeddings are model-specific and not comparable across models',
+        isCorrect: true,
+      },
       { id: 'o3', text: 'Only if both are 768 dimensions', isCorrect: false },
-      { id: 'o4', text: 'Only after retraining both models together', isCorrect: false },
+      {
+        id: 'o4',
+        text: 'Only after retraining both models together',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-emb-3',
     topicId: 'top-emb',
     text: 'What does cosine similarity measure?',
-    explanation: 'Cosine similarity measures the angle between two vectors, ignoring their magnitude (length).',
+    explanation:
+      'Cosine similarity measures the angle between two vectors, ignoring their magnitude (length).',
     options: [
-      { id: 'o1', text: 'The angle between two vectors, ignoring length', isCorrect: true },
-      { id: 'o2', text: 'The straight-line distance between points', isCorrect: false },
+      {
+        id: 'o1',
+        text: 'The angle between two vectors, ignoring length',
+        isCorrect: true,
+      },
+      {
+        id: 'o2',
+        text: 'The straight-line distance between points',
+        isCorrect: false,
+      },
       { id: 'o3', text: 'The number of shared dimensions', isCorrect: false },
       { id: 'o4', text: 'The sum of vector components', isCorrect: false },
     ],
@@ -906,7 +1135,8 @@ const questions_embeddings: Question[] = [
     id: 'q-emb-4',
     topicId: 'top-emb',
     text: 'When vectors are normalized to length 1, what is dot product equivalent to?',
-    explanation: 'On normalized vectors, dot product equals cosine similarity, which is why indexes store normalized vectors for fast dot product.',
+    explanation:
+      'On normalized vectors, dot product equals cosine similarity, which is why indexes store normalized vectors for fast dot product.',
     options: [
       { id: 'o1', text: 'Euclidean distance', isCorrect: false },
       { id: 'o2', text: 'Cosine similarity', isCorrect: true },
@@ -918,7 +1148,8 @@ const questions_embeddings: Question[] = [
     id: 'q-emb-5',
     topicId: 'top-emb',
     text: 'Which distance metric is the default for text embeddings?',
-    explanation: 'Cosine similarity (or dot product on normalized vectors) is the standard for text embeddings.',
+    explanation:
+      'Cosine similarity (or dot product on normalized vectors) is the standard for text embeddings.',
     options: [
       { id: 'o1', text: 'Cosine similarity', isCorrect: true },
       { id: 'o2', text: 'Manhattan distance', isCorrect: false },
@@ -930,7 +1161,8 @@ const questions_embeddings: Question[] = [
     id: 'q-emb-6',
     topicId: 'top-emb',
     text: 'What training objective commonly produces text embeddings?',
-    explanation: 'Contrastive learning pulls related pairs together and pushes unrelated pairs apart in vector space.',
+    explanation:
+      'Contrastive learning pulls related pairs together and pushes unrelated pairs apart in vector space.',
     options: [
       { id: 'o1', text: 'Contrastive learning', isCorrect: true },
       { id: 'o2', text: 'Decision tree pruning', isCorrect: false },
@@ -945,7 +1177,8 @@ const lessons_eval: Lesson[] = [
     id: 'les-eval-1',
     topicId: 'top-eval',
     title: 'Why LLM Evaluation Is Hard',
-    summary: 'Outputs are open-ended; "correct" is often subjective. You need a strategy.',
+    summary:
+      'Outputs are open-ended; "correct" is often subjective. You need a strategy.',
     position: 1,
     durationMin: 8,
     status: 'published',
@@ -1019,23 +1252,41 @@ const questions_eval: Question[] = [
     id: 'q-eval-1',
     topicId: 'top-eval',
     text: 'Why is LLM evaluation harder than testing traditional software?',
-    explanation: 'LLM outputs are open-ended: many answers can be correct, errors are subtle, and there is no ground-truth oracle for every input.',
+    explanation:
+      'LLM outputs are open-ended: many answers can be correct, errors are subtle, and there is no ground-truth oracle for every input.',
     options: [
-      { id: 'o1', text: 'Outputs are open-ended and "correct" is often subjective', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'Outputs are open-ended and "correct" is often subjective',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'LLMs run too slowly to test', isCorrect: false },
       { id: 'o3', text: 'Unit tests do not exist for LLMs', isCorrect: false },
-      { id: 'o4', text: 'LLMs are deterministic and never vary', isCorrect: false },
+      {
+        id: 'o4',
+        text: 'LLMs are deterministic and never vary',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-eval-2',
     topicId: 'top-eval',
     text: 'What is "LLM-as-judge"?',
-    explanation: "LLM-as-judge uses a strong model to score another model's outputs against a written rubric, scaling evaluation beyond human-only review.",
+    explanation:
+      "LLM-as-judge uses a strong model to score another model's outputs against a written rubric, scaling evaluation beyond human-only review.",
     options: [
-      { id: 'o1', text: 'A model scoring another model\'s outputs against a rubric', isCorrect: true },
+      {
+        id: 'o1',
+        text: "A model scoring another model's outputs against a rubric",
+        isCorrect: true,
+      },
       { id: 'o2', text: 'A human grading a model by hand', isCorrect: false },
-      { id: 'o3', text: 'A model grading its own training data', isCorrect: false },
+      {
+        id: 'o3',
+        text: 'A model grading its own training data',
+        isCorrect: false,
+      },
       { id: 'o4', text: 'A type of vector index', isCorrect: false },
     ],
   },
@@ -1043,9 +1294,14 @@ const questions_eval: Question[] = [
     id: 'q-eval-3',
     topicId: 'top-eval',
     text: 'What is position bias in LLM-as-judge?',
-    explanation: 'Judges tend to prefer whichever option is shown first; mitigate by swapping order and averaging scores.',
+    explanation:
+      'Judges tend to prefer whichever option is shown first; mitigate by swapping order and averaging scores.',
     options: [
-      { id: 'o1', text: 'Judges prefer the first of two options shown', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'Judges prefer the first of two options shown',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'Judges prefer shorter answers', isCorrect: false },
       { id: 'o3', text: 'Judges refuse to score', isCorrect: false },
       { id: 'o4', text: 'Judges always pick option B', isCorrect: false },
@@ -1055,36 +1311,67 @@ const questions_eval: Question[] = [
     id: 'q-eval-4',
     topicId: 'top-eval',
     text: 'How do you calibrate an LLM judge?',
-    explanation: 'Run the judge on a small human-labeled set; agreement around 80% suggests the judge is trustworthy at scale.',
+    explanation:
+      'Run the judge on a small human-labeled set; agreement around 80% suggests the judge is trustworthy at scale.',
     options: [
-      { id: 'o1', text: 'Run it on a labeled set and compare to human scores', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'Run it on a labeled set and compare to human scores',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'Increase the temperature to 2.0', isCorrect: false },
       { id: 'o3', text: 'Never use a rubric', isCorrect: false },
-      { id: 'o4', text: 'Compare it to a random number generator', isCorrect: false },
+      {
+        id: 'o4',
+        text: 'Compare it to a random number generator',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-eval-5',
     topicId: 'top-eval',
     text: 'What is a "golden dataset" in LLM eval?',
-    explanation: 'A golden dataset is a set of examples with reference answers that you check model outputs against to detect regressions.',
+    explanation:
+      'A golden dataset is a set of examples with reference answers that you check model outputs against to detect regressions.',
     options: [
-      { id: 'o1', text: 'A set of examples with reference answers to check outputs against', isCorrect: true },
-      { id: 'o2', text: 'A dataset made of only correct outputs', isCorrect: false },
+      {
+        id: 'o1',
+        text: 'A set of examples with reference answers to check outputs against',
+        isCorrect: true,
+      },
+      {
+        id: 'o2',
+        text: 'A dataset made of only correct outputs',
+        isCorrect: false,
+      },
       { id: 'o3', text: 'The training data for the judge', isCorrect: false },
-      { id: 'o4', text: 'A backup of the production database', isCorrect: false },
+      {
+        id: 'o4',
+        text: 'A backup of the production database',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-eval-6',
     topicId: 'top-eval',
     text: 'What is verbosity bias?',
-    explanation: 'Judges tend to prefer longer answers even when they are no more accurate than shorter ones.',
+    explanation:
+      'Judges tend to prefer longer answers even when they are no more accurate than shorter ones.',
     options: [
-      { id: 'o1', text: 'Judges prefer longer answers regardless of accuracy', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'Judges prefer longer answers regardless of accuracy',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'Judges prefer code over prose', isCorrect: false },
       { id: 'o3', text: 'Models outputting only stop words', isCorrect: false },
-      { id: 'o4', text: 'A bias toward fewer tokens to save cost', isCorrect: false },
+      {
+        id: 'o4',
+        text: 'A bias toward fewer tokens to save cost',
+        isCorrect: false,
+      },
     ],
   },
 ];
@@ -1181,34 +1468,61 @@ const questions_deploy: Question[] = [
     id: 'q-dep-1',
     topicId: 'top-dep',
     text: 'What are the two constraints that dominate LLM deployment decisions?',
-    explanation: 'Latency (TTFT and tokens per second) and cost (per-token price × volume) drive nearly every deployment tradeoff.',
+    explanation:
+      'Latency (TTFT and tokens per second) and cost (per-token price × volume) drive nearly every deployment tradeoff.',
     options: [
       { id: 'o1', text: 'Latency and cost', isCorrect: true },
       { id: 'o2', text: 'Color scheme and font choice', isCorrect: false },
       { id: 'o3', text: 'Disk space and RAM', isCorrect: false },
-      { id: 'o4', text: 'Number of developers and office location', isCorrect: false },
+      {
+        id: 'o4',
+        text: 'Number of developers and office location',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-dep-2',
     topicId: 'top-dep',
     text: 'What is "time to first token" (TTFT)?',
-    explanation: 'TTFT is the prefill latency: time to process the prompt before the first output token appears.',
+    explanation:
+      'TTFT is the prefill latency: time to process the prompt before the first output token appears.',
     options: [
-      { id: 'o1', text: 'The prefill latency before the first output token', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'The prefill latency before the first output token',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'The time to train the model', isCorrect: false },
-      { id: 'o3', text: 'The time between two consecutive requests', isCorrect: false },
-      { id: 'o4', text: 'The time to download the model weights', isCorrect: false },
+      {
+        id: 'o3',
+        text: 'The time between two consecutive requests',
+        isCorrect: false,
+      },
+      {
+        id: 'o4',
+        text: 'The time to download the model weights',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-dep-3',
     topicId: 'top-dep',
     text: 'What is prompt caching used for?',
-    explanation: 'Prompt caching stores repeated prefixes (system prompts, long context) to cut both cost and latency on repeated prefixes.',
+    explanation:
+      'Prompt caching stores repeated prefixes (system prompts, long context) to cut both cost and latency on repeated prefixes.',
     options: [
-      { id: 'o1', text: 'Storing repeated prefixes to cut cost and latency', isCorrect: true },
-      { id: 'o2', text: 'Caching the user\'s browser history', isCorrect: false },
+      {
+        id: 'o1',
+        text: 'Storing repeated prefixes to cut cost and latency',
+        isCorrect: true,
+      },
+      {
+        id: 'o2',
+        text: "Caching the user's browser history",
+        isCorrect: false,
+      },
       { id: 'o3', text: 'Saving model weights to disk', isCorrect: false },
       { id: 'o4', text: 'Compiling the prompt to bytecode', isCorrect: false },
     ],
@@ -1217,36 +1531,75 @@ const questions_deploy: Question[] = [
     id: 'q-dep-4',
     topicId: 'top-dep',
     text: 'Why route simple queries to a smaller model?',
-    explanation: 'Smaller models are cheaper and faster; routing easy tasks to them reserves the expensive model for hard tasks, cutting overall cost.',
+    explanation:
+      'Smaller models are cheaper and faster; routing easy tasks to them reserves the expensive model for hard tasks, cutting overall cost.',
     options: [
-      { id: 'o1', text: 'Smaller models are cheaper and faster, reserving big models for hard tasks', isCorrect: true },
-      { id: 'o2', text: 'Smaller models are always more accurate', isCorrect: false },
-      { id: 'o3', text: 'It is required by data privacy law', isCorrect: false },
-      { id: 'o4', text: 'Big models do not support simple queries', isCorrect: false },
+      {
+        id: 'o1',
+        text: 'Smaller models are cheaper and faster, reserving big models for hard tasks',
+        isCorrect: true,
+      },
+      {
+        id: 'o2',
+        text: 'Smaller models are always more accurate',
+        isCorrect: false,
+      },
+      {
+        id: 'o3',
+        text: 'It is required by data privacy law',
+        isCorrect: false,
+      },
+      {
+        id: 'o4',
+        text: 'Big models do not support simple queries',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-dep-5',
     topicId: 'top-dep',
     text: 'What does tracing tie together in an LLM app?',
-    explanation: 'A single request can span retrieval, multiple LLM calls, and tool executions; a trace ID links them so you can see the whole path.',
+    explanation:
+      'A single request can span retrieval, multiple LLM calls, and tool executions; a trace ID links them so you can see the whole path.',
     options: [
-      { id: 'o1', text: 'The whole sequence of steps in one request under a trace ID', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'The whole sequence of steps in one request under a trace ID',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'Only the final answer token', isCorrect: false },
-      { id: 'o3', text: 'Just the user\'s original prompt', isCorrect: false },
-      { id: 'o4', text: 'All requests from all users into one log line', isCorrect: false },
+      { id: 'o3', text: "Just the user's original prompt", isCorrect: false },
+      {
+        id: 'o4',
+        text: 'All requests from all users into one log line',
+        isCorrect: false,
+      },
     ],
   },
   {
     id: 'q-dep-6',
     topicId: 'top-dep',
     text: 'Why run continuous evals on production traffic?',
-    explanation: 'Continuous evals on a sample of real traffic catch quality regressions before users report them, since uptime alone does not measure correctness.',
+    explanation:
+      'Continuous evals on a sample of real traffic catch quality regressions before users report them, since uptime alone does not measure correctness.',
     options: [
-      { id: 'o1', text: 'To catch quality regressions before users report them', isCorrect: true },
+      {
+        id: 'o1',
+        text: 'To catch quality regressions before users report them',
+        isCorrect: true,
+      },
       { id: 'o2', text: 'To increase API latency', isCorrect: false },
-      { id: 'o3', text: 'Because it is legally required everywhere', isCorrect: false },
-      { id: 'o4', text: 'To replace the need for any logging', isCorrect: false },
+      {
+        id: 'o3',
+        text: 'Because it is legally required everywhere',
+        isCorrect: false,
+      },
+      {
+        id: 'o4',
+        text: 'To replace the need for any logging',
+        isCorrect: false,
+      },
     ],
   },
 ];
@@ -1256,7 +1609,8 @@ export const topics: Topic[] = [
     id: 'top-llms',
     slug: 'llms',
     title: 'Large Language Models',
-    description: 'Tokens, context windows, sampling, and the training pipeline behind modern LLMs.',
+    description:
+      'Tokens, context windows, sampling, and the training pipeline behind modern LLMs.',
     icon: 'BrainCircuit',
     color: 'brand',
     position: 1,
@@ -1267,7 +1621,8 @@ export const topics: Topic[] = [
     id: 'top-agents',
     slug: 'agents',
     title: 'AI Agents',
-    description: 'Loops, tools, planning patterns, and keeping agents productive instead of runaway.',
+    description:
+      'Loops, tools, planning patterns, and keeping agents productive instead of runaway.',
     icon: 'Bot',
     color: 'accent',
     position: 2,
@@ -1278,7 +1633,8 @@ export const topics: Topic[] = [
     id: 'top-mcp',
     slug: 'mcp',
     title: 'Model Context Protocol',
-    description: 'The open standard for connecting models to tools, resources, and prompts.',
+    description:
+      'The open standard for connecting models to tools, resources, and prompts.',
     icon: 'Plug',
     color: 'warning',
     position: 3,
@@ -1300,7 +1656,8 @@ export const topics: Topic[] = [
     id: 'top-emb',
     slug: 'embeddings',
     title: 'Embeddings',
-    description: 'Vectors that capture meaning, similarity metrics, and how to compare them.',
+    description:
+      'Vectors that capture meaning, similarity metrics, and how to compare them.',
     icon: 'Boxes',
     color: 'accent',
     position: 5,
@@ -1311,7 +1668,8 @@ export const topics: Topic[] = [
     id: 'top-eval',
     slug: 'evaluation',
     title: 'Evaluation',
-    description: 'Rubrics, LLM-as-judge, and measuring what "good" means for open-ended outputs.',
+    description:
+      'Rubrics, LLM-as-judge, and measuring what "good" means for open-ended outputs.',
     icon: 'ClipboardCheck',
     color: 'warning',
     position: 6,
@@ -1322,7 +1680,8 @@ export const topics: Topic[] = [
     id: 'top-dep',
     slug: 'deployment',
     title: 'Deployment',
-    description: 'Latency, cost, observability, and running LLM apps in production.',
+    description:
+      'Latency, cost, observability, and running LLM apps in production.',
     icon: 'Rocket',
     color: 'brand',
     position: 7,
@@ -1347,7 +1706,9 @@ export function getTopicBySlug(slug: string): Topic | undefined {
 export function getTopicById(id: string): Topic | undefined {
   return topics.find((t) => t.id === id);
 }
-export function getLessonById(id: string): { lesson: Lesson; topic: Topic } | undefined {
+export function getLessonById(
+  id: string,
+): { lesson: Lesson; topic: Topic } | undefined {
   for (const t of topics) {
     const lesson = t.lessons.find((l) => l.id === id);
     if (lesson) return { lesson, topic: t };
@@ -1371,34 +1732,59 @@ export const seedQuizHistory: QuizAttempt[] = [
     createdAt: '2026-10-12T09:00:00Z',
     answers: [
       {
-        questionId: 'q-llm-1', questionText: 'What is the main training objective of a large language model?',
-        selectedOptionId: 'o2', selectedOptionText: 'Predict the next word in a sequence',
-        correctOptionId: 'o2', correctOptionText: 'Predict the next word in a sequence',
-        isCorrect: true, explanation: 'LLMs are trained with next-token prediction.',
+        questionId: 'q-llm-1',
+        questionText:
+          'What is the main training objective of a large language model?',
+        selectedOptionId: 'o2',
+        selectedOptionText: 'Predict the next word in a sequence',
+        correctOptionId: 'o2',
+        correctOptionText: 'Predict the next word in a sequence',
+        isCorrect: true,
+        explanation: 'LLMs are trained with next-token prediction.',
       },
       {
-        questionId: 'q-llm-2', questionText: 'Roughly how many characters does one token correspond to in English text?',
-        selectedOptionId: 'o2', selectedOptionText: 'About 4 characters',
-        correctOptionId: 'o2', correctOptionText: 'About 4 characters',
-        isCorrect: true, explanation: '1 token ≈ 4 characters.',
+        questionId: 'q-llm-2',
+        questionText:
+          'Roughly how many characters does one token correspond to in English text?',
+        selectedOptionId: 'o2',
+        selectedOptionText: 'About 4 characters',
+        correctOptionId: 'o2',
+        correctOptionText: 'About 4 characters',
+        isCorrect: true,
+        explanation: '1 token ≈ 4 characters.',
       },
       {
-        questionId: 'q-llm-3', questionText: 'Which stage of training teaches the model to follow instructions in a chat format?',
-        selectedOptionId: 'o1', selectedOptionText: 'Pre-training on web text',
-        correctOptionId: 'o2', correctOptionText: 'Supervised fine-tuning (SFT)',
-        isCorrect: false, explanation: 'SFT trains on instruction/response pairs.',
+        questionId: 'q-llm-3',
+        questionText:
+          'Which stage of training teaches the model to follow instructions in a chat format?',
+        selectedOptionId: 'o1',
+        selectedOptionText: 'Pre-training on web text',
+        correctOptionId: 'o2',
+        correctOptionText: 'Supervised fine-tuning (SFT)',
+        isCorrect: false,
+        explanation: 'SFT trains on instruction/response pairs.',
       },
       {
-        questionId: 'q-llm-4', questionText: 'What does a temperature of 0 do during sampling?',
-        selectedOptionId: 'o2', selectedOptionText: 'Always picks the highest-probability token',
-        correctOptionId: 'o2', correctOptionText: 'Always picks the highest-probability token',
-        isCorrect: true, explanation: 'Temperature 0 is greedy decoding.',
+        questionId: 'q-llm-4',
+        questionText: 'What does a temperature of 0 do during sampling?',
+        selectedOptionId: 'o2',
+        selectedOptionText: 'Always picks the highest-probability token',
+        correctOptionId: 'o2',
+        correctOptionText: 'Always picks the highest-probability token',
+        isCorrect: true,
+        explanation: 'Temperature 0 is greedy decoding.',
       },
       {
-        questionId: 'q-llm-5', questionText: 'What is the "lost-in-the-middle" phenomenon?',
-        selectedOptionId: 'o2', selectedOptionText: 'Models attend less reliably to information in the middle of long contexts',
-        correctOptionId: 'o2', correctOptionText: 'Models attend less reliably to information in the middle of long contexts',
-        isCorrect: true, explanation: 'Models attend less to the middle of long contexts.',
+        questionId: 'q-llm-5',
+        questionText: 'What is the "lost-in-the-middle" phenomenon?',
+        selectedOptionId: 'o2',
+        selectedOptionText:
+          'Models attend less reliably to information in the middle of long contexts',
+        correctOptionId: 'o2',
+        correctOptionText:
+          'Models attend less reliably to information in the middle of long contexts',
+        isCorrect: true,
+        explanation: 'Models attend less to the middle of long contexts.',
       },
     ],
   },
@@ -1411,34 +1797,62 @@ export const seedQuizHistory: QuizAttempt[] = [
     createdAt: '2026-10-14T09:00:00Z',
     answers: [
       {
-        questionId: 'q-agt-1', questionText: 'What distinguishes an AI agent from a single chat completion?',
-        selectedOptionId: 'o2', selectedOptionText: 'It runs the model in a loop with tools to decide next steps',
-        correctOptionId: 'o2', correctOptionText: 'It runs the model in a loop with tools to decide next steps',
-        isCorrect: true, explanation: 'An agent loops and uses tools.',
+        questionId: 'q-agt-1',
+        questionText:
+          'What distinguishes an AI agent from a single chat completion?',
+        selectedOptionId: 'o2',
+        selectedOptionText:
+          'It runs the model in a loop with tools to decide next steps',
+        correctOptionId: 'o2',
+        correctOptionText:
+          'It runs the model in a loop with tools to decide next steps',
+        isCorrect: true,
+        explanation: 'An agent loops and uses tools.',
       },
       {
-        questionId: 'q-agt-2', questionText: 'Who actually executes a tool call emitted by the model?',
-        selectedOptionId: 'o2', selectedOptionText: 'Your application code',
-        correctOptionId: 'o2', correctOptionText: 'Your application code',
-        isCorrect: true, explanation: 'Your code executes tools; the model only emits calls.',
+        questionId: 'q-agt-2',
+        questionText: 'Who actually executes a tool call emitted by the model?',
+        selectedOptionId: 'o2',
+        selectedOptionText: 'Your application code',
+        correctOptionId: 'o2',
+        correctOptionText: 'Your application code',
+        isCorrect: true,
+        explanation: 'Your code executes tools; the model only emits calls.',
       },
       {
-        questionId: 'q-agt-3', questionText: 'What is the ReAct pattern?',
-        selectedOptionId: 'o1', selectedOptionText: 'Reasoning + acting in alternating steps, observing between them',
-        correctOptionId: 'o1', correctOptionText: 'Reasoning + acting in alternating steps, observing between them',
-        isCorrect: true, explanation: 'ReAct alternates Thought and Action.',
+        questionId: 'q-agt-3',
+        questionText: 'What is the ReAct pattern?',
+        selectedOptionId: 'o1',
+        selectedOptionText:
+          'Reasoning + acting in alternating steps, observing between them',
+        correctOptionId: 'o1',
+        correctOptionText:
+          'Reasoning + acting in alternating steps, observing between them',
+        isCorrect: true,
+        explanation: 'ReAct alternates Thought and Action.',
       },
       {
-        questionId: 'q-agt-4', questionText: 'Why must you validate the arguments the model sends to a tool?',
-        selectedOptionId: 'o2', selectedOptionText: 'Because the model can emit malformed or unsafe arguments',
-        correctOptionId: 'o2', correctOptionText: 'Because the model can emit malformed or unsafe arguments',
-        isCorrect: true, explanation: 'Validate tool arguments for safety.',
+        questionId: 'q-agt-4',
+        questionText:
+          'Why must you validate the arguments the model sends to a tool?',
+        selectedOptionId: 'o2',
+        selectedOptionText:
+          'Because the model can emit malformed or unsafe arguments',
+        correctOptionId: 'o2',
+        correctOptionText:
+          'Because the model can emit malformed or unsafe arguments',
+        isCorrect: true,
+        explanation: 'Validate tool arguments for safety.',
       },
       {
-        questionId: 'q-agt-6', questionText: 'Which is an essential safeguard for any agent loop?',
-        selectedOptionId: 'o1', selectedOptionText: 'A maximum number of steps',
-        correctOptionId: 'o1', correctOptionText: 'A maximum number of steps',
-        isCorrect: true, explanation: 'A step cap prevents runaway loops.',
+        questionId: 'q-agt-6',
+        questionText: 'Which is an essential safeguard for any agent loop?',
+        selectedOptionId: 'o1',
+        selectedOptionText: 'A maximum number of steps',
+        correctOptionId: 'o1',
+        correctOptionText: 'A maximum number of steps',
+        isCorrect: true,
+        explanation: 'A step cap prevents runaway loops.',
       },
     ],
   },
@@ -1451,34 +1865,62 @@ export const seedQuizHistory: QuizAttempt[] = [
     createdAt: '2026-10-15T09:00:00Z',
     answers: [
       {
-        questionId: 'q-rag-1', questionText: 'What is the core idea of retrieval-augmented generation?',
-        selectedOptionId: 'o2', selectedOptionText: 'Retrieve relevant context at query time, then generate using it',
-        correctOptionId: 'o2', correctOptionText: 'Retrieve relevant context at query time, then generate using it',
-        isCorrect: true, explanation: 'RAG retrieves then generates.',
+        questionId: 'q-rag-1',
+        questionText:
+          'What is the core idea of retrieval-augmented generation?',
+        selectedOptionId: 'o2',
+        selectedOptionText:
+          'Retrieve relevant context at query time, then generate using it',
+        correctOptionId: 'o2',
+        correctOptionText:
+          'Retrieve relevant context at query time, then generate using it',
+        isCorrect: true,
+        explanation: 'RAG retrieves then generates.',
       },
       {
-        questionId: 'q-rag-2', questionText: 'Which is a common failure mode caused by bad chunking?',
-        selectedOptionId: 'o1', selectedOptionText: 'Chunks too small lose surrounding context needed to answer',
-        correctOptionId: 'o1', correctOptionText: 'Chunks too small lose surrounding context needed to answer',
-        isCorrect: true, explanation: 'Small chunks lose context.',
+        questionId: 'q-rag-2',
+        questionText: 'Which is a common failure mode caused by bad chunking?',
+        selectedOptionId: 'o1',
+        selectedOptionText:
+          'Chunks too small lose surrounding context needed to answer',
+        correctOptionId: 'o1',
+        correctOptionText:
+          'Chunks too small lose surrounding context needed to answer',
+        isCorrect: true,
+        explanation: 'Small chunks lose context.',
       },
       {
-        questionId: 'q-rag-4', questionText: 'What does hybrid search combine?',
-        selectedOptionId: 'o3', selectedOptionText: 'SQL and GraphQL',
-        correctOptionId: 'o1', correctOptionText: 'BM25 keyword search and vector similarity search',
-        isCorrect: false, explanation: 'Hybrid search blends BM25 and vector search.',
+        questionId: 'q-rag-4',
+        questionText: 'What does hybrid search combine?',
+        selectedOptionId: 'o3',
+        selectedOptionText: 'SQL and GraphQL',
+        correctOptionId: 'o1',
+        correctOptionText: 'BM25 keyword search and vector similarity search',
+        isCorrect: false,
+        explanation: 'Hybrid search blends BM25 and vector search.',
       },
       {
-        questionId: 'q-rag-5', questionText: 'What does a cross-encoder reranker do that a bi-encoder retriever does not?',
-        selectedOptionId: 'o1', selectedOptionText: 'Scores query and document together for finer relevance',
-        correctOptionId: 'o1', correctOptionText: 'Scores query and document together for finer relevance',
-        isCorrect: true, explanation: 'Cross-encoders score jointly.',
+        questionId: 'q-rag-5',
+        questionText:
+          'What does a cross-encoder reranker do that a bi-encoder retriever does not?',
+        selectedOptionId: 'o1',
+        selectedOptionText:
+          'Scores query and document together for finer relevance',
+        correctOptionId: 'o1',
+        correctOptionText:
+          'Scores query and document together for finer relevance',
+        isCorrect: true,
+        explanation: 'Cross-encoders score jointly.',
       },
       {
-        questionId: 'q-rag-7', questionText: 'Which RAG step usually dominates answer quality?',
-        selectedOptionId: 'o4', selectedOptionText: 'The order of API headers',
-        correctOptionId: 'o1', correctOptionText: 'The retrieval step',
-        isCorrect: false, explanation: 'Retrieval dominates RAG quality.',
+        questionId: 'q-rag-7',
+        questionText: 'Which RAG step usually dominates answer quality?',
+        selectedOptionId: 'o4',
+        selectedOptionText: 'The order of API headers',
+        correctOptionId: 'o1',
+        correctOptionText: 'The retrieval step',
+        isCorrect: false,
+        explanation: 'Retrieval dominates RAG quality.',
       },
     ],
   },

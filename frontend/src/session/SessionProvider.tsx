@@ -18,16 +18,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const register = useCallback<SessionState['register']>(async (email, password) => {
-    try {
-      const registeredUser = await api.register({ email, password });
-      setUser(registeredUser);
-      return { ok: true };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Registration failed.';
-      return { ok: false, error: message };
-    }
-  }, []);
+  const register = useCallback<SessionState['register']>(
+    async (email, password) => {
+      try {
+        const registeredUser = await api.register({ email, password });
+        setUser(registeredUser);
+        return { ok: true };
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Registration failed.';
+        return { ok: false, error: message };
+      }
+    },
+    [],
+  );
 
   const logout = useCallback<SessionState['logout']>(async () => {
     try {
@@ -42,5 +46,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [user, authReady, login, register, logout],
   );
 
-  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+  return (
+    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
+  );
 }

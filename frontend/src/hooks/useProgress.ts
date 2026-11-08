@@ -32,20 +32,25 @@ export function useProgress(userId: string | undefined) {
         }
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   /** Marks the lesson complete or undoes it; the list follows the client. */
-  const setComplete = useCallback(async (lessonId: string, complete: boolean) => {
-    if (complete) await api.markLessonComplete(lessonId);
-    else await api.undoLessonComplete(lessonId);
-    setIds((prev) => {
-      if (prev === null) return prev;
-      return complete
-        ? [...new Set([...prev, lessonId])]
-        : prev.filter((id) => id !== lessonId);
-    });
-  }, []);
+  const setComplete = useCallback(
+    async (lessonId: string, complete: boolean) => {
+      if (complete) await api.markLessonComplete(lessonId);
+      else await api.undoLessonComplete(lessonId);
+      setIds((prev) => {
+        if (prev === null) return prev;
+        return complete
+          ? [...new Set([...prev, lessonId])]
+          : prev.filter((id) => id !== lessonId);
+      });
+    },
+    [],
+  );
 
   return { ids, failed, setComplete };
 }

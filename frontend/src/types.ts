@@ -39,6 +39,16 @@ export interface Topic {
 }
 
 export interface Route {
-  name: 'topics' | 'topic' | 'lesson' | 'quiz-start' | 'quiz' | 'quiz-result' | 'history' | 'history-detail' | 'login' | 'register';
+  name:
+    | 'topics'
+    | 'topic'
+    | 'lesson'
+    | 'quiz-start'
+    | 'quiz'
+    | 'quiz-result'
+    | 'history'
+    | 'history-detail'
+    | 'login'
+    | 'register';
   params: Record<string, string>;
 }

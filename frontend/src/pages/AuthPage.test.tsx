@@ -38,7 +38,9 @@ describe('AuthPage', () => {
     const user = userEvent.setup();
     renderWithProviders(<AuthPage mode="login" />);
     await user.click(screen.getByRole('button', { name: /log in/i }));
-    expect(await screen.findByText(/Enter a valid email address|Email is required/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Enter a valid email address|Email is required/i),
+    ).toBeInTheDocument();
     expect(login).not.toHaveBeenCalled();
     expect(register).not.toHaveBeenCalled();
   });
@@ -49,7 +51,9 @@ describe('AuthPage', () => {
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'short');
     await user.click(screen.getByRole('button', { name: /create account/i }));
-    expect(await screen.findByText(/Password must be between 8 and 128 characters/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Password must be between 8 and 128 characters/i),
+    ).toBeInTheDocument();
     expect(register).not.toHaveBeenCalled();
     expect(login).not.toHaveBeenCalled();
   });
@@ -62,19 +66,29 @@ describe('AuthPage', () => {
     await user.type(screen.getByLabelText(/^password$/i), 'password123');
     await user.click(screen.getByRole('button', { name: /create account/i }));
     await waitFor(() => expect(register).toHaveBeenCalledTimes(1));
-    expect(register).toHaveBeenCalledWith({ email: 'test@example.com', password: 'password123' });
-    const callArg = register.mock.calls[0][0] as unknown as Record<string, unknown>;
+    expect(register).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'password123',
+    });
+    const callArg = register.mock.calls[0][0] as unknown as Record<
+      string,
+      unknown
+    >;
     expect(callArg).not.toHaveProperty('name');
   });
 
   it('shows duplicate email error message when register fails (409 conflict)', async () => {
     const user = userEvent.setup();
-    register.mockRejectedValue(new Error('An account with that email already exists.'));
+    register.mockRejectedValue(
+      new Error('An account with that email already exists.'),
+    );
     renderWithProviders(<AuthPage mode="register" />);
     await user.type(screen.getByLabelText(/email/i), 'dup@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'password123');
     await user.click(screen.getByRole('button', { name: /create account/i }));
-    expect(await screen.findByText(/An account with that email already exists/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/An account with that email already exists/i),
+    ).toBeInTheDocument();
   });
 
   it('shows validation error message from Error.message when register fails (400)', async () => {
@@ -95,7 +109,10 @@ describe('AuthPage', () => {
     await user.type(screen.getByLabelText(/^password$/i), 'password123');
     await user.click(screen.getByRole('button', { name: /log in/i }));
     await waitFor(() => expect(login).toHaveBeenCalledTimes(1));
-    expect(login).toHaveBeenCalledWith({ email: 'test@example.com', password: 'password123' });
+    expect(login).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'password123',
+    });
   });
 
   it('shows error and stays logged out when login fails', async () => {
@@ -110,7 +127,9 @@ describe('AuthPage', () => {
 
   it('does not render password in DOM or error messages', async () => {
     const user = userEvent.setup();
-    register.mockRejectedValue(new Error('An account with that email already exists.'));
+    register.mockRejectedValue(
+      new Error('An account with that email already exists.'),
+    );
     const { container } = renderWithProviders(<AuthPage mode="register" />);
     const pwd = 'supersecret123';
     await user.type(screen.getByLabelText(/email/i), 'dup@example.com');
