@@ -4,11 +4,12 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 
 - `T02`-`T13` became GitHub issues on 2026-10-17, where the issue number matches the task number (`T02` is #2, `T13` is #13); in those issues `Depends on: Txx` is written as `Depends on: #<issue number>`.
 - `T01` was issue #1. It was cancelled by the maintainer on 2026-10-18 and removed from this file: the scaffold it asked for contradicts the project order of `AGENTS.md`, the frontend project comes from Bolt and the Go project belongs to `T14`, after the contract. Nothing of it was carried over to another task.
-- `T27`-`T37` are still placeholders for issue numbers. When the maintainer creates them, every `Depends on: Txx` becomes `Depends on: #<issue number>`.
+- `T27`-`T37` were reworked on 2026-11-07 against the merged backend (#34-#52) and split into a/b tasks; every task has a GitHub issue (#75-#94) and every `Depends on:` line uses issue numbers. The issues were created from this file in dependency order on the same day.
 - `T02`-`T12` are done and merged into `main`; their text is kept unchanged in [`done.md`](done.md). The issues hold the same text, so open tasks are read here and finished ones there.
 - Each task fits one session and can be read on its own.
-- This file creates no issues and no code. The maintainer merges, splits and removes tasks before creating them (see [`docs/process.md`](../../process.md), "Backlog"). The issues for T02-T13 were created from this file on 2026-10-17.
+- This file creates no code. The maintainer split T27-T37 before the issues were created (see [`docs/process.md`](../../process.md), "Backlog"); the text here and in the issues is the same.
 - `T04`-`T09` were revised on 2026-10-19, after the Bolt prototype was imported and the API client of issue #3 was merged: each of them now adapts and verifies the pages that already exist in `frontend/` instead of building them, carries the lint problems of the imported files it touches, and `T09` closes the prototype stage with `bun run lint` exiting 0. Issues #4-#9 were updated in the same change. Nothing was merged, split or renumbered.
+- `T32` precedes `T31` because the frontend integration suite starts the database with the compose file. `T35a` precedes `T34b` because the Render services and deploy hooks must exist before CD can deploy to them.
 - No task adds behaviour outside version 1 of the specification.
 - Every task ends with an entry file in [`docs/ai-log/`](../../ai-log/) (rules in [`docs/ai-workflow.md`](../../ai-workflow.md)) and a committed stage artifact; the retrospective pass over that bookkeeping is T37.
 
@@ -21,11 +22,11 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 | Backend by user story | T14-T20 | US-1, US-2, US-3, US-4, US-5, US-6, US-7 |
 | Persistence: migrations, repositories, seed | T21-T25 | US-1, US-4, US-5, US-6, US-7, US-8 |
 | Backend integration tests | T26 | US-1 ... US-6 |
-| Connect frontend to backend | T27-T30 | US-1, US-2, US-3, US-4, US-5, US-6 |
-| Frontend integration tests | T31 | US-1 ... US-6 |
-| Containers | T32 | none (supports all) |
-| CI | T33 | none (supports all) |
-| CD | T34-T35 | none (supports all) |
+| Connect frontend to backend | T27a-T27b, T28a-T28b, T29a-T29b, T30a-T30b | US-1, US-2, US-3, US-4, US-5, US-6 |
+| Containers | T32a-T32b | none (supports all) |
+| Frontend integration tests | T31a-T31b | US-1 ... US-6 |
+| CI | T33a-T33b | none (supports all) |
+| CD and deployment | T34a-T34b, T35a-T35b | none (supports all) |
 | Documentation | T36-T37 | none (supports all) |
 
 Tasks not covered by a user story come from section 7 (non-functional requirements) or from course deliverables the specification does not describe; each one names its source.
@@ -546,310 +547,579 @@ Whole API exercised end to end against real database.
 - Depends on: #51.
 
 ---
-## T27 - Connect the frontend: content screens
+## T27a - Frontend: real HTTP API client (#75)
 
-**User story:** US-1
-**Depends on:** T04, T05, T26
+**User story:** US-1, US-2, US-3, US-4, US-5, US-6  
+**Depends on:** #3, #52
 
 ## Goal
 
-The topics, topic and lesson screens read from the running backend instead of the mock, so the prototype becomes the real application.
-Source: `product-spec.md` section 7 (one client module, contract), section 4 US-1.
+The `ApiClient` has a real HTTP implementation selected by one environment variable, so the screens can call the finished backend of `openapi.yaml` without knowing which implementation is active.
+Source: `product-spec.md` section 7 (one client module, contract), `openapi.yaml`.
 
 ## Acceptance criteria
 
-- [ ] The API client has a real HTTP implementation selected by one environment variable; the components are not changed to make it work.
-- [ ] The three screens load their data from the backend, and a run against the running stack shows the seeded topics and lessons.
-- [ ] HTTP failures, a 404 and a 500 map to the error and not-found states built in T04 and T05.
-- [ ] Unit tests for the client's status-to-error mapping pass, and the component tests still pass against a fake client.
-- [ ] No component contains a direct `fetch`.
-- [ ] The topics are addressed by slug, as the contract of T10 decides, so the client and the screens are reconciled with it: the prototype addressed the topics by id (`api.getTopic(topicId)`).
-- [ ] The four fields of the prototype that the data model of `product-spec.md` section 9 does not have (`icon`, `color`, `summary`, `durationMin`) are resolved: either the screens derive them or the data model changes. The contract of T10 does not carry them.
+- [ ] `VITE_API_MODE` selects `mock` or `http`, and `VITE_API_BASE_URL` is the only base-URL source; a production build never selects the mock, and no component imports the HTTP implementation.
+- [ ] The client implements the 13 existing operations plus `GET /auth/session`, using the methods, paths, request bodies and status codes of `openapi.yaml`; JSON snake_case is mapped to the camelCase screen types and back.
+- [ ] Contract responses are mapped into the screen types, including the four fields the contract does not carry: `icon` and `color` from the topic slug, `summary` from the first body paragraph, and `durationMin` from body word count at one documented rate; an empty body falls back without an error.
+- [ ] Topic operations take a slug (`getTopic(slug)`, `startQuiz(slug)`, `submitQuiz({ topicSlug, ... })`); the mock and the existing call sites are updated so the app and typecheck stay green.
+- [ ] Requests send cookies (`credentials: 'include'`); the client keeps the CSRF token from auth responses and `GET /auth/session` in memory and sends `X-CSRF-Token` on state-changing requests when a token is present.
+- [ ] HTTP and network failures raise one typed error carrying the HTTP status, the contract `code` and `message`; 401, 403 `forbidden`, 404, 409 and 500 are distinguishable.
+- [ ] Unit tests cover path/method/body mapping, snake_case conversion, the presentation-field mapper, cookies, the CSRF header and status/code mapping; `bun run lint`, `bun run typecheck` and `bun run test` pass.
 
 ## Out of scope
 
-- Quiz, accounts, progress and history (T28-T30).
+- Wiring the screens to the real client: T27b-T30b.
+- Integration tests: T31a-T31b.
+- Maintainer operations: no screen uses them.
+
+## Constraints
+
+- All backend calls go through `frontend/src/api/`; components never call `fetch`.
+- No session token, CSRF token or password in `localStorage` or `sessionStorage`.
+- Development uses the Vite proxy `/api` to the backend, so the browser stays same-origin and the backend needs no CORS change.
+- Depends on: #3, #52.
+
+---
+
+## T27b - Frontend: content screens on the backend (#76)
+
+**User story:** US-1  
+**Depends on:** #75, #4, #5, #52
+
+## Goal
+
+The topics, topic and lesson screens read the seeded backend instead of the mock.
+Source: `product-spec.md` section 4 US-1, section 7 (contract).
+
+## Acceptance criteria
+
+- [ ] The topics page renders `GET /topics` in `position` order; the topic page calls `getTopic(slug)` directly; the lesson page calls `getLesson(id)`; no screen resolves a topic id through `listTopics`.
+- [ ] A 404 from an unknown topic or lesson shows the existing not-found state; a 500 or network failure shows the retry state; loading and empty states remain.
+- [ ] A manual run against the running seeded stack shows all seven topics, their lessons in order and the lesson Markdown; no draft content is visible.
+- [ ] Component tests cover success, 404, 500 and empty against the fake client; unit tests cover the slug calls; the existing tests pass.
+
+## Out of scope
+
+- Quiz, accounts, progress and history: T28a-T30b.
 - Changing the visual design.
 
 ## Constraints
 
-- All backend calls go through `frontend/src/api/`; the base URL comes from the environment.
-- Depends on: T04, T05, T26.
+- All backend calls go through `frontend/src/api/`.
+- Topics are addressed by slug, lessons by id, as `openapi.yaml` defines.
+- Depends on: #75, #4, #5, #52.
 
 ---
 
-## T28 - Connect the frontend: quiz
+## T28a - Frontend: quiz play on the backend (#77)
 
-**User story:** US-2, US-3
-**Depends on:** T06, T16, T26
+**User story:** US-2, US-3  
+**Depends on:** #75, #76, #6, #38
 
 ## Goal
 
-The quiz flow calls the backend for the questions and for the grading, so the score the user sees is the server's score.
+Starting and submitting a quiz call the backend, so the score the user sees is the server's score.
 Source: `product-spec.md` section 4 US-2, US-3.
 
 ## Acceptance criteria
 
-- [ ] Starting a quiz calls the backend and renders exactly what it returns, including fewer than 5 questions when the topic has fewer.
-- [ ] The browser sends the question and chosen option ids and renders the returned score, correctness, correct answer and explanation; it computes none of them.
-- [ ] A rejected submission (a question from another topic) is shown as a validation error, and an unanswered question is submitted as unanswered and marked incorrect.
-- [ ] The CSRF token is sent with the submission when a session cookie is present; an anonymous submission sends no token and is still answered.
-- [ ] The correct answer is never rendered before the submission response arrives.
-- [ ] The topic of the quiz is addressed by slug, as the contract of T10 decides, so `startQuiz` and `submitQuiz` of the client are reconciled with it: the prototype used the topic id.
-- [ ] The result screen of T06 renders the question text and the selected answer text as well; the submit response of the contract of T10 carries the question id, the correctness, the text of the correct option and the explanation (US-2), so it is decided here whether the client maps the two missing texts or the screen drops them.
-- [ ] Unit tests for the client mapping and the flow pass.
+- [ ] The start and play screens load the topic by slug and call `startQuiz(slug)`; no topic id lookup remains.
+- [ ] Questions render in the server's order exactly as returned, including fewer than five when the topic has fewer; no correct option or explanation is shown before the submission response.
+- [ ] The submission sends one `{ questionId, optionId | null }` per question under the topic slug; it attaches the CSRF token when a session token is present, and an anonymous submission sends none and is still graded.
+- [ ] The screen renders the server's `score`, `total` and per-answer `isCorrect` and computes none of them; a foreign-question 400 is shown as a validation error; an unanswered question is sent as `null`.
+- [ ] Unit tests cover five and fewer questions, unanswered, the CSRF header, the 400 case and retry; the existing tests pass.
 
 ## Out of scope
 
-- Storing attempts in the UI and any history view (T30).
+- The result review mapping: T28b.
+- Storing attempts in the UI and history: T30b.
 
 ## Constraints
 
 - The quiz size is not configurable in the UI.
-- Depends on: T06, T16, T26.
+- Depends on: #75, #76, #6, #38.
 
 ---
 
-## T29 - Connect the frontend: accounts and session
+## T28b - Frontend: quiz result review (#78)
 
-**User story:** US-4
-**Depends on:** T07, T17, T26
+**User story:** US-2  
+**Depends on:** #77
 
 ## Goal
 
-Registration, log in and log out work against the backend with a cookie session, and the app knows on start whether a session exists.
+The result screen reviews the server's grading and shows the question and selected answer without regrading in the browser.
+Source: `product-spec.md` section 4 US-2.
+
+## Acceptance criteria
+
+- [ ] The result screen shows the server's score, per-question correctness, correct answer text and explanation; it computes no score or correctness.
+- [ ] Question text and selected answer text are filled from the in-memory quiz questions and answers, because `QuizSubmissionResultAnswer` does not carry them; an unanswered question shows "No answer selected".
+- [ ] The result is not written to browser storage; reloading the result route keeps the existing not-found state.
+- [ ] Unit tests cover correct, incorrect, unanswered, explanation and reload.
+
+## Out of scope
+
+- The history detail view: T30b.
+
+## Constraints
+
+- The submission response stays the source for score, correctness, correct answer and explanation.
+- Depends on: #77.
+
+---
+
+## T29a - Frontend: registration, login and logout (#79)
+
+**User story:** US-4  
+**Depends on:** #75, #7, #39
+
+## Goal
+
+Registration, login and logout call the backend with the cookie session and the CSRF token.
 Source: `product-spec.md` section 4 US-4, section 7 (security).
 
 ## Acceptance criteria
 
-- [ ] Registration, log in and log out call the backend; the duplicate email and validation errors of the contract are shown in the form.
-- [ ] The session cookie is sent by the browser and the CSRF token of the contract is attached to every state-changing request sent with a session cookie; no session token or password is written to `localStorage` or `sessionStorage`.
-- [ ] On start the app calls the current-session endpoint and shows the logged-in or anonymous state; a 401 shows the anonymous state without an error banner.
-- [ ] A session that expired while the app was open returns the UI to the anonymous state with a clear message.
-- [ ] Unit tests pass for the session state machine and the error mapping.
+- [ ] The auth page calls register, login and logout through the client; 400 validation and 409 duplicate-email messages from `Error.message` are shown in the form; success updates the session state.
+- [ ] The session cookie is `HttpOnly` and browser-managed; no session token, CSRF token or password is written to `localStorage` or `sessionStorage`.
+- [ ] The client keeps the token from register and login in memory and attaches it to logout and other state-changing requests; a 403 `forbidden` refreshes the token with `GET /auth/session` and retries once, while `authorization_error` is not retried.
+- [ ] The user type mirrors `UserSummary` (`id`, `email`); the prototype-only maintainer badge and `createdAt` are removed because the contract does not expose them.
+- [ ] Unit tests cover validation and duplicate email, CSRF attach and retry, and assert that browser storage stays empty.
 
 ## Out of scope
 
-- "Remember me", multiple devices and social login.
+- Session bootstrap and expiry handling: T29b.
+- Progress and history: T30a-T30b.
 
 ## Constraints
 
 - No token in browser storage; the cookie is the session.
-- Depends on: T07, T17, T26.
+- Depends on: #75, #7, #39.
 
 ---
 
-## T30 - Connect the frontend: progress and quiz history
+## T29b - Frontend: session bootstrap and expiry (#80)
 
-**User story:** US-5, US-6
-**Depends on:** T08, T09, T18, T19, T26
+**User story:** US-4  
+**Depends on:** #79
 
 ## Goal
 
-Completion state and quiz history come from the backend for the logged-in user, so the screens show the user's own data.
-Source: `product-spec.md` section 4 US-5, US-6.
+The app knows on start whether a session exists and returns to the anonymous state when a session expires.
+Source: `product-spec.md` section 4 US-4.
 
 ## Acceptance criteria
 
-- [ ] The completion control and the completion counts on the topic page come from the backend and survive a page reload.
-- [ ] An anonymous visitor sees no completion control and no history link.
-- [ ] The history list and the attempt detail come from the backend, newest first, showing the stored snapshot wording.
-- [ ] A 401 from a progress or history call sends the user to log in and back afterwards.
-- [ ] Unit tests pass for the loaded, empty, anonymous and error cases.
+- [ ] On mount `SessionProvider` calls `GET /auth/session`; a 200 sets the user and CSRF token, a 401 leaves the user anonymous without an error banner, and `authReady` stays false until the call settles.
+- [ ] A 401 from a protected call clears the session and shows a clear message; there is no automatic retry loop.
+- [ ] The app shell and routes render the logged-in or anonymous state from the provider only; the mock supports the same state machine for unit tests.
+- [ ] Unit tests cover the 200, 401, pending and expiry cases.
 
 ## Out of scope
 
-- Editing or deleting attempts, and any aggregation over attempts.
+- Register, login and logout forms: T29a.
+- Protecting progress and history routes: T30a-T30b.
+
+## Constraints
+
+- A missing or expired session is not an error state.
+- Depends on: #79.
+
+---
+
+## T30a - Frontend: lesson progress (#81)
+
+**User story:** US-5  
+**Depends on:** #80, #8, #41
+
+## Goal
+
+Completion state comes from the backend for the logged-in user and survives a reload.
+Source: `product-spec.md` section 4 US-5.
+
+## Acceptance criteria
+
+- [ ] Logged-in topic and lesson pages read `GET /me/progress`; mark and unmark call `PUT` and `DELETE` with the CSRF token and update the counts; the state survives a page reload.
+- [ ] An anonymous visitor sees no completion control and no history link.
+- [ ] A 401 from a progress call sends the user to login and back to the same topic or lesson; the client handles a 403 refresh and retry; a 500 shows progress as unavailable without hiding the content.
+- [ ] Unit tests cover loaded, empty, anonymous, 401 and 500 cases.
+
+## Out of scope
+
+- Quiz history: T30b.
+- Editing progress outside the lesson and topic pages.
 
 ## Constraints
 
 - The client sends no user id; the server derives the user from the session.
-- Depends on: T08, T09, T18, T19, T26.
+- Depends on: #80, #8, #41.
 
 ---
 
-## T31 - Frontend integration tests
+## T30b - Frontend: quiz history (#82)
 
-**User story:** US-1, US-2, US-3, US-4, US-5, US-6
-**Depends on:** T26, T30
+**User story:** US-6  
+**Depends on:** #80, #81, #9, #42
 
 ## Goal
 
-The frontend is proven against the running backend and database, so the wired-up screens are verified and not only unit tested.
-Source: `product-spec.md` section 7 (testing), `README.md` section 9.
+The history list and attempt detail come from the backend for the logged-in user.
+Source: `product-spec.md` section 4 US-6.
 
 ## Acceptance criteria
 
-- [ ] `frontend/tests/integration/` contains tests that run against a running backend and a seeded test database, separate from the unit tests with the fake client.
-- [ ] They cover the workflows of README section 9: browsing content, taking and submitting a quiz, registering, logging in and out, saving progress and reading quiz history.
-- [ ] `bun run test` still runs only the unit tests; a separate documented command runs the integration tests, and README section 9 lists it.
-- [ ] The suite starts from a clean database and passes twice in a row.
-- [ ] The results are recorded in `docs/artifacts/integration/frontend-results.md` and linked from the issue.
+- [ ] The list uses `GET /me/attempts` newest-first from the server; the detail uses `GET /me/attempts/{attemptId}`; the stored snapshot wording is rendered.
+- [ ] `topic_slug` is resolved to a title through `GET /topics`, with the slug as fallback when the topic is no longer published; the contract stays unchanged.
+- [ ] A nullable `question_id` is handled (the list key uses position) and an empty `selected_option_text` shows "No answer selected".
+- [ ] A 401 from a history call sends the user to login and back; 404, 500 and empty states use the existing components.
+- [ ] Unit tests cover list, detail, empty, anonymous, 401, 404 and a null question id.
 
 ## Out of scope
 
-- Visual regression tests and end-to-end browser automation.
+- Editing or deleting attempts, and aggregation over attempts.
+- Progress: T30a.
 
 ## Constraints
 
-- Integration tests stay in `frontend/tests/integration/`, never mixed with unit tests.
-- Depends on: T26, T30.
+- The client sends no user id; the server derives the user from the session.
+- Depends on: #80, #81, #9, #42.
 
 ---
 
-## T32 - Docker Compose runs the whole system
+## T32a - Containers: backend image (#83)
 
-**User story:** none - supports all stories (`product-spec.md` section 7, operability)
-**Depends on:** T31
+**User story:** none - supports all stories (`product-spec.md` section 7, operability)  
+**Depends on:** #49, #50, #52
 
 ## Goal
 
-`docker compose up --build` from a clean clone starts the database, the API and the frontend, with the seed content already loaded.
+The backend runs as a pinned container image that applies migrations and loads the seed on start.
 Source: `product-spec.md` section 7 (operability), `README.md` section 8.
 
 ## Acceptance criteria
 
-- [ ] `backend/Dockerfile` and `frontend/Dockerfile` build with pinned base image versions and no `latest` tag; the Go and Bun versions match the ones pinned elsewhere.
-- [ ] `docker-compose.yml` defines `db`, `backend` and `frontend`, with the PostgreSQL major version as the image tag, health checks and start order.
-- [ ] `docker compose up --build` from a clean clone gives a usable application in the browser with the seeded topics, lessons and questions.
-- [ ] The seed runs on first start and is safe on every later start.
-- [ ] `docker compose down -v` followed by `docker compose up --build` still works.
-- [ ] Every variable the containers read is documented in `.env.example`, with a working default for local use and no real secret.
+- [ ] `backend/Dockerfile` is multi-stage, pins the Go version from `go.mod`, builds with `go.sum` and uses no `latest` tag.
+- [ ] The runtime image contains the API binary, the `migrations/` directory and the embedded seed; the working directory makes `os.DirFS("migrations")` resolve.
+- [ ] The container reads `HOST`, `PORT`, `ENV`, `DATABASE_URL` and `SEED_*`; with a database it applies migrations, loads the seed and answers `GET /health` with 200.
+- [ ] `docker build` succeeds from a clean checkout and the image runs as a non-root user.
+
+## Out of scope
+
+- The frontend image and the compose stack: T32b.
+- Production hardening, TLS, replicas and backups.
+
+## Constraints
+
+- Pinned versions only; no secret in the image.
+- Depends on: #49, #50, #52.
+
+---
+
+## T32b - Containers: frontend image and Compose stack (#84)
+
+**User story:** none - supports all stories (`product-spec.md` section 7, operability)  
+**Depends on:** #83, #76, #78, #80, #82, #49, #50
+
+## Goal
+
+`docker compose up --build` from a clean clone starts the database, the API and the frontend, with the seed content loaded.
+Source: `product-spec.md` section 7 (operability), `README.md` section 8.
+
+## Acceptance criteria
+
+- [ ] `frontend/Dockerfile` pins the Bun and static-server versions, builds with `VITE_API_MODE=http` and `VITE_API_BASE_URL=/api`, serves the SPA and falls back to `index.html`.
+- [ ] The static server proxies `/api/` to `http://$API_UPSTREAM` (`host:port`, default `backend:8080`), so the browser is same-origin; the session cookie keeps `SameSite=Lax` and no CORS is added.
+- [ ] `docker-compose.yml` defines `db`, `backend` and `frontend`, with the pinned PostgreSQL image, health checks and start order; the backend waits for the database and the frontend for the backend.
+- [ ] `docker compose up --build` from a clean clone gives a usable application with the seeded topics, lessons and questions; `docker compose down -v` followed by `up --build` works; the seed is safe on every start.
+- [ ] `.env.example` documents every variable the containers read (`DATABASE_URL`, `POSTGRES_*`, `SEED_*`, `VITE_API_MODE`, `VITE_API_BASE_URL`, `API_UPSTREAM`) with local defaults and no real secret; the Bun version is pinned in `.bun-version`.
 
 ## Out of scope
 
 - Production hardening, TLS termination, replicas and backups.
+- Deployment: T34a-T35b.
 
 ## Constraints
 
 - Pinned versions only; the lockfiles are used in the images.
-- Depends on: T31.
+- Depends on: #83, #76, #78, #80, #82, #49, #50.
 
 ---
 
-## T33 - CI runs the tests and the checks
+## T31a - Frontend integration tests: harness, content and quiz (#85)
 
-**User story:** none - supports all stories (`product-spec.md` section 7, testing and operability)
-**Depends on:** T14
+**User story:** US-1, US-2, US-3  
+**Depends on:** #82, #84, #52
 
 ## Goal
 
-Every push and pull request runs the same checks as the ones documented in `AGENTS.md`, so broken work is caught before it is merged.
+The content and quiz screens are proven against the running backend and database, not only against the mock.
+Source: `product-spec.md` section 7 (testing), `README.md` section 9.
+
+## Acceptance criteria
+
+- [ ] `bun run test` runs only the unit tests; `frontend/tests/integration/` is excluded, and `bun run test:integration` runs only that folder.
+- [ ] The existing mock-based cross-screen tests are moved to the unit suite or rewritten, so the integration folder runs only against a real backend and a seeded test database.
+- [ ] A documented command starts an isolated test database and the backend (the compose `db` service plus `go run ./cmd/api`, or the full compose stack), applies migrations and seed, and never points at the development database; the harness keeps a cookie jar for `HttpOnly` cookies and uses unique emails per run.
+- [ ] Tests cover US-1 and US-2/US-3: topics, topic and lesson; five and fewer questions; no correctness leak before submission; server score; an anonymous result is not stored; a foreign question is rejected with 400.
+- [ ] The suite starts from a clean database and passes twice in a row.
+
+## Out of scope
+
+- Accounts, progress and history tests: T31b.
+- Browser automation and visual regression tests.
+
+## Constraints
+
+- Integration tests stay in `frontend/tests/integration/`, never mixed with unit tests.
+- Depends on: #82, #84, #52.
+
+---
+
+## T31b - Frontend integration tests: accounts, progress and history (#86)
+
+**User story:** US-4, US-5, US-6  
+**Depends on:** #85, #81, #82
+
+## Goal
+
+Registration, the session, progress and quiz history are proven against the running backend and database.
+Source: `product-spec.md` section 7 (testing), `README.md` section 9.
+
+## Acceptance criteria
+
+- [ ] Tests cover register, login, current session and logout, including a duplicate email and a CSRF refresh and retry.
+- [ ] Progress mark and unmark survive a reload and are isolated between two users.
+- [ ] A logged-in quiz submission stores an attempt; the history list and detail show the stored snapshot; another user receives 404.
+- [ ] The suite starts from a clean database and passes twice in a row; the results are recorded in `docs/artifacts/integration/frontend-results.md` and linked from the issue.
+- [ ] The integration command in README section 9 runs both integration tasks.
+
+## Out of scope
+
+- Browser automation and visual regression tests.
+- Backend integration tests: already #52.
+
+## Constraints
+
+- Integration tests stay in `frontend/tests/integration/`, never mixed with unit tests.
+- Depends on: #85, #81, #82.
+
+---
+
+## T33a - CI: unit tests and checks (#87)
+
+**User story:** none - supports all stories (`product-spec.md` section 7, testing and operability)  
+**Depends on:** #86, #84
+
+## Goal
+
+Every push and pull request runs the same non-database checks as `AGENTS.md`, so broken work is caught before it is merged.
 Source: `product-spec.md` section 7, `README.md` section 9.
 
 ## Acceptance criteria
 
-- [ ] A workflow runs on every push and pull request and executes: `(cd backend && gofmt -l . && go vet ./...)`, `(cd backend && go test ./...)`, the frontend install, lint, format check and unit tests. The `bunx @redocly/cli lint openapi.yaml` step is enabled after T10, when `openapi.yaml` exists; until then the workflow runs the other checks.
-- [ ] Go, Bun and the PostgreSQL version come from the files that pin them; every action is referenced by a pinned version.
-- [ ] A separate job runs the backend integration tests against a PostgreSQL service; it is added after T21, when the first migration exists, and it creates its own test database and service credentials from the workflow, never from a shared or developer database.
-- [ ] The workflow is green on the default branch and README section 9 says which checks CI runs.
-- [ ] No step deploys anything.
+- [ ] A workflow runs on every push and pull request and executes the backend `gofmt -l .`, `go vet ./...` and `go test ./...`, the frontend frozen install, lint, typecheck, format check and unit tests, and `bunx @redocly/cli lint openapi.yaml`.
+- [ ] The Go version comes from `go.mod`, the Bun version from `.bun-version`, and the PostgreSQL major from the compose image; every action is referenced by a pinned version.
+- [ ] A failing check fails the workflow, no step deploys anything, and the workflow is green on the default branch.
+- [ ] README section 9 lists the checks CI runs.
 
 ## Out of scope
 
-- Deployment (T34, T35), and pull request comment bots.
+- The integration job: T33b.
+- Deployment: T34a-T35b.
 
 ## Constraints
 
 - Do not run a deploy command or workflow.
-- Depends on: T14.
+- Depends on: #86, #84.
 
 ---
 
-## T34 - CD builds and publishes images
+## T33b - CI: integration tests against PostgreSQL (#88)
 
-**User story:** none - supports all stories (`product-spec.md` section 7, operability)
-**Depends on:** T32, T33
+**User story:** none - supports all stories (`product-spec.md` section 7, testing and operability)  
+**Depends on:** #87, #86, #84
 
 ## Goal
 
-When the checks pass on the default branch, the images are built once and pushed to a container registry, so deployment is a promotion of a known build.
+Every push and pull request runs the backend and frontend integration suites against a clean PostgreSQL database.
+Source: `product-spec.md` section 7, `README.md` section 9.
+
+## Acceptance criteria
+
+- [ ] A separate job starts `postgres:16-alpine`, the same major as the compose file, creates `learn_ai_engineering_test`, and supplies `TEST_DATABASE_URL` and `DATABASE_URL` from the workflow only.
+- [ ] The job runs `(cd backend && go test -p 1 -tags=integration ./...)` and the frontend integration command from T31b against a backend started on that test database; `-p 1` is required because the packages share one database.
+- [ ] The job starts from an empty database each run, applies migrations and seed, and never uses a shared or developer database.
+- [ ] A failing test fails the job, no step deploys anything, and README section 9 documents the integration command.
+
+## Out of scope
+
+- Deployment: T34a-T35b.
+- Load and performance tests.
+
+## Constraints
+
+- Never point integration tests at the development database.
+- Depends on: #87, #86, #84.
+
+---
+
+## T34a - CD: build and publish images (#89)
+
+**User story:** none - supports all stories (`product-spec.md` section 7, operability)  
+**Depends on:** #88, #83, #84
+
+## Goal
+
+When the checks pass on the default branch, the images are built once and pushed to a registry, so deployment is a promotion of a known build.
 Source: `product-spec.md` section 7 (operability), `README.md` section 10.
 
 ## Acceptance criteria
 
-- [ ] A workflow runs only after the checks of T33 pass on the default branch; it cannot be triggered by a pull request.
-- [ ] It builds the backend and frontend images and pushes them to a registry, tagged with the commit SHA and with a moving tag for the branch.
-- [ ] Registry credentials come from repository secrets; no credential is in a file or in a log.
-- [ ] A pushed image is the same image that gets deployed, and the workflow records the SHA it pushed.
-- [ ] README section 10 describes what the workflow does.
+- [ ] A workflow runs only on the default branch after the T33a and T33b checks pass; a pull request cannot trigger it.
+- [ ] It builds the backend and frontend images from their Dockerfiles and pushes them to GitHub Container Registry, tagged with the full commit SHA and with `main`.
+- [ ] Registry credentials come from `GITHUB_TOKEN` with `packages: write`; no credential is in a file or a log, and every action is pinned.
+- [ ] The job summary or an artifact records both image references and the SHA it pushed; the images can be pulled by that SHA.
+- [ ] README section 10 describes the workflow and the image names.
 
 ## Out of scope
 
-- Deploying to a host: that is T35.
+- Deploying to Render: T34b and T35b.
 - Automatic rollback.
 
 ## Constraints
 
 - Never trigger a workflow or deploy without the maintainer asking.
-- Depends on: T32, T33.
+- Depends on: #88, #83, #84.
 
 ---
 
-## T35 - Deploy to the chosen hosting target
+## T35a - Render: infrastructure definition (#90)
 
-**User story:** none - supports all stories (`product-spec.md` section 7, operability)
-**Depends on:** T34
+**User story:** none - supports all stories (`product-spec.md` section 7, operability)  
+**Depends on:** #89, #84
 
 ## Goal
 
-The application runs on a public URL, with the deployment steps written down so the same deployment can be repeated.
-Source: `product-spec.md` section 7 (operability, reproducibility), section 10 (open question), `README.md` section 10.
+The Render services, database, environment and same-origin routing are defined in the repository before the first deployment.
+Source: `product-spec.md` section 7 (operability, reproducibility), section 10 (hosting target), `README.md` section 10.
 
 ## Acceptance criteria
 
-- [ ] The hosting target is chosen by the maintainer and recorded in README section 10.
-- [ ] A documented, repeatable command or workflow deploys the backend and frontend from the images of T34 and applies the migrations; secrets come from the platform's secret store.
-- [ ] The deployed database is not the development database, and the seed has run there.
-- [ ] `docs/deployment.md` describes the steps, the environment variables, how to verify the deployment and how to roll back.
-- [ ] The deployed health endpoint answers 200, the public URL is in README section 10, and the public URL was opened and checked by a person.
-- [ ] The deployment happened once from the written steps without undocumented manual actions.
+- [ ] `render.yaml` defines a Render Postgres database, a backend web service from the GHCR backend image, a frontend web service from the GHCR frontend image, the same region, health checks and the deploy hooks.
+- [ ] The backend reads `DATABASE_URL` from the Render database, `ENV=production` and `SEED_*` from `sync: false`; the frontend reads `API_UPSTREAM` from the backend `hostport`; no secret value is in the repository.
+- [ ] The frontend is the public origin and proxies `/api/` to the backend, so the browser stays same-origin, the session cookie keeps `SameSite=Lax`, and the backend is reached over the private network.
+- [ ] `docs/deployment.md` lists the environment variables, the first-deploy steps and the rollback; `render.yaml` validates with the Render CLI or the Blueprint dashboard.
+- [ ] This task does not deploy anything.
 
 ## Out of scope
 
+- The first deployment and its verification: T35b.
 - Monitoring, alerting, backups and multiple environments.
 
 ## Constraints
 
-- Blocked until the maintainer chooses the hosting target (`product-spec.md` section 10).
-- Do not run deploy commands unless explicitly asked.
-- Depends on: T34.
+- The hosting target is Render, decided on 2026-11-07.
+- Pinned image tags; no credential or real secret in the repository.
+- Depends on: #89, #84.
 
 ---
 
-## T36 - README is runnable from a clean machine
+## T34b - CD: deploy the published images to Render (#91)
 
-**User story:** none - supports all stories (`product-spec.md` section 7, reproducibility)
-**Depends on:** T35
+**User story:** none - supports all stories (`product-spec.md` section 7, operability)  
+**Depends on:** #89, #90, #88
 
 ## Goal
 
-A person who has never seen the repository can clone it and run, test and deploy the project by following the README alone, because every documented command was executed from a clean clone.
+When the checks pass on the default branch, CD deploys the images that were just published, so the deployed build is the tested build.
+Source: `product-spec.md` section 7 (operability), `README.md` section 10.
+
+## Acceptance criteria
+
+- [ ] After T34a pushes the images on the default branch, the workflow calls each Render deploy hook with `imgURL` set to the exact SHA-tagged image; a pull request cannot deploy.
+- [ ] A failed check, build or push stops before any deploy hook, and a failed deploy fails the workflow.
+- [ ] The workflow records the deployed SHA and the Render deploy IDs; no hook or credential is logged.
+- [ ] README section 10 describes the deploy flow, and the first successful run is recorded in `docs/deployment.md`.
+
+## Out of scope
+
+- The first manual deployment and verification: T35b.
+- Automatic rollback.
+
+## Constraints
+
+- Deploy hooks and registry credentials live in repository or Render secrets, never in a file.
+- Depends on: #89, #90, #88.
+
+---
+
+## T35b - Render: first deployment and verification (#92)
+
+**User story:** none - supports all stories (`product-spec.md` section 7, operability)  
+**Depends on:** #91, #90
+
+## Goal
+
+The application runs on a public Render URL, with the deployment steps written down so the same deployment can be repeated.
+Source: `product-spec.md` section 7 (operability, reproducibility), section 10, `README.md` section 10.
+
+## Acceptance criteria
+
+- [ ] The Blueprint is applied once from `render.yaml`, the secrets are set in Render, and the first deploy uses the SHA-tagged images; migrations and seed run against the Render Postgres, not a development database.
+- [ ] The seed created seven topics with at least one published lesson and six published questions each; a person opened the public URL and checked topics, a quiz, registration, login and history.
+- [ ] The health endpoint answers 200 through the frontend origin; the public URL is in README section 10 and `docs/deployment.md`; the session cookie works over HTTPS.
+- [ ] `docs/deployment.md` contains repeatable steps, the environment variables, verification and rollback; a later deploy is the workflow of T34b, with no undocumented manual action.
+- [ ] The AI log records the commands, deploy IDs, checks and results.
+
+## Out of scope
+
+- Monitoring, alerting, backups and multiple environments.
+- Custom domain and TLS beyond the Render default.
+
+## Constraints
+
+- Do not run deploy commands unless explicitly asked.
+- The hosting target is Render, decided on 2026-11-07.
+- Depends on: #91, #90.
+
+---
+
+## T36 - README is runnable from a clean machine (#93)
+
+**User story:** none - supports all stories (`product-spec.md` section 7, reproducibility)  
+**Depends on:** #92, #86, #84, #88
+
+## Goal
+
+A person who has never seen the repository can clone it and run, test and deploy the project by following the README alone.
 Source: `product-spec.md` section 7 (reproducibility), `README.md` section 11.
 
 ## Acceptance criteria
 
-- [ ] Every command in README sections 8, 9 and 11 is executed from a clean clone in this task and works exactly as written; any correction is a change to the README, not to the command list.
+- [ ] Every command in README sections 8, 9, 10 and 11 is executed from a clean clone in this task and works exactly as written; any correction is a change to the README.
 - [ ] The status table matches reality: finished items no longer say _planned_, and unfinished ones say what is missing.
-- [ ] The repository structure section matches the real tree, including every new environment variable in `.env.example` and the integration test command from T31.
-- [ ] The links to the repository, the issue tracker and the live application are filled in.
-- [ ] The AI workflow entry for this task records which commands were run from the clean clone and their result.
+- [ ] The repository structure matches the real tree, including the Dockerfiles, `docker-compose.yml`, `render.yaml`, every variable in `.env.example` and the integration test command.
+- [ ] The links to the repository, the issue tracker and the live application are filled in; the deployment section names Render and the public URL.
+- [ ] The AI workflow entry records which commands were run from the clean clone and their result.
 
 ## Out of scope
 
 - Translations, screenshots and videos.
+- New features.
 
 ## Constraints
 
 - No command is documented that was not run.
-- Depends on: T35.
+- Depends on: #92, #86, #84, #88.
 
 ---
 
-## T37 - Complete the AI workflow log and the stage artifacts
+## T37 - Complete the AI workflow log and the stage artifacts (#94)
 
-**User story:** none - supports all stories (`AGENTS.md` "Conventions", `product-spec.md` section 7)
-**Depends on:** T36
+**User story:** none - supports all stories (`AGENTS.md` "Conventions", `product-spec.md` section 7)  
+**Depends on:** #93
 
 ## Goal
 
@@ -858,10 +1128,10 @@ Source: `AGENTS.md` "Conventions" (log notable AI-assisted steps), `README.md` s
 
 ## Acceptance criteria
 
-- [ ] `docs/ai-log/` has one entry file per closed issue, following the entry template in `docs/ai-workflow.md`: tool, prompt, context given, result, artifacts and where they were used, what was changed by hand, verification, links.
+- [ ] `docs/ai-log/` has one entry file per closed issue from the backend stage onward, following the template in `docs/ai-workflow.md`: tool, prompt, context given, result, artifacts and where they were used, what was changed by hand, verification, links.
 - [ ] Every stage artifact in `docs/artifacts/` is linked from its log entry and from its issue.
 - [ ] No secret, credential or personal data appears in the log or in any artifact; the sources of the skills installed in T02 are recorded.
-- [ ] `docs/process.md` and `README.md` section 4 describe the workflow as it was actually followed, including anything that changed.
+- [ ] `docs/process.md` and README section 4 describe the workflow as it was actually followed, including anything that changed.
 - [ ] The log entries reference the commits and issues they belong to.
 
 ## Out of scope
@@ -871,11 +1141,11 @@ Source: `AGENTS.md` "Conventions" (log notable AI-assisted steps), `README.md` s
 ## Constraints
 
 - Never record secrets or private data.
-- Depends on: T36.
-
----
+- Depends on: #93.
 
 ## Assumptions
+
+Status on 2026-11-07: assumptions 1-6 are implemented by the merged backend (#34-#52); they stay here as the record the backend followed.
 
 1. **`/health` in the contract.** The specification does not describe a health endpoint, but the containers and the deployment check in T32-T35 need one. It is added to the contract in T10.
 2. **Addressing.** Topics are addressed by slug (the data model has one); lessons are addressed by id (the data model has no lesson slug).
@@ -887,11 +1157,13 @@ Source: `AGENTS.md` "Conventions" (log notable AI-assisted steps), `README.md` s
 
 ## Decisions
 
-Answered by the maintainer on 2026-10-17 and binding for the tasks above.
+Answered by the maintainer on 2026-10-17; items 4-5 and 7-8 were updated on 2026-11-07 and are binding for the tasks above.
 
 1. **Passwords.** Registration accepts at least 8 and at most 128 characters; passwords are hashed with Argon2id. The length rule goes into the contract in T11; the algorithm is chosen in T17.
 2. **Session cookie `SameSite`.** `Lax`, so normal navigation back to the site keeps working.
 3. **Seed content.** Drafted with AI assistance, reviewed by hand and committed as seed files. One lesson and six questions per topic is the minimum, so T24 stays one session.
-4. **Frontend hosting.** The frontend is served by its own static server image; T32 assumes a static server image plus an API base URL from the environment.
-5. **Hosting target.** The maintainer chooses it before the deployment task starts; the image task (T34) is not blocked by that choice.
-6. **Task count.** The list stays as it is, with one exception: T22 and T23 were merged into a single persistence task, so the list ends at T37.
+4. **Frontend hosting.** The frontend is served by its own static-server image, which also proxies `/api/` to the backend so the browser stays same-origin. The API base URL is `/api`; no CORS is added.
+5. **Hosting target.** Render, decided on 2026-11-07. T35a defines a Render Blueprint with Render Postgres and the two Docker images; T35b performs the first deployment. The image task (T34a) is not blocked by the deployment.
+6. **Task count.** The list stays as it is, with T27-T35 split into a/b tasks and T36-T37 unchanged, so the list still ends at T37.
+7. **Integration commands.** Backend integration tests run as `(cd backend && go test -p 1 -tags=integration ./...)`; `-p 1` is required because the packages share one test database. Frontend integration tests run as `(cd frontend && bun run test:integration)`.
+8. **Same-origin deployment.** The frontend image proxies `/api/` to the backend in Compose and on Render, so session cookies keep `SameSite=Lax` and the backend needs no CORS configuration.
