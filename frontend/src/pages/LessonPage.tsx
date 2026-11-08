@@ -10,8 +10,6 @@ import { useProgress } from '@/hooks/useProgress';
 import { Link, Spinner, EmptyState, ErrorState, Badge } from '@/components/ui';
 import { Markdown } from '@/components/Markdown';
 
-// The client's not-found signal is an error whose status is 404; message text
-// is never matched, so a real HTTP 404 maps onto the same check later (T27).
 function isNotFound(error: unknown): boolean {
   return typeof error === 'object' && error !== null
     && (error as { status?: number }).status === 404;
@@ -28,9 +26,6 @@ export function LessonPage({ id }: { id: string }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // The lesson and its topic both arrive through the API client: getLesson()
-  // first, then getTopic() for the lesson's topicId. No fake latency — the
-  // loading state lasts exactly as long as the client promises are pending.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -39,8 +34,16 @@ export function LessonPage({ id }: { id: string }) {
     setRecord(undefined);
     (async () => {
       try {
-        const lesson = await api.getLesson(id);
-        const topic = await api.getTopic(lesson.topicId);
+        const [lesson, topics] = await Promise.all([api.getLesson(id), api.listTopics()]);
+        const summary = topics.find((t) => t.id === lesson.topicId);
+        if (!summary) {
+          if (!cancelled) {
+            setNotFound(true);
+            setLoading(false);
+          }
+          return;
+        }
+        const topic = await api.getTopic(summary.slug);
         if (!cancelled) {
           setRecord({ lesson, topic });
           setLoading(false);

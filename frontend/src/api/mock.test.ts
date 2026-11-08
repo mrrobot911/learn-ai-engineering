@@ -3,16 +3,16 @@ import { getQuestionsForTopic, seedQuizHistory, topics } from '@/data/content';
 import { mockClient, resetMockState } from './mock';
 import type { QuizQuestion } from './types';
 
+const TOPIC_SLUG = 'llms';
 const TOPIC_ID = 'top-llms';
 const DEMO = { email: 'demo@forge.dev', password: 'password123' };
 
-// The fixture question and the client question for the same id.
 const fixtures = new Map(getQuestionsForTopic(TOPIC_ID).map((q) => [q.id, q]));
 
 async function startAndAnswerFirstOption(): Promise<QuizQuestion[]> {
-  const questions = await mockClient.startQuiz(TOPIC_ID);
+  const questions = await mockClient.startQuiz(TOPIC_SLUG);
   await mockClient.submitQuiz({
-    topicId: TOPIC_ID,
+    topicSlug: TOPIC_SLUG,
     answers: questions.map((question) => ({
       questionId: question.id,
       optionId: question.options[0].id,
@@ -33,7 +33,7 @@ describe('content operations', () => {
   });
 
   it('getTopic resolves with the fixture topic and its lessons', async () => {
-    const topic = await mockClient.getTopic(TOPIC_ID);
+    const topic = await mockClient.getTopic(TOPIC_SLUG);
     expect(topic.id).toBe(TOPIC_ID);
     expect(topic.lessons).toEqual(topics[0].lessons);
   });
@@ -50,7 +50,7 @@ describe('content operations', () => {
 
 describe('quiz operations', () => {
   it('startQuiz resolves with 5 questions from the topic', async () => {
-    const questions = await mockClient.startQuiz(TOPIC_ID);
+    const questions = await mockClient.startQuiz(TOPIC_SLUG);
     expect(questions).toHaveLength(5);
     for (const question of questions) {
       expect(fixtures.has(question.id)).toBe(true);
@@ -58,7 +58,7 @@ describe('quiz operations', () => {
   });
 
   it('startQuiz never sends the correct option or the explanation', async () => {
-    const questions = await mockClient.startQuiz(TOPIC_ID);
+    const questions = await mockClient.startQuiz(TOPIC_SLUG);
     for (const question of questions) {
       expect(Object.keys(question).sort()).toEqual(['id', 'options', 'text']);
       for (const option of question.options) {
@@ -71,9 +71,9 @@ describe('quiz operations', () => {
   });
 
   it('submitQuiz grades the submission from the fixture answers', async () => {
-    const questions = await mockClient.startQuiz(TOPIC_ID);
+    const questions = await mockClient.startQuiz(TOPIC_SLUG);
     const result = await mockClient.submitQuiz({
-      topicId: TOPIC_ID,
+      topicSlug: TOPIC_SLUG,
       answers: questions.map((question) => ({
         questionId: question.id,
         optionId: fixtures.get(question.id)!.options.find((option) => option.isCorrect)!.id,
@@ -89,9 +89,9 @@ describe('quiz operations', () => {
   });
 
   it('submitQuiz counts an unanswered question as incorrect', async () => {
-    const questions = await mockClient.startQuiz(TOPIC_ID);
+    const questions = await mockClient.startQuiz(TOPIC_SLUG);
     const result = await mockClient.submitQuiz({
-      topicId: TOPIC_ID,
+      topicSlug: TOPIC_SLUG,
       answers: [{ questionId: questions[0].id, optionId: null }],
     });
     expect(result).toMatchObject({ score: 0, total: 1 });
@@ -107,7 +107,7 @@ describe('quiz operations', () => {
     const other = getQuestionsForTopic('top-rag')[0];
     await expect(
       mockClient.submitQuiz({
-        topicId: TOPIC_ID,
+        topicSlug: TOPIC_SLUG,
         answers: [{ questionId: other.id, optionId: other.options[0].id }],
       }),
     ).rejects.toThrow();
@@ -137,6 +137,15 @@ describe('account operations', () => {
     await mockClient.login(DEMO);
     await mockClient.logout();
     await expect(mockClient.getProgress()).rejects.toThrow();
+  });
+
+  it('getSession returns the current user when logged in', async () => {
+    await mockClient.login(DEMO);
+    await expect(mockClient.getSession()).resolves.toMatchObject({ email: 'demo@forge.dev' });
+  });
+
+  it('getSession rejects when anonymous', async () => {
+    await expect(mockClient.getSession()).rejects.toMatchObject({ status: 401 });
   });
 });
 

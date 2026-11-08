@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ListChecks, Trophy } from 'lucide-react';
 import { api } from '@/api';
-import type { QuizAnswerResult, QuizQuestion, QuizResult, TopicSummary } from '@/api';
+import type { QuizAnswerResult, QuizQuestion, QuizResult, Topic } from '@/api';
 import { Link, Spinner, EmptyState, ErrorState, ProgressBar } from '@/components/ui';
 import { routeToHash } from '@/router';
+
+function isNotFound(error: unknown): boolean {
+  return typeof error === 'object' && error !== null
+    && (error as { status?: number }).status === 404;
+}
 
 // The play screen hands the submission response to the result screen in memory
 // only: nothing is written to browser storage, so reloading the result route
@@ -11,15 +16,12 @@ import { routeToHash } from '@/router';
 let submittedResult: { id: string; slug: string; topicTitle: string; result: QuizResult } | null = null;
 
 export function QuizStartPage({ slug }: { slug: string }) {
-  const [topic, setTopic] = useState<TopicSummary | null>(null);
+  const [topic, setTopic] = useState<Topic | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
-  // The route slug resolves through the API client only: listTopics() supplies
-  // the summary the start screen shows. No fake latency — the loading state
-  // lasts exactly as long as the client promise is pending.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -28,18 +30,16 @@ export function QuizStartPage({ slug }: { slug: string }) {
     setTopic(null);
     (async () => {
       try {
-        const summaries = await api.listTopics();
-        const summary = summaries.find((t) => t.slug === slug);
+        const loaded = await api.getTopic(slug);
         if (!cancelled) {
-          if (summary) setTopic(summary);
-          else setNotFound(true);
+          setTopic(loaded);
           setLoading(false);
         }
-      } catch {
-        if (!cancelled) {
-          setErrored(true);
-          setLoading(false);
-        }
+      } catch (error) {
+        if (cancelled) return;
+        if (isNotFound(error)) setNotFound(true);
+        else setErrored(true);
+        setLoading(false);
       }
     })();
     return () => { cancelled = true; };
@@ -90,7 +90,7 @@ export function QuizStartPage({ slug }: { slug: string }) {
 }
 
 export function QuizPlayPage({ slug }: { slug: string }) {
-  const [topic, setTopic] = useState<TopicSummary | null>(null);
+  const [topic, setTopic] = useState<Topic | null>(null);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -101,8 +101,6 @@ export function QuizPlayPage({ slug }: { slug: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
 
-  // The questions come from startQuiz() and nothing else: the browser never
-  // picks them and never sees a correct option before the submission response.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -114,26 +112,17 @@ export function QuizPlayPage({ slug }: { slug: string }) {
     setAnswers({});
     (async () => {
       try {
-        const summaries = await api.listTopics();
-        const summary = summaries.find((t) => t.slug === slug);
-        if (!summary) {
-          if (!cancelled) {
-            setNotFound(true);
-            setLoading(false);
-          }
-          return;
-        }
-        const questions = await api.startQuiz(summary.id);
+        const [loaded, questions] = await Promise.all([api.getTopic(slug), api.startQuiz(slug)]);
         if (!cancelled) {
-          setTopic(summary);
+          setTopic(loaded);
           setQuizQuestions(questions);
           setLoading(false);
         }
-      } catch {
-        if (!cancelled) {
-          setErrored(true);
-          setLoading(false);
-        }
+      } catch (error) {
+        if (cancelled) return;
+        if (isNotFound(error)) setNotFound(true);
+        else setErrored(true);
+        setLoading(false);
       }
     })();
     return () => { cancelled = true; };
@@ -173,7 +162,6 @@ export function QuizPlayPage({ slug }: { slug: string }) {
   const isLast = current === quizQuestions.length - 1;
 
   function selectOption(optionId: string) {
-    // Activating the selected option again returns the question to unanswered.
     setAnswers((prev) => ({ ...prev, [q.id]: prev[q.id] === optionId ? null : optionId }));
   }
 
@@ -187,7 +175,7 @@ export function QuizPlayPage({ slug }: { slug: string }) {
     setSubmitError(false);
     try {
       const result = await api.submitQuiz({
-        topicId: topic.id,
+        topicSlug: slug,
         answers: quizQuestions.map((question) => ({
           questionId: question.id,
           optionId: answers[question.id] ?? null,
@@ -246,7 +234,6 @@ export function QuizPlayPage({ slug }: { slug: string }) {
         </div>
       </div>
 
-      {/* Question dots */}
       <div className="flex items-center justify-center gap-1.5 mt-6">
         {quizQuestions.map((qq, i) => {
           const isAnswered = answers[qq.id] !== undefined && answers[qq.id] !== null;
@@ -266,7 +253,6 @@ export function QuizPlayPage({ slug }: { slug: string }) {
         })}
       </div>
 
-      {/* Nav buttons */}
       <div className="flex items-center justify-between mt-6">
         <button
           type="button"

@@ -1,7 +1,7 @@
 import {
   getLessonById,
   getQuestionsForTopic,
-  getTopicById,
+  getTopicBySlug,
   seedQuizHistory,
   topics,
 } from '@/data/content';
@@ -73,9 +73,9 @@ function notFoundError(message: string): Error & { status: number } {
   return error;
 }
 
-function requireTopic(topicId: string): FixtureTopic {
-  const topic = getTopicById(topicId);
-  if (!topic) throw new Error(`No topic with id "${topicId}".`);
+function requireTopicBySlug(slug: string): FixtureTopic {
+  const topic = getTopicBySlug(slug);
+  if (!topic) throw notFoundError(`No topic with slug "${slug}".`);
   return topic;
 }
 
@@ -132,8 +132,8 @@ export const mockClient: ApiClient = {
     return topics;
   },
 
-  async getTopic(topicId) {
-    return requireTopic(topicId);
+  async getTopic(slug) {
+    return requireTopicBySlug(slug);
   },
 
   async getLesson(lessonId) {
@@ -142,18 +142,19 @@ export const mockClient: ApiClient = {
     return found.lesson;
   },
 
-  async startQuiz(topicId) {
-    const questions = getQuestionsForTopic(topicId);
-    if (questions.length === 0) throw new Error(`Topic "${topicId}" has no published questions.`);
+  async startQuiz(slug) {
+    const topic = requireTopicBySlug(slug);
+    const questions = getQuestionsForTopic(topic.id);
+    if (questions.length === 0) throw new Error(`Topic "${slug}" has no published questions.`);
     return pickRandom(questions, QUIZ_SIZE).map(toQuizQuestion);
   },
 
-  async submitQuiz({ topicId, answers }) {
-    const topic = requireTopic(topicId);
-    const byId = new Map(getQuestionsForTopic(topicId).map((q) => [q.id, q]));
+  async submitQuiz({ topicSlug, answers }) {
+    const topic = requireTopicBySlug(topicSlug);
+    const byId = new Map(getQuestionsForTopic(topic.id).map((q) => [q.id, q]));
     const graded = answers.map((answer) => {
       const question = byId.get(answer.questionId);
-      if (!question) throw new Error(`Question "${answer.questionId}" does not belong to topic "${topicId}".`);
+      if (!question) throw new Error(`Question "${answer.questionId}" does not belong to topic "${topicSlug}".`);
       return grade(question, answer.optionId);
     });
     const result: QuizResult = {
@@ -166,7 +167,7 @@ export const mockClient: ApiClient = {
       attempts.unshift({
         id: `att-mock-${nextAttemptNumber++}`,
         userId: sessionUserId,
-        topicId,
+        topicId: topic.id,
         topicTitle: topic.title,
         createdAt: new Date().toISOString(),
         ...result,
@@ -202,6 +203,21 @@ export const mockClient: ApiClient = {
 
   async logout() {
     sessionUserId = null;
+  },
+
+  async getSession() {
+    if (!sessionUserId) {
+      const error = new Error('No valid session.') as Error & { status: number };
+      error.status = 401;
+      throw error;
+    }
+    const user = users.find((u) => u.id === sessionUserId);
+    if (!user) {
+      const error = new Error('No valid session.') as Error & { status: number };
+      error.status = 401;
+      throw error;
+    }
+    return user;
   },
 
   async getProgress() {

@@ -42,7 +42,7 @@ export interface QuizAnswerInput {
 }
 
 export interface QuizSubmission {
-  topicId: string;
+  topicSlug: string;
   answers: QuizAnswerInput[];
 }
 
@@ -91,13 +91,14 @@ export interface User {
 /** The only surface the frontend has on the backend (product-spec.md section 7). */
 export interface ApiClient {
   listTopics(): Promise<TopicSummary[]>;
-  getTopic(topicId: string): Promise<Topic>;
+  getTopic(slug: string): Promise<Topic>;
   getLesson(lessonId: string): Promise<Lesson>;
-  startQuiz(topicId: string): Promise<QuizQuestion[]>;
+  startQuiz(slug: string): Promise<QuizQuestion[]>;
   submitQuiz(submission: QuizSubmission): Promise<QuizResult>;
   register(credentials: Credentials): Promise<User>;
   login(credentials: Credentials): Promise<User>;
   logout(): Promise<void>;
+  getSession(): Promise<User>;
   getProgress(): Promise<string[]>;
   markLessonComplete(lessonId: string): Promise<void>;
   undoLessonComplete(lessonId: string): Promise<void>;
