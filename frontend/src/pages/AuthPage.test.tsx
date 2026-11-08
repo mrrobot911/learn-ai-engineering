@@ -67,7 +67,7 @@ describe('AuthPage', () => {
     expect(callArg).not.toHaveProperty('name');
   });
 
-  it('shows duplicate email error message when register fails', async () => {
+  it('shows duplicate email error message when register fails (409 conflict)', async () => {
     const user = userEvent.setup();
     register.mockRejectedValue(new Error('An account with that email already exists.'));
     renderWithProviders(<AuthPage mode="register" />);
@@ -75,6 +75,16 @@ describe('AuthPage', () => {
     await user.type(screen.getByLabelText(/^password$/i), 'password123');
     await user.click(screen.getByRole('button', { name: /create account/i }));
     expect(await screen.findByText(/An account with that email already exists/i)).toBeInTheDocument();
+  });
+
+  it('shows validation error message from Error.message when register fails (400)', async () => {
+    const user = userEvent.setup();
+    register.mockRejectedValue(new Error('Email is invalid.'));
+    renderWithProviders(<AuthPage mode="register" />);
+    await user.type(screen.getByLabelText(/email/i), 'valid@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'password123');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+    expect(await screen.findByText('Email is invalid.')).toBeInTheDocument();
   });
 
   it('calls api.login once with email and password only on valid login', async () => {
