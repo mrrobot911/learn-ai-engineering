@@ -38,3 +38,61 @@ jobs:
 
       - name: Run unit tests (make test)
         run: make test
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: learn
+          POSTGRES_PASSWORD: learn
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd "pg_isready -U learn -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    env:
+      POSTGRES_USER: learn
+      POSTGRES_PASSWORD: learn
+      POSTGRES_ADMIN_USER: learn
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: postgres://learn:learn@localhost:5432/learn_ai_engineering_test?sslmode=disable
+      TEST_DATABASE_URL: postgres://learn:learn@localhost:5432/learn_ai_engineering_test?sslmode=disable
+      TEST_INTEGRATION_EXTERNAL: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Go (version from go.mod)
+        uses: actions/setup-go@v5.5.0
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Set up Bun (version from .bun-version)
+        uses: oven-sh/setup-bun@v2.0.2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Install frontend dependencies
+        run: cd frontend && bun install --frozen-lockfile
+
+      - name: Create isolated integration test database
+        env:
+          PGPASSWORD: learn
+        run: |
+          psql -v ON_ERROR_STOP=1 -h localhost -p 5432 -U learn -d postgres \
+            -c "DROP DATABASE IF EXISTS learn_ai_engineering_test;"
+          psql -v ON_ERROR_STOP=1 -h localhost -p 5432 -U learn -d postgres \
+            -c "CREATE DATABASE learn_ai_engineering_test OWNER learn;"
+
+      - name: Run integration tests (make test-integration)
+        run: make test-integration

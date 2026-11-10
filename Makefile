@@ -8,6 +8,16 @@ test:
 # Integration tests on an isolated test database (never the dev database).
 # Backend runs with -p 1 because packages share one database.
 test-integration:
+ifeq ($(TEST_INTEGRATION_EXTERNAL),1)
+	@echo "==> Running integration tests against external database (CI mode)"
+	@DB_USER="$${POSTGRES_USER:-learn}"; DB_PASSWORD="$${POSTGRES_PASSWORD:-learn}"; TEST_DB="$${BACKEND_TEST_DB:-learn_ai_engineering_test}"; \
+	DB_HOST="$${POSTGRES_HOST:-localhost}"; DB_PORT="$${POSTGRES_PORT:-5432}"; \
+	if [ -z "$${TEST_DATABASE_URL:-}" ]; then \
+		TEST_DATABASE_URL="postgres://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$TEST_DB?sslmode=disable"; \
+	fi; \
+	$(MAKE) -s _test-integration-backend TEST_DATABASE_URL="$$TEST_DATABASE_URL"
+	bash scripts/frontend-integration.sh
+else
 	docker compose up -d db
 	@echo "==> Waiting for database"
 	@for i in $$(seq 1 30); do \
@@ -24,6 +34,7 @@ test-integration:
 	TEST_DATABASE_URL="postgres://$$DB_USER:$$DB_PASSWORD@localhost:$${DB_PORT:-5432}/$$TEST_DB?sslmode=disable" \
 		$(MAKE) -s _test-integration-backend TEST_DATABASE_URL="$$TEST_DATABASE_URL"
 	bash scripts/frontend-integration.sh
+endif
 
 _test-integration-backend:
 	(cd backend && TEST_DATABASE_URL="$(TEST_DATABASE_URL)" go test -tags=integration -p 1 ./...)

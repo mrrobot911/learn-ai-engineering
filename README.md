@@ -135,7 +135,7 @@ Makefile targets (run from the repository root):
 - `make check` — checks that do not change files (`gofmt -l` and `go vet`, frontend `typecheck`, `lint` and `format:check`, and Redocly lint of `openapi.yaml`).
 - `make up` / `make down` — start and stop the Compose stack.
 
-CI runs on every push and pull request and calls `make check` and `make test` (see `.github/workflows/ci.yml`). Integration tests are run separately (T33b) via `make test-integration`.
+CI runs on every push and pull request (see `.github/workflows/ci.yml`). The `check-and-test` job calls `make check` and `make test`; a separate `integration-tests` job starts `postgres:16-alpine` (same major as `docker-compose.yml`), creates an isolated `learn_ai_engineering_test` database, supplies `TEST_DATABASE_URL` and `DATABASE_URL` from the workflow only, and runs `make test-integration`. Integration tests always use an isolated test database (never the development database). Failing tests fail the job; no deploy step runs.
 
 ```bash
 # equivalent commands
