@@ -1,0 +1,14 @@
+## 2026-11-10 — Rework T34/T35 deployment tasks and issues #89-#92
+- Tool: OpenCode (Big Pickle); `gh`; Context7.
+- Task given: Render builds from the repo Dockerfiles — no registry, image push, deploy hook or `render.yaml`. Cancel T34a (#89)/T35b (#92) like T01; rewrite T35a (#90) as the Render dashboard setup and T34b (#91) as the CD gate plus first-deployment verification; fix every other mention.
+- Context given (files by name): `docs/artifacts/backlog/tasks.md`, `docs/task-template.md`, `docs/ai-workflow.md`, issues #1, #84, #87, #88, #89-#93, Render docs (`https://render.com/docs/deploys#configuring-auto-deploys`).
+- Result (5-8 lines):
+  - `tasks.md`: T34a/T35b removed without renumbering; T35a/T34b rewritten; Order table, header note, Decisions 5-6, Assumption 1 and the T32b/T33a/T33b lines updated.
+  - #89/#92 closed as not planned with `wontfix` and a comment; #90/#91 titles and bodies rewritten.
+  - #84, #87, #88 and #93 bodies synced from `tasks.md`.
+  - Render option verified as *After CI Checks Pass*; no deploy on zero checks or any failure.
+  - No registry, image push, deploy hook or `render.yaml`; secrets stay in Render environment variables.
+- Artifacts (path) and where the next stage used them: this entry; `tasks.md` and the issue bodies are the backlog for T35a, T34b and T36.
+- Accepted / rejected / changed by hand, and why: _(left for the maintainer)_
+- Verification (commands and exit codes, manual checks): `gh issue view` #89/#92 → `CLOSED`, `NOT_PLANNED`, `wontfix`; issue body/title vs `tasks.md` → OK for #84, #87, #88, #90, #91, #93; `rg` sweep → only intended negative statements remain.
+- Links (commit, issue, pull request, tool session): #84, #87, #88, #89, #90, #91, #92, #93; no commit yet.

@@ -4,12 +4,13 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 
 - `T02`-`T13` became GitHub issues on 2026-10-17, where the issue number matches the task number (`T02` is #2, `T13` is #13); in those issues `Depends on: Txx` is written as `Depends on: #<issue number>`.
 - `T01` was issue #1. It was cancelled by the maintainer on 2026-10-18 and removed from this file: the scaffold it asked for contradicts the project order of `AGENTS.md`, the frontend project comes from Bolt and the Go project belongs to `T14`, after the contract. Nothing of it was carried over to another task.
+- `T34a` (#89) and `T35b` (#92) were cancelled by the maintainer on 2026-11-10 and removed from this file: Render builds the backend and frontend images from the repository Dockerfiles, so there is no registry, image push, deploy hook or `render.yaml`. Nothing was renumbered. Deployment happens only after the CI checks of `T33a` and `T33b` pass, through Render's *After CI Checks Pass* Auto-Deploy setting.
 - `T27`-`T37` were reworked on 2026-11-07 against the merged backend (#34-#52) and split into a/b tasks; every task has a GitHub issue (#75-#94) and every `Depends on:` line uses issue numbers. The issues were created from this file in dependency order on the same day.
 - `T02`-`T12` are done and merged into `main`; their text is kept unchanged in [`done.md`](done.md). The issues hold the same text, so open tasks are read here and finished ones there.
 - Each task fits one session and can be read on its own.
 - This file creates no code. The maintainer split T27-T37 before the issues were created (see [`docs/process.md`](../../process.md), "Backlog"); the text here and in the issues is the same.
 - `T04`-`T09` were revised on 2026-10-19, after the Bolt prototype was imported and the API client of issue #3 was merged: each of them now adapts and verifies the pages that already exist in `frontend/` instead of building them, carries the lint problems of the imported files it touches, and `T09` closes the prototype stage with `bun run lint` exiting 0. Issues #4-#9 were updated in the same change. Nothing was merged, split or renumbered.
-- `T32` precedes `T31` because the frontend integration suite starts the database with the compose file. `T35a` precedes `T34b` because the Render services and deploy hooks must exist before CD can deploy to them.
+- `T32` precedes `T31` because the frontend integration suite starts the database with the compose file. `T35a` precedes `T34b` because the Render services and the Auto-Deploy setting must exist before the deploy gate can be verified.
 - No task adds behaviour outside version 1 of the specification.
 - Every task ends with an entry file in [`docs/ai-log/`](../../ai-log/) (rules in [`docs/ai-workflow.md`](../../ai-workflow.md)) and a committed stage artifact; the retrospective pass over that bookkeeping is T37.
 
@@ -26,7 +27,7 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 | Containers | T32a-T32b | none (supports all) |
 | Frontend integration tests | T31a-T31b | US-1 ... US-6 |
 | CI | T33a-T33b | none (supports all) |
-| CD and deployment | T34a-T34b, T35a-T35b | none (supports all) |
+| CD and deployment | T35a, T34b | none (supports all) |
 | Documentation | T36-T37 | none (supports all) |
 
 Tasks not covered by a user story come from section 7 (non-functional requirements) or from course deliverables the specification does not describe; each one names its source.
@@ -838,7 +839,7 @@ Source: `product-spec.md` section 7 (operability), `README.md` section 8.
 ## Out of scope
 
 - Production hardening, TLS termination, replicas and backups.
-- Deployment: T34a-T35b.
+- Deployment: T35a and T34b.
 
 ## Constraints
 
@@ -928,7 +929,7 @@ Source: `product-spec.md` section 7, `README.md` section 9.
 ## Out of scope
 
 - The integration job: T33b (it calls `make test-integration`).
-- Deployment: T34a-T35b.
+- Deployment: T35a and T34b.
 
 ## Constraints
 
@@ -957,7 +958,7 @@ Source: `product-spec.md` section 7, `README.md` section 9.
 
 ## Out of scope
 
-- Deployment: T34a-T35b.
+- Deployment: T35a and T34b.
 - Load and performance tests.
 
 ## Constraints
@@ -967,131 +968,77 @@ Source: `product-spec.md` section 7, `README.md` section 9.
 
 ---
 
-## T34a - CD: build and publish images (#89)
+## T35a - Render: service setup and environment (#90)
 
 **User story:** none - supports all stories (`product-spec.md` section 7, operability)  
-**Depends on:** #88, #83, #84
+**Depends on:** #88, #84
 
 ## Goal
 
-When the checks pass on the default branch, the images are built once and pushed to a registry, so deployment is a promotion of a known build.
-Source: `product-spec.md` section 7 (operability), `README.md` section 10.
-
-## Acceptance criteria
-
-- [ ] A workflow runs only on the default branch after the T33a and T33b checks pass; a pull request cannot trigger it.
-- [ ] It builds the backend and frontend images from their Dockerfiles and pushes them to GitHub Container Registry, tagged with the full commit SHA and with `main`.
-- [ ] Registry credentials come from `GITHUB_TOKEN` with `packages: write`; no credential is in a file or a log, and every action is pinned.
-- [ ] The job summary or an artifact records both image references and the SHA it pushed; the images can be pulled by that SHA.
-- [ ] README section 10 describes the workflow and the image names.
-
-## Out of scope
-
-- Deploying to Render: T34b and T35b.
-- Automatic rollback.
-
-## Constraints
-
-- Never trigger a workflow or deploy without the maintainer asking.
-- Depends on: #88, #83, #84.
-
----
-
-## T35a - Render: infrastructure definition (#90)
-
-**User story:** none - supports all stories (`product-spec.md` section 7, operability)  
-**Depends on:** #89, #84
-
-## Goal
-
-The Render services, database, environment and same-origin routing are defined in the repository before the first deployment.
+The Render Postgres database, the backend and frontend services and their environment are set up in the Render dashboard and written down in `docs/deployment.md`, so deployment is repeatable and every later deploy is built by Render from the repository.
 Source: `product-spec.md` section 7 (operability, reproducibility), section 10 (hosting target), `README.md` section 10.
 
 ## Acceptance criteria
 
-- [ ] `render.yaml` defines a Render Postgres database, a backend web service from the GHCR backend image, a frontend web service from the GHCR frontend image, the same region, health checks and the deploy hooks.
-- [ ] The backend reads `DATABASE_URL` from the Render database, `ENV=production` and `SEED_*` from `sync: false`; the frontend reads `API_UPSTREAM` from the backend `hostport`; no secret value is in the repository.
+- [ ] The maintainer created the Render Postgres database and the backend and frontend web services in the Render dashboard, linked both services to the `main` branch, and `docs/deployment.md` records the same setup: Docker runtime, `backend/` and `frontend/` as the build context, and the same region.
+- [ ] The backend reads `DATABASE_URL` from the Render database, `ENV=production` and the `SEED_*` secrets from Render environment variables; the frontend reads `API_UPSTREAM` (backend host and port) and the `VITE_*` build values; no secret value is in the repository.
 - [ ] The frontend is the public origin and proxies `/api/` to the backend, so the browser stays same-origin, the session cookie keeps `SameSite=Lax`, and the backend is reached over the private network.
-- [ ] `docs/deployment.md` lists the environment variables, the first-deploy steps and the rollback; `render.yaml` validates with the Render CLI or the Blueprint dashboard.
-- [ ] This task does not deploy anything.
+- [ ] The backend health check path is `/health`, and both services have Auto-Deploy set to *After CI Checks Pass* (the exact Render option; see `https://render.com/docs/deploys#configuring-auto-deploys`).
+- [ ] `docs/deployment.md` documents the rollback: redeploy an earlier commit from the Render dashboard.
+- [ ] There is no `render.yaml`, no registry, no image push and no deploy hook; secrets live only in Render environment variables.
+- [ ] This task does not verify a deployment; the CD gate and the first verification are T34b.
 
 ## Out of scope
 
-- The first deployment and its verification: T35b.
+- The CD gate and the first deployment verification: T34b.
 - Monitoring, alerting, backups and multiple environments.
 
 ## Constraints
 
 - The hosting target is Render, decided on 2026-11-07.
-- Pinned image tags; no credential or real secret in the repository.
-- Depends on: #89, #84.
+- Render builds both images from the repository Dockerfiles; no credential or real secret in the repository.
+- Depends on: #88, #84.
 
 ---
 
-## T34b - CD: deploy the published images to Render (#91)
+## T34b - CD: deploy gate and first deployment verification (#91)
 
 **User story:** none - supports all stories (`product-spec.md` section 7, operability)  
-**Depends on:** #89, #90, #88
+**Depends on:** #90, #88, #84
 
 ## Goal
 
-When the checks pass on the default branch, CD deploys the images that were just published, so the deployed build is the tested build.
+A commit whose CI checks pass is deployed by Render and the deployed build is verified on the public URL, while a commit with failing CI is not deployed.
 Source: `product-spec.md` section 7 (operability), `README.md` section 10.
 
 ## Acceptance criteria
 
-- [ ] After T34a pushes the images on the default branch, the workflow calls each Render deploy hook with `imgURL` set to the exact SHA-tagged image; a pull request cannot deploy.
-- [ ] A failed check, build or push stops before any deploy hook, and a failed deploy fails the workflow.
-- [ ] The workflow records the deployed SHA and the Render deploy IDs; no hook or credential is logged.
-- [ ] README section 10 describes the deploy flow, and the first successful run is recorded in `docs/deployment.md`.
-
-## Out of scope
-
-- The first manual deployment and verification: T35b.
-- Automatic rollback.
-
-## Constraints
-
-- Deploy hooks and registry credentials live in repository or Render secrets, never in a file.
-- Depends on: #89, #90, #88.
-
----
-
-## T35b - Render: first deployment and verification (#92)
-
-**User story:** none - supports all stories (`product-spec.md` section 7, operability)  
-**Depends on:** #91, #90
-
-## Goal
-
-The application runs on a public Render URL, with the deployment steps written down so the same deployment can be repeated.
-Source: `product-spec.md` section 7 (operability, reproducibility), section 10, `README.md` section 10.
-
-## Acceptance criteria
-
-- [ ] The Blueprint is applied once from `render.yaml`, the secrets are set in Render, and the first deploy uses the SHA-tagged images; migrations and seed run against the Render Postgres, not a development database.
-- [ ] The seed created seven topics with at least one published lesson and six published questions each; a person opened the public URL and checked topics, a quiz, registration, login and history.
-- [ ] The health endpoint answers 200 through the frontend origin; the public URL is in README section 10 and `docs/deployment.md`; the session cookie works over HTTPS.
-- [ ] `docs/deployment.md` contains repeatable steps, the environment variables, verification and rollback; a later deploy is the workflow of T34b, with no undocumented manual action.
-- [ ] The AI log records the commands, deploy IDs, checks and results.
+- [ ] Both Render services keep Auto-Deploy set to *After CI Checks Pass*; a pull request never deploys, and Render does not deploy a commit when any check fails or when zero checks are detected (see `https://render.com/docs/deploys#integrating-with-ci`).
+- [ ] Verified once on `main`: a commit with a failing CI check produced no Render deploy (the commit is reverted afterwards); the next commit with all CI checks passing was deployed.
+- [ ] The deployed build is verified on the public URL: the page opens, topics and a quiz work, registration, login and history work, and the seed data is present (seven topics with at least one published lesson and six published questions each).
+- [ ] `/health` answers 200 through the frontend origin, and the session cookie works over HTTPS.
+- [ ] The public URL, the deployed commit and the result are in README section 10 and `docs/deployment.md`; `docs/deployment.md` keeps the rollback from T35a (redeploy an earlier commit).
+- [ ] A failed check or a failed deploy is visible and stops the rollout; no secret or deploy credential is logged.
+- [ ] The AI log records the checks, the commits and the results.
 
 ## Out of scope
 
 - Monitoring, alerting, backups and multiple environments.
 - Custom domain and TLS beyond the Render default.
+- Automatic rollback.
 
 ## Constraints
 
-- Do not run deploy commands unless explicitly asked.
-- The hosting target is Render, decided on 2026-11-07.
-- Depends on: #91, #90.
+- Do not run deploy commands unless explicitly asked; the deploy is Render's Auto-Deploy after the CI checks pass.
+- No `render.yaml`, no registry, no image push and no deploy hook; secrets live only in Render environment variables.
+- Depends on: #90, #88, #84.
 
 ---
 
 ## T36 - README is runnable from a clean machine (#93)
 
 **User story:** none - supports all stories (`product-spec.md` section 7, reproducibility)  
-**Depends on:** #92, #86, #84, #88
+**Depends on:** #91, #86, #84, #88
 
 ## Goal
 
@@ -1102,7 +1049,7 @@ Source: `product-spec.md` section 7 (reproducibility), `README.md` section 11.
 
 - [ ] Every command in README sections 8, 9, 10 and 11 is executed from a clean clone in this task and works exactly as written; any correction is a change to the README. README uses the Makefile targets from #87 (`make test`, `make test-integration`, `make check`, `make up`, `make down`) where they apply.
 - [ ] The status table matches reality: finished items no longer say _planned_, and unfinished ones say what is missing.
-- [ ] The repository structure matches the real tree, including the Dockerfiles, `docker-compose.yml`, `render.yaml`, every variable in `.env.example`, the Makefile, and the integration test command.
+- [ ] The repository structure matches the real tree, including the Dockerfiles, `docker-compose.yml`, every variable in `.env.example`, the Makefile, and the integration test command.
 - [ ] The links to the repository, the issue tracker and the live application are filled in; the deployment section names Render and the public URL.
 - [ ] The AI workflow entry records which commands were run from the clean clone and their result.
 
@@ -1114,7 +1061,7 @@ Source: `product-spec.md` section 7 (reproducibility), `README.md` section 11.
 ## Constraints
 
 - No command is documented that was not run.
-- Depends on: #92, #86, #84, #88.
+- Depends on: #91, #86, #84, #88.
 
 ---
 
@@ -1149,7 +1096,7 @@ Source: `AGENTS.md` "Conventions" (log notable AI-assisted steps), `README.md` s
 
 Status on 2026-11-07: assumptions 1-6 are implemented by the merged backend (#34-#52); they stay here as the record the backend followed.
 
-1. **`/health` in the contract.** The specification does not describe a health endpoint, but the containers and the deployment check in T32-T35 need one. It is added to the contract in T10.
+1. **`/health` in the contract.** The specification does not describe a health endpoint, but the containers and the deployment tasks (T32, T35a and T34b) need one. It is added to the contract in T10.
 2. **Addressing.** Topics are addressed by slug (the data model has one); lessons are addressed by id (the data model has no lesson slug).
 3. **Stateless quizzes.** No quiz-set table is added: the submission carries the question and chosen option ids, and the server checks that the questions belong to the topic. This follows the acceptance criterion that a foreign question is rejected.
 4. **CSRF.** Proposed for the contract in T11: double-submit token, issued at registration and log in, sent in a header on state-changing requests that carry a session cookie. The specification only requires the protection, not the mechanism.
@@ -1159,13 +1106,13 @@ Status on 2026-11-07: assumptions 1-6 are implemented by the merged backend (#34
 
 ## Decisions
 
-Answered by the maintainer on 2026-10-17; items 4-5 and 7-8 were updated on 2026-11-07 and are binding for the tasks above.
+Answered by the maintainer on 2026-10-17; items 4-5 and 7-8 were updated on 2026-11-07 and item 5 on 2026-11-10; they are binding for the tasks above.
 
 1. **Passwords.** Registration accepts at least 8 and at most 128 characters; passwords are hashed with Argon2id. The length rule goes into the contract in T11; the algorithm is chosen in T17.
 2. **Session cookie `SameSite`.** `Lax`, so normal navigation back to the site keeps working.
 3. **Seed content.** Drafted with AI assistance, reviewed by hand and committed as seed files. One lesson and six questions per topic is the minimum, so T24 stays one session.
 4. **Frontend hosting.** The frontend is served by its own static-server image, which also proxies `/api/` to the backend so the browser stays same-origin. The API base URL is `/api`; no CORS is added.
-5. **Hosting target.** Render, decided on 2026-11-07. T35a defines a Render Blueprint with Render Postgres and the two Docker images; T35b performs the first deployment. The image task (T34a) is not blocked by the deployment.
-6. **Task count.** The list stays as it is, with T27-T35 split into a/b tasks and T36-T37 unchanged, so the list still ends at T37.
+5. **Hosting target.** Render, decided on 2026-11-07. Render builds the backend and frontend images from the repository Dockerfiles. The maintainer creates the Render Postgres database and the two web services in the Render dashboard and links the `main` branch; T35a records the setup. T34b verifies that Render deploys a commit only after the CI checks pass. There is no `render.yaml`, no image registry or push, and no deploy hook.
+6. **Task count.** The list stays as it is, with T27-T35 split into a/b tasks except the cancelled T34a and T35b, and T36-T37 unchanged, so the list still ends at T37.
 7. **Integration commands.** Backend integration tests run as `(cd backend && go test -p 1 -tags=integration ./...)`; `-p 1` is required because the packages share one test database. Frontend integration tests run as `(cd frontend && bun run test:integration)`.
 8. **Same-origin deployment.** The frontend image proxies `/api/` to the backend in Compose and on Render, so session cookies keep `SameSite=Lax` and the backend needs no CORS configuration.
