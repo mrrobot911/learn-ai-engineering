@@ -37,7 +37,7 @@ else
 endif
 
 _test-integration-backend:
-	(cd backend && TEST_DATABASE_URL="$(TEST_DATABASE_URL)" go test -tags=integration -p 1 ./...)
+	(cd backend && CGO_ENABLED=0 TEST_DATABASE_URL="$(TEST_DATABASE_URL)" go test -tags=integration -p 1 ./...)
 
 # Checks that do not change files.
 check:

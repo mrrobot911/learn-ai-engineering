@@ -70,7 +70,7 @@ if [ "${TEST_INTEGRATION_EXTERNAL:-}" = "1" ]; then
   echo "==> Starting test backend locally on port $TEST_API_PORT"
   (
     cd backend
-    go run ./cmd/api
+    CGO_ENABLED=0 go run ./cmd/api
   ) >/tmp/fe-integration-backend.log 2>&1 &
   BACKEND_PID=$!
 
