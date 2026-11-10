@@ -13,6 +13,7 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 - `T32` precedes `T31` because the frontend integration suite starts the database with the compose file. `T35a` precedes `T34b` because the Render services and the Auto-Deploy setting must exist before the deploy gate can be verified.
 - No task adds behaviour outside version 1 of the specification.
 - Every task ends with an entry file in [`docs/ai-log/`](../../ai-log/) (rules in [`docs/ai-workflow.md`](../../ai-workflow.md)) and a committed stage artifact; the retrospective pass over that bookkeeping is T37.
+- `T39a`-`T41b` were added on 2026-11-11 with issues #109-#114, after #84 and #87: the observability, alerting and on-call work is local only and is not deployed. `T36` and `T37` now depend on these tasks.
 
 ## Order
 
@@ -28,6 +29,7 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 | Frontend integration tests | T31a-T31b | US-1 ... US-6 |
 | CI | T33a-T33b | none (supports all) |
 | CD and deployment | T35a, T34b | none (supports all) |
+| Observability, alerting and on-call (local) | T39a-T41b | none (supports all) |
 | Documentation | T36-T37 | none (supports all) |
 
 Tasks not covered by a user story come from section 7 (non-functional requirements) or from course deliverables the specification does not describe; each one names its source.
@@ -1035,10 +1037,213 @@ Source: `product-spec.md` section 7 (operability), `README.md` section 10.
 
 ---
 
+## T39a - Observability stack: local Grafana profile (#109)
+
+**User story:** none - supports all stories (`product-spec.md` section 7, operability)  
+**Depends on:** #84
+
+## Goal
+
+A developer can start a local observability stack (collector, Prometheus, Loki, Tempo, Grafana) beside the application with one command, without changing the default stack and without deploying it.
+Source: `product-spec.md` section 7 (operability), `README.md` section 8.
+
+## Acceptance criteria
+
+- [ ] `docker-compose.yml` defines an `observability` profile with pinned images for an OpenTelemetry Collector, Prometheus, Loki, Tempo and Grafana; `docker compose up --build` starts only `db`, `backend` and `frontend`, and `docker compose --profile observability up --build` adds the five observability services.
+- [ ] The collector accepts OTLP over gRPC `4317` and HTTP `4318`; it exports metrics to Prometheus, logs to Loki and traces to Tempo, and the pipeline configuration is committed under `observability/`.
+- [ ] Grafana starts provisioned with the three datasources (Prometheus, Loki, Tempo) from files, needs no manual setup, and its UI is reachable on a localhost-bound port; Prometheus, Loki, Tempo and the collector likewise bind only to localhost where they expose a port.
+- [ ] A documented smoke check starts the profile and fails unless all five services are healthy (Grafana and the other HTTP APIs answer their health endpoints, and the collector's OTLP endpoints accept a connection).
+- [ ] The profile uses local volumes only, contains no secret, and is not referenced by the Render setup or any CI/CD workflow; the stack README records the ports and the start and stop commands.
+- [ ] `.env.example` documents every new variable and no real credential.
+
+## Out of scope
+
+- Backend instrumentation and the first journey: T39b.
+- The dashboard: T39c.
+- Alerts and the on-call receiver: T40 and T41a.
+- Remote or hosted observability and retention beyond the local volumes.
+
+## Constraints
+
+- Pinned versions only; no `latest`.
+- Local only: no deploy command, workflow or Render setting is changed.
+- No secret, personal data or customer data in configuration or fixtures.
+- Depends on: #84.
+
+---
+
+## T39b - Backend observability for the quiz journey (#110)
+
+**User story:** US-2, US-3  
+**Depends on:** #109
+
+## Goal
+
+Submitting a quiz produces metrics, one trace and structured logs that share the same `trace_id`, so the quiz journey can be followed in Grafana without recording what the visitor typed.
+Source: `product-spec.md` US-2 (take a quiz), section 7 (operability).
+
+## Acceptance criteria
+
+- [ ] The Go backend uses the OpenTelemetry SDK and OTLP exporter, configured only by environment variables (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME` and the standard `OTEL_*` names); with no endpoint the telemetry is a no-op and the API starts and behaves the same.
+- [ ] The key journey is US-2: `GET /topics/{topicSlug}/quiz` and `POST /topics/{topicSlug}/quiz/submissions`; each request creates a server span with the route template and status, and the submission trace has child spans for loading the questions, grading and storing the attempt when a session is present.
+- [ ] Metrics cover request count and duration by method, route template and status, plus quiz submissions; the request duration histogram records the journey `trace_id` as an exemplar, and the metric names and labels contain no user, session or content identifiers.
+- [ ] Every request log is structured with `slog` (JSON to stdout) and carries `trace_id` and `span_id`; the quiz journey log lines carry the same `trace_id` as its trace, and the collector sends them to Loki.
+- [ ] Telemetry contains no personal or customer data and no credentials: no request or response body, email, password, cookie, CSRF token, session id, answer text or free text is recorded; only route template, method, status, duration, counts and the trace/span ids.
+- [ ] A test sends requests with unique email, password, cookie and body marker values and asserts that none of them appears in the exported spans, logs or metrics; another test asserts the quiz trace and its logs share one `trace_id`.
+- [ ] The new dependency is pinned in `go.mod` and `go.sum`, and the journey is visible in Grafana (trace in Tempo, logs in Loki, metrics in Prometheus) when the `observability` profile runs.
+
+## Out of scope
+
+- The dashboard: T39c.
+- Alerting and the on-call receiver: T40 and T41a.
+- Frontend telemetry, database and host metrics, and instrumenting other journeys.
+- Production telemetry or a hosted backend.
+
+## Constraints
+
+- Never log request bodies, cookies, passwords, emails, CSRF tokens or session ids.
+- Telemetry is disabled by default and never blocks startup or the request when the collector is absent.
+- Pinned versions only; no secret in the repository.
+- Depends on: #109.
+
+---
+
+## T39c - Grafana dashboard for the quiz journey (#111)
+
+**User story:** US-2  
+**Depends on:** #110
+
+## Goal
+
+The quiz journey has one provisioned Grafana dashboard that shows its traffic, errors, latency, traces and logs, so a failure can be followed from the user impact to the trace.
+Source: `product-spec.md` US-2, section 7 (operability).
+
+## Acceptance criteria
+
+- [ ] The dashboard JSON is committed under `observability/grafana/dashboards/` and provisioned by Grafana on start; no panel is created or edited by hand.
+- [ ] It shows, for `GET /topics/{topicSlug}/quiz` and `POST /topics/{topicSlug}/quiz/submissions`: request rate, 5xx rate and p95 latency from Prometheus, plus quiz submissions and a trace search from Tempo.
+- [ ] A logs panel from Loki lists the journey logs and shows the `trace_id`; a trace id from the logs or the trace panel opens the matching trace in Tempo, and a trace links back to its logs (the correlation is in the provisioned datasource files).
+- [ ] The dashboard can be filtered by journey and time range; panels show data after the smoke traffic and show "no data" instead of an error when the profile is empty.
+- [ ] A check queries the Grafana API after start and fails unless the dashboard UID exists, contains the required panels and has no provisioning error.
+- [ ] The stack README records the dashboard URL and UID.
+
+## Out of scope
+
+- Alerts: T40.
+- Other journeys and SLO reporting.
+- Screenshots committed as evidence (the JSON is the artifact).
+
+## Constraints
+
+- Provisioned from files only; no manual dashboard state.
+- No personal data or credentials in panel queries, annotations or fixtures.
+- Depends on: #110.
+
+---
+
+## T40 - Alert on user impact: quiz submission 5xx rate (#112)
+
+**User story:** US-2  
+**Depends on:** #111
+
+## Goal
+
+A sustained 5xx rate on the quiz submission endpoint raises one alert that is delivered to a webhook, so user-visible failure is signalled without paging on internal host metrics.
+Source: `product-spec.md` US-2, section 7 (operability).
+
+## Acceptance criteria
+
+- [ ] One alert rule fires when the 5xx rate of `POST /topics/{topicSlug}/quiz/submissions` is above 5% for 2 minutes with a minimum of requests; it resolves when the rate falls back, and it does not fire on 4xx responses, on other endpoints or when there is no traffic.
+- [ ] The rule is provisioned from a committed file and its name and summary state the user impact (visitors cannot submit a quiz); the threshold, window and minimum traffic are documented.
+- [ ] The webhook URL comes from an environment variable; the notification is sent as JSON and a test listener or test stub (not committed) receives it; no secret is committed.
+- [ ] A check produces 5xx responses on the endpoint and observes the webhook delivery after the window; a run with only 2xx/4xx responses sends nothing.
+- [ ] The alert is local to the `observability` profile and is not deployed.
+
+## Out of scope
+
+- Storing incident data and waking the on-call agent: T41a.
+- Multiple alerts, paging providers, silences and escalation policies.
+- Alerts on host, container or database internals.
+
+## Constraints
+
+- User impact only: the 5xx rate of the key endpoint, not CPU, memory or uptime.
+- Local only; no deploy and no secret in the repository.
+- Depends on: #111.
+
+---
+
+## T41a - Alert receiver and on-call agent (#113)
+
+**User story:** US-2  
+**Depends on:** #112, #87
+
+## Goal
+
+When the quiz alert fires, a local receiver stores the incident's logs and traces and starts an on-call agent through `opencode run`, using a model provider and key that come only from environment variables.
+Source: `product-spec.md` US-2, section 7 (operability), `AGENTS.md` (on-call role).
+
+## Acceptance criteria
+
+- [ ] A receiver service is part of the `observability` profile, with a pinned image, a health endpoint and a webhook endpoint; the profile points the alert's webhook URL to it by default.
+- [ ] On an alert it resolves the incident window from the payload, fetches the matching logs from Loki and traces from Tempo through their APIs, and writes an incident bundle (alert payload, metadata, logs, traces) under a local volume recorded in the bundle; it never writes credentials or personal data.
+- [ ] It starts `opencode run` in the repository checkout as the on-call role, passing the bundle path and a prompt built from the alert and the stored evidence; the model provider, model and API key come from environment variables (`OPENCODE_PROVIDER`, `OPENCODE_MODEL`, `OPENCODE_API_KEY` or the provider's documented equivalents) and are documented in `.env.example`; when the key is missing it fails fast with a clear message and starts no agent.
+- [ ] The provider, model and key are read from environment variables; the key never appears in the repository, the incident bundle, logs or the agent prompt, and only the provider and model names may be recorded as metadata.
+- [ ] `AGENTS.md` gains an **On-call agent** role and rule: it runs only in the local observability drill, works on a temporary branch, never deploys, never prints or commits secrets or personal data, and leaves its diagnosis and fix as a commit or pull request on that branch.
+- [ ] A test posts a sample alert with stub Loki and Tempo responses and a fake `opencode` executable; it asserts that the bundle contains the expected logs and traces, that the stub is called with the incident context, and that a sentinel API key passed in the environment is absent from the bundle, the logs and the generated prompt.
+
+## Out of scope
+
+- The real-bug drill and its evidence: T41b.
+- Production paging, on-call rotation, automatic merge, deploy or rollback.
+- Multiple alerts and richer correlation.
+
+## Constraints
+
+- No deploy command or workflow; local profile only.
+- The provider and key come from environment variables only; never from the repository, prompt, logs or fixtures.
+- No personal or customer data and no request bodies in the bundle.
+- Depends on: #112, #87.
+
+---
+
+## T41b - On-call drill with a real bug (#114)
+
+**User story:** US-2  
+**Depends on:** #113
+
+## Goal
+
+A real bug on a temporary branch produces the alert, the receiver stores the incident and the on-call agent fixes the bug on that branch, with the whole run recorded as evidence.
+Source: `product-spec.md` US-2, section 7 (operability), `AGENTS.md` (on-call role).
+
+## Acceptance criteria
+
+- [ ] A temporary branch (for example `drill/on-call-<date>`) carries a real bug that makes `POST /topics/{topicSlug}/quiz/submissions` return 5xx for a normal quiz submission; nothing in the alert, receiver or agent path is mocked.
+- [ ] With the `observability` profile running and the journey exercised, the alert fires, the receiver stores the incident bundle, and it starts `opencode run`; the agent diagnoses the bug and fixes it with a commit on that branch, or a pull request from that branch.
+- [ ] After the fix and a restart of the affected service, the drill submission succeeds, the alert resolves, and the existing tests pass on the branch.
+- [ ] `docs/artifacts/incidents/<incident-id>/` contains the alert payload, the stored logs and traces, the agent's diagnosis and fix output with no secrets or personal data, and a `README.md` that links the commit or pull request and summarises the timeline.
+- [ ] The branch is not merged; it is deleted or left for review after the evidence is committed, and nothing is deployed.
+- [ ] The AI log entry records the drill, the commands and the result.
+
+## Out of scope
+
+- Production incidents, real paging and on-call rotation.
+- Automatic merge, deploy or rollback.
+- Improving the agent or the alerts beyond what the drill proves.
+
+## Constraints
+
+- Never deploy and never point the drill at production or real user data.
+- No secret, credential or personal data in the branch, the evidence, the logs or the prompt.
+- Depends on: #113.
+
+---
+
 ## T36 - README is runnable from a clean machine (#93)
 
 **User story:** none - supports all stories (`product-spec.md` section 7, reproducibility)  
-**Depends on:** #91, #86, #84, #88
+**Depends on:** #91, #86, #84, #88, #109, #110, #111, #112, #113, #114
 
 ## Goal
 
@@ -1050,6 +1255,8 @@ Source: `product-spec.md` section 7 (reproducibility), `README.md` section 11.
 - [ ] Every command in README sections 8, 9, 10 and 11 is executed from a clean clone in this task and works exactly as written; any correction is a change to the README. README uses the Makefile targets from #87 (`make test`, `make test-integration`, `make check`, `make up`, `make down`) where they apply.
 - [ ] The status table matches reality: finished items no longer say _planned_, and unfinished ones say what is missing.
 - [ ] The repository structure matches the real tree, including the Dockerfiles, `docker-compose.yml`, every variable in `.env.example`, the Makefile, and the integration test command.
+- [ ] README documents the local observability stack: the `observability` Compose profile, its ports, the Grafana dashboard, the alert and receiver, the on-call drill and the `OTEL_*` and `OPENCODE_*` variables, with links to `observability/README.md` and `docs/artifacts/incidents/`.
+- [ ] The status table marks observability as local only and not deployed, and the repository structure includes `observability/` and `docs/artifacts/incidents/`.
 - [ ] The links to the repository, the issue tracker and the live application are filled in; the deployment section names Render and the public URL.
 - [ ] The AI workflow entry records which commands were run from the clean clone and their result.
 
@@ -1061,14 +1268,14 @@ Source: `product-spec.md` section 7 (reproducibility), `README.md` section 11.
 ## Constraints
 
 - No command is documented that was not run.
-- Depends on: #91, #86, #84, #88.
+- Depends on: #91, #86, #84, #88, #109, #110, #111, #112, #113, #114.
 
 ---
 
 ## T37 - Complete the AI workflow log and the stage artifacts (#94)
 
 **User story:** none - supports all stories (`AGENTS.md` "Conventions", `product-spec.md` section 7)  
-**Depends on:** #93
+**Depends on:** #93, #109, #110, #111, #112, #113, #114
 
 ## Goal
 
@@ -1079,6 +1286,7 @@ Source: `AGENTS.md` "Conventions" (log notable AI-assisted steps), `README.md` s
 
 - [ ] `docs/ai-log/` has one entry file per closed issue from the backend stage onward, following the template in `docs/ai-workflow.md`: tool, prompt, context given, result, artifacts and where they were used, what was changed by hand, verification, links.
 - [ ] Every stage artifact in `docs/artifacts/` is linked from its log entry and from its issue.
+- [ ] The entries for T39a-T41b link the dashboard JSON, the alert rule, the receiver, the drill evidence in `docs/artifacts/incidents/` and the on-call role in `AGENTS.md`; no entry contains a secret, credential or personal data.
 - [ ] No secret, credential or personal data appears in the log or in any artifact; the sources of the skills installed in T02 are recorded.
 - [ ] `docs/process.md` and README section 4 describe the workflow as it was actually followed, including anything that changed.
 - [ ] The log entries reference the commits and issues they belong to.
@@ -1090,7 +1298,7 @@ Source: `AGENTS.md` "Conventions" (log notable AI-assisted steps), `README.md` s
 ## Constraints
 
 - Never record secrets or private data.
-- Depends on: #93.
+- Depends on: #93, #109, #110, #111, #112, #113, #114.
 
 ## Assumptions
 

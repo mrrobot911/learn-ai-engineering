@@ -1,0 +1,18 @@
+## 2026-11-11 — Observability, alerting and on-call backlog (no issue)
+- Tool: OpenCode (Big Pickle), shell, `gh`.
+- Task given: Add T39a-T41b to `docs/artifacts/backlog/tasks.md`, create the issues in dependency order, and make #93/#94 depend on them. No deploy, secret or personal data.
+- Context given (files by name): task template, AI workflow rules, `tasks.md` headings/T32-T37, `product-spec.md` sections 4 and 7, compose file, Makefile, `.env.example`, README, backend `logging.go`/`main.go`, #87/#93/#94.
+- Result (5-8 lines):
+  - Added T39a (local Grafana profile), T39b (quiz OTel metrics/traces/slog, one `trace_id`, no-leak test), T39c (dashboard), T40 (5xx webhook alert), T41a (receiver, incident bundle, `opencode run` on-call agent, AGENTS.md role), T41b (real-bug drill with evidence).
+  - Each follows the template; T39a depends on #84, T41a on #87, later tasks on the previous one.
+  - Created #109-#114 in order; headings and `Depends on:` lines use the actual numbers.
+  - #93 now covers the local stack; #94 covers the new log entries and artifacts.
+  - No deploy, workflow run, secret or personal data was added.
+- Artifacts (path) and where the next stage used them: `docs/artifacts/backlog/tasks.md` and #93/#94/#109-#114; T39a (#109) starts here.
+- Accepted / rejected / changed by hand, and why: pending maintainer review.
+- Verification (commands and exit codes, manual checks):
+  - Six `gh issue create`: exit 0; #109-#114 matched the order.
+  - `gh issue edit 93/94/110/113`: exit 0.
+  - Body/title comparison, 8 issues against task sections: 8/8 OK.
+  - `git status --short`: `tasks.md` modified, this entry added.
+- Links: #109-#114; updated #93/#94; no commit yet.
