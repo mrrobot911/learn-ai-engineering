@@ -4,13 +4,14 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 
 - `T02`-`T13` became GitHub issues on 2026-10-17, where the issue number matches the task number (`T02` is #2, `T13` is #13); in those issues `Depends on: Txx` is written as `Depends on: #<issue number>`.
 - `T01` was issue #1. It was cancelled by the maintainer on 2026-10-18 and removed from this file: the scaffold it asked for contradicts the project order of `AGENTS.md`, the frontend project comes from Bolt and the Go project belongs to `T14`, after the contract. Nothing of it was carried over to another task.
-- `T34a` (#89) and `T35b` (#92) were cancelled by the maintainer on 2026-11-10 and removed from this file: Render builds the backend and frontend images from the repository Dockerfiles, so there is no registry, image push, deploy hook or `render.yaml`. Nothing was renumbered. Deployment happens only after the CI checks of `T33a` and `T33b` pass, through Render's *After CI Checks Pass* Auto-Deploy setting.
+- `T34a` (#89) and `T35b` (#92) were cancelled by the maintainer on 2026-11-10 and removed from this file: Render builds the backend and frontend images from the repository Dockerfiles, so there is no registry, image push or deploy hook. Nothing was renumbered. Deployment is described by the Blueprint `render.yaml` of T35a and happens only after the CI checks of `T33a` and `T33b` pass.
+- `T35a` and `T34b` were reworked and `T38` was added on 2026-11-11 for the maintainer decision of that day: one Render Blueprint (`render.yaml`) with a dev and a production set of services and one Render Postgres per environment; work goes into `dev`, CI runs there, and Render deploys `dev` to the dev services after the checks pass; the maintainer merges `dev` into `main` by hand and Render deploys `main` to the production services after its checks pass. There is no registry, image push or deploy hook. `T38` is #115 and `T36` now depends on it.
 - `T27`-`T37` were reworked on 2026-11-07 against the merged backend (#34-#52) and split into a/b tasks; every task has a GitHub issue (#75-#94) and every `Depends on:` line uses issue numbers. The issues were created from this file in dependency order on the same day.
 - `T02`-`T12` are done and merged into `main`; their text is kept unchanged in [`done.md`](done.md). The issues hold the same text, so open tasks are read here and finished ones there.
 - Each task fits one session and can be read on its own.
 - This file creates no code. The maintainer split T27-T37 before the issues were created (see [`docs/process.md`](../../process.md), "Backlog"); the text here and in the issues is the same.
 - `T04`-`T09` were revised on 2026-10-19, after the Bolt prototype was imported and the API client of issue #3 was merged: each of them now adapts and verifies the pages that already exist in `frontend/` instead of building them, carries the lint problems of the imported files it touches, and `T09` closes the prototype stage with `bun run lint` exiting 0. Issues #4-#9 were updated in the same change. Nothing was merged, split or renumbered.
-- `T32` precedes `T31` because the frontend integration suite starts the database with the compose file. `T35a` precedes `T34b` because the Render services and the Auto-Deploy setting must exist before the deploy gate can be verified.
+- `T32` precedes `T31` because the frontend integration suite starts the database with the compose file. `T35a` precedes `T34b` because the Blueprint and the dev and production services must exist before the deploy gate and the promotion flow can be verified.
 - No task adds behaviour outside version 1 of the specification.
 - Every task ends with an entry file in [`docs/ai-log/`](../../ai-log/) (rules in [`docs/ai-workflow.md`](../../ai-workflow.md)) and a committed stage artifact; the retrospective pass over that bookkeeping is T37.
 - `T39a`-`T41b` were added on 2026-11-11 with issues #109-#114, after #84 and #87: the observability, alerting and on-call work is local only and is not deployed. `T36` and `T37` now depend on these tasks.
@@ -28,7 +29,7 @@ Derived from [`product-spec.md`](../../../product-spec.md) (draft v0.2) on 2026-
 | Containers | T32a-T32b | none (supports all) |
 | Frontend integration tests | T31a-T31b | US-1 ... US-6 |
 | CI | T33a-T33b | none (supports all) |
-| CD and deployment | T35a, T34b | none (supports all) |
+| CD and deployment | T38, T35a, T34b | none (supports all) |
 | Observability, alerting and on-call (local) | T39a-T41b | none (supports all) |
 | Documentation | T36-T37 | none (supports all) |
 
@@ -970,70 +971,102 @@ Source: `product-spec.md` section 7, `README.md` section 9.
 
 ---
 
-## T35a - Render: service setup and environment (#90)
+## T35a - Render: Blueprint for dev and production (#90)
 
 **User story:** none - supports all stories (`product-spec.md` section 7, operability)  
 **Depends on:** #88, #84
 
 ## Goal
 
-The Render Postgres database, the backend and frontend services and their environment are set up in the Render dashboard and written down in `docs/deployment.md`, so deployment is repeatable and every later deploy is built by Render from the repository.
+One Render Blueprint (`render.yaml`) defines a dev and a production set of services and one Postgres database per environment, so every deploy is built by Render from the repository and both environments are repeatable from the same file.
 Source: `product-spec.md` section 7 (operability, reproducibility), section 10 (hosting target), `README.md` section 10.
 
 ## Acceptance criteria
 
-- [ ] The maintainer created the Render Postgres database and the backend and frontend web services in the Render dashboard, linked both services to the `main` branch, and `docs/deployment.md` records the same setup: Docker runtime, `backend/` and `frontend/` as the build context, and the same region.
-- [ ] The backend reads `DATABASE_URL` from the Render database, `ENV=production` and the `SEED_*` secrets from Render environment variables; the frontend reads `API_UPSTREAM` (backend host and port) and the `VITE_*` build values; no secret value is in the repository.
-- [ ] The frontend is the public origin and proxies `/api/` to the backend, so the browser stays same-origin, the session cookie keeps `SameSite=Lax`, and the backend is reached over the private network.
-- [ ] The backend health check path is `/health`, and both services have Auto-Deploy set to *After CI Checks Pass* (the exact Render option; see `https://render.com/docs/deploys#configuring-auto-deploys`).
-- [ ] `docs/deployment.md` documents the rollback: redeploy an earlier commit from the Render dashboard.
-- [ ] There is no `render.yaml`, no registry, no image push and no deploy hook; secrets live only in Render environment variables.
-- [ ] This task does not verify a deployment; the CD gate and the first verification are T34b.
+- [ ] `render.yaml` is a Blueprint with a dev and a production set of services: for each environment a backend and a frontend web service with `runtime: docker`, the build context `backend/` and `frontend/`, the branches `dev` and `main`, and `autoDeployTrigger: checksPass` (see `https://render.com/docs/blueprint-spec` and `https://render.com/docs/deploys#configuring-auto-deploys`).
+- [ ] The Blueprint defines one Render Postgres database per environment; each backend reads `DATABASE_URL` from its environment's database, `ENV=production` and the `SEED_*` values, with `SEED_*` marked `sync: false` so no secret value is in the repository.
+- [ ] The frontend reads `API_UPSTREAM` (backend host and port) and the `VITE_*` build values; the frontend is the public origin and proxies `/api/` to the backend, so the browser stays same-origin, the session cookie keeps `SameSite=Lax`, and the backend is reached over the private network.
+- [ ] Both backend services have the health check path `/health`; `docs/deployment.md` records the one-time Blueprint apply in the Render dashboard, every variable per environment, the promotion (merge `dev` into `main`) and the rollback (redeploy an earlier commit).
+- [ ] There is no registry, no image push and no deploy hook; secrets live only in Render environment variables.
+- [ ] This task does not verify a deployment; the deploy gate and the first verification of both environments are T34b.
 
 ## Out of scope
 
-- The CD gate and the first deployment verification: T34b.
-- Monitoring, alerting, backups and multiple environments.
+- The deploy gate, the promotion and the first deployment verification: T34b.
+- Monitoring, alerting, backups and more than two environments.
+- A custom domain.
 
 ## Constraints
 
-- The hosting target is Render, decided on 2026-11-07.
+- The hosting target is Render, decided on 2026-11-07; the two environments and the Blueprint were decided on 2026-11-11.
 - Render builds both images from the repository Dockerfiles; no credential or real secret in the repository.
 - Depends on: #88, #84.
 
 ---
 
-## T34b - CD: deploy gate and first deployment verification (#91)
+## T34b - CD: deploy gate and promotion (#91)
 
 **User story:** none - supports all stories (`product-spec.md` section 7, operability)  
 **Depends on:** #90, #88, #84
 
 ## Goal
 
-A commit whose CI checks pass is deployed by Render and the deployed build is verified on the public URL, while a commit with failing CI is not deployed.
+Render deploys `dev` to the dev services only after its CI checks pass; the maintainer promotes by merging `dev` into `main`, and Render deploys `main` to the production services only after its checks pass. The dev and production builds are verified on their public URLs.
 Source: `product-spec.md` section 7 (operability), `README.md` section 10.
 
 ## Acceptance criteria
 
-- [ ] Both Render services keep Auto-Deploy set to *After CI Checks Pass*; a pull request never deploys, and Render does not deploy a commit when any check fails or when zero checks are detected (see `https://render.com/docs/deploys#integrating-with-ci`).
-- [ ] Verified once on `main`: a commit with a failing CI check produced no Render deploy (the commit is reverted afterwards); the next commit with all CI checks passing was deployed.
-- [ ] The deployed build is verified on the public URL: the page opens, topics and a quiz work, registration, login and history work, and the seed data is present (seven topics with at least one published lesson and six published questions each).
-- [ ] `/health` answers 200 through the frontend origin, and the session cookie works over HTTPS.
-- [ ] The public URL, the deployed commit and the result are in README section 10 and `docs/deployment.md`; `docs/deployment.md` keeps the rollback from T35a (redeploy an earlier commit).
+- [ ] Both sets of Render services keep `autoDeployTrigger: checksPass`; a pull request never deploys, and Render does not deploy a commit when any check fails or when zero checks are detected (see `https://render.com/docs/deploys#integrating-with-ci`).
+- [ ] A push to `dev` whose CI checks pass is deployed to the dev services; a failed check stops the rollout, so `dev` is not deployed.
+- [ ] After the dev build is verified, the maintainer merges `dev` into `main` by hand; the resulting `main` commit is deployed to the production services only after its checks pass.
+- [ ] The dev build is verified first on its public URL, then the production build after the manual merge: the page opens, topics and a quiz work, registration, login and history work, and the seed data is present (seven topics with at least one published lesson and six published questions each).
+- [ ] `/health` answers 200 through the frontend origin in both environments, and the session cookie works over HTTPS.
+- [ ] The public URLs, the deployed commits and the results are in README section 10 and `docs/deployment.md`; `docs/deployment.md` keeps the promotion and rollback from T35a (redeploy an earlier commit).
 - [ ] A failed check or a failed deploy is visible and stops the rollout; no secret or deploy credential is logged.
 - [ ] The AI log records the checks, the commits and the results.
 
 ## Out of scope
 
-- Monitoring, alerting, backups and multiple environments.
+- Monitoring, alerting, backups and more than two environments.
 - Custom domain and TLS beyond the Render default.
-- Automatic rollback.
+- Automatic promotion or rollback.
 
 ## Constraints
 
-- Do not run deploy commands unless explicitly asked; the deploy is Render's Auto-Deploy after the CI checks pass.
-- No `render.yaml`, no registry, no image push and no deploy hook; secrets live only in Render environment variables.
+- Do not run deploy commands unless explicitly asked; the deploy is Render's `autoDeployTrigger: checksPass` after the CI checks pass.
+- No registry, no image push and no deploy hook; secrets live only in Render environment variables.
 - Depends on: #90, #88, #84.
+
+---
+
+## T38 - Process: move issue work to `dev` (#115)
+
+**User story:** none - supports all stories (`AGENTS.md` "Conventions", `docs/process.md`)  
+**Depends on:** #88, #84
+
+## Goal
+
+Issue work starts from `dev` and pull requests go into `dev`, so the dev services receive every change before the maintainer promotes it to `main`; `dev` is the repository default branch, so `Closes #N` still closes an issue when its pull request is merged.
+Source: maintainer decision of 2026-11-11, `docs/process.md`.
+
+## Acceptance criteria
+
+- [ ] `docs/process.md` says that an issue branch starts from `dev` (`git fetch origin`, then `git switch -c issue-<N> origin/dev`) and that the pull request goes into `dev` (`gh pr create --base dev --head issue-<N> ...`).
+- [ ] `docs/process.md` records that GitHub closes an issue only when the pull request merges into the default branch, so a merge into `dev` closes the issue only because `dev` is the default branch.
+- [ ] The `dev` branch exists on `origin` and is the repository default branch on GitHub; `main` stays the production branch. A pull request into `dev` with `Closes #N` closes the issue on merge.
+- [ ] `.opencode/agents/orchestrator.md` and `.opencode/agents/pm.md` use `dev` where they describe the issue branch, the pull request base or the default branch; no role still starts an issue branch from `main` or opens a pull request into `main`, and the prohibition on pushing to `main` stays.
+- [ ] The other places that name the branch follow the same flow: `.opencode/agents/qa-engineer.md` uses `origin/dev...HEAD` for the diff, and `.github/PULL_REQUEST_TEMPLATE.md` and `README.md` section 4 describe the pull request into `dev` and the manual promotion to `main`.
+- [ ] CI runs on `dev` as it does on every branch, and a pull request into `dev` runs the same checks.
+
+## Out of scope
+
+- Changing the CI jobs, the deployment tasks or `render.yaml`.
+- Automatic promotion from `dev` to `main`.
+
+## Constraints
+
+- `main` remains the production branch; the maintainer promotes by merging `dev` into `main`.
+- Depends on: #88, #84.
 
 ---
 
@@ -1243,7 +1276,7 @@ Source: `product-spec.md` US-2, section 7 (operability), `AGENTS.md` (on-call ro
 ## T36 - README is runnable from a clean machine (#93)
 
 **User story:** none - supports all stories (`product-spec.md` section 7, reproducibility)  
-**Depends on:** #91, #86, #84, #88, #109, #110, #111, #112, #113, #114
+**Depends on:** #91, #86, #84, #88, #109, #110, #111, #112, #113, #114, #115
 
 ## Goal
 
@@ -1257,7 +1290,7 @@ Source: `product-spec.md` section 7 (reproducibility), `README.md` section 11.
 - [ ] The repository structure matches the real tree, including the Dockerfiles, `docker-compose.yml`, every variable in `.env.example`, the Makefile, and the integration test command.
 - [ ] README documents the local observability stack: the `observability` Compose profile, its ports, the Grafana dashboard, the alert and receiver, the on-call drill and the `OTEL_*` and `OPENCODE_*` variables, with links to `observability/README.md` and `docs/artifacts/incidents/`.
 - [ ] The status table marks observability as local only and not deployed, and the repository structure includes `observability/` and `docs/artifacts/incidents/`.
-- [ ] The links to the repository, the issue tracker and the live application are filled in; the deployment section names Render and the public URL.
+- [ ] The links to the repository, the issue tracker and the live application are filled in; the deployment section names Render, the dev and production public URLs, and the manual promotion from `dev` to `main`.
 - [ ] The AI workflow entry records which commands were run from the clean clone and their result.
 
 ## Out of scope
@@ -1268,7 +1301,7 @@ Source: `product-spec.md` section 7 (reproducibility), `README.md` section 11.
 ## Constraints
 
 - No command is documented that was not run.
-- Depends on: #91, #86, #84, #88, #109, #110, #111, #112, #113, #114.
+- Depends on: #91, #86, #84, #88, #109, #110, #111, #112, #113, #114, #115.
 
 ---
 
@@ -1314,13 +1347,13 @@ Status on 2026-11-07: assumptions 1-6 are implemented by the merged backend (#34
 
 ## Decisions
 
-Answered by the maintainer on 2026-10-17; items 4-5 and 7-8 were updated on 2026-11-07 and item 5 on 2026-11-10; they are binding for the tasks above.
+Answered by the maintainer on 2026-10-17; items 4-5 and 7-8 were updated on 2026-11-07 and item 5 on 2026-11-10 and 2026-11-11; they are binding for the tasks above.
 
 1. **Passwords.** Registration accepts at least 8 and at most 128 characters; passwords are hashed with Argon2id. The length rule goes into the contract in T11; the algorithm is chosen in T17.
 2. **Session cookie `SameSite`.** `Lax`, so normal navigation back to the site keeps working.
 3. **Seed content.** Drafted with AI assistance, reviewed by hand and committed as seed files. One lesson and six questions per topic is the minimum, so T24 stays one session.
 4. **Frontend hosting.** The frontend is served by its own static-server image, which also proxies `/api/` to the backend so the browser stays same-origin. The API base URL is `/api`; no CORS is added.
-5. **Hosting target.** Render, decided on 2026-11-07. Render builds the backend and frontend images from the repository Dockerfiles. The maintainer creates the Render Postgres database and the two web services in the Render dashboard and links the `main` branch; T35a records the setup. T34b verifies that Render deploys a commit only after the CI checks pass. There is no `render.yaml`, no image registry or push, and no deploy hook.
-6. **Task count.** The list stays as it is, with T27-T35 split into a/b tasks except the cancelled T34a and T35b, and T36-T37 unchanged, so the list still ends at T37.
+5. **Hosting target.** Render, decided on 2026-11-07; the two environments and the Blueprint were decided on 2026-11-11. `render.yaml` is the Blueprint for a dev and a production set of services, each with its own Render Postgres: `dev` builds the backend and frontend from the repository Dockerfiles and deploys to the dev services after its CI checks pass, and `main` does the same for production. The maintainer promotes by merging `dev` into `main` by hand; T35a records the Blueprint and `docs/deployment.md`, T34b verifies the gate and the promotion. There is no image registry, no image push and no deploy hook.
+6. **Task count.** The list keeps the T27-T35 split into a/b tasks except the cancelled T34a and T35b, and T36-T37 unchanged; T38-T41b were added later without renumbering.
 7. **Integration commands.** Backend integration tests run as `(cd backend && go test -p 1 -tags=integration ./...)`; `-p 1` is required because the packages share one test database. Frontend integration tests run as `(cd frontend && bun run test:integration)`.
 8. **Same-origin deployment.** The frontend image proxies `/api/` to the backend in Compose and on Render, so session cookies keep `SameSite=Lax` and the backend needs no CORS configuration.

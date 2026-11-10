@@ -1,0 +1,14 @@
+## 2026-11-11 — Two Render environments for T35a/T34b (issues #90, #91, #93, #115)
+- Tool: OpenCode (Big Pickle), shell, `gh`.
+- Task given: Apply the 2026-11-11 decision: one `render.yaml` Blueprint with dev and production services and one Render Postgres each, no registry, image push or deploy hook; work goes into `dev`, Render deploys `dev` after checks, the maintainer merges into `main` and Render deploys production after checks. Add the task moving the process to `dev` and making it the default branch; update #93.
+- Context given (files by name): `tasks.md`, `docs/process.md`, the agent roles, `README.md` section 10, #90/#91/#93/#109-#114.
+- Result (5-8 lines):
+  - T35a (#90): Blueprint with dev and production services, `runtime: docker`, `backend/` and `frontend/`, branches `dev`/`main`, `autoDeployTrigger: checksPass`, health checks, one Postgres per environment, `SEED_*` with `sync: false`; `docs/deployment.md` covers apply, variables, promotion, rollback.
+  - T34b (#91): deploy `dev` after checks, verify it, merge by hand, deploy production after checks; the failing-commit criterion is gone.
+  - Added T38 (#115): branches from `dev`, pull requests into `dev`, `dev` as default branch so `Closes #N` works.
+  - Fixed the header notes, Order table, Decision 5, stale Decision 6, every "no render.yaml" line and #93's dependencies.
+  - No registry, image push, deploy hook or secret remains.
+- Artifacts: this entry; `tasks.md` and #90/#91/#93/#115 are the backlog for T38, T35a and T34b.
+- Accepted / rejected / changed by hand, and why: _(left for the maintainer)_
+- Verification: `gh issue create` #115 and `gh issue edit` #90/#91/#93 → 0; body diff vs `tasks.md` → only the trailing blank line; `rg 'no render.yaml|After CI Checks Pass' tasks.md` → none.
+- Links: #90, #91, #93, #115; commit: this docs(backlog) commit.
