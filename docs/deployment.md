@@ -4,18 +4,21 @@ This project deploys to [Render](https://render.com) using a Render Blueprint de
 
 ## One-time setup: apply the Blueprint
 
-1. In the [Render Dashboard](https://dashboard.render.com), go to **Blueprints → New Blueprint Instance**.
-2. Connect the repository and select the branch `main`.
-3. Render will detect [`render.yaml`](../render.yaml) and create the services and database defined by the Blueprint.
-4. Set the required secret values in the Render dashboard for any variables marked `sync: false` (see below). Render will not store secret values in the repository.
-5. Trigger the first deploy after the secrets are set.
+1. Make sure [`render.yaml`](../render.yaml) is on `main` before applying the Blueprint: merge the change into `dev`, then merge `dev` into `main`, then apply the Blueprint.
+2. In the [Render Dashboard](https://dashboard.render.com), go to **Blueprints → New Blueprint Instance**.
+3. Connect the repository and select the branch `main`.
+4. Render will detect [`render.yaml`](../render.yaml) and create the services and database defined by the Blueprint.
+5. Set the required secret values in the Render dashboard for any variables marked `sync: false` (see below). Render will not store secret values in the repository.
+6. Trigger the first deploy after the secrets are set.
 
 ## Services and database
 
 The Blueprint defines:
-- One backend web service (Docker, build context `backend/`, health check at `/health`).
-- One frontend web service (Docker, build context `frontend/`), public origin that proxies `/api/` to the backend over the private network.
-- One Render Postgres database. The backend reads `DATABASE_URL` from it.
+- One backend web service (Docker, build context `backend/`, health check at `/health`), on the `free` plan.
+- One frontend web service (Docker, build context `frontend/`), on the `free` plan; public origin that proxies `/api/` to the backend over the private network.
+- One Render Postgres database, on the `free` plan. The backend reads `DATABASE_URL` from it.
+
+All resources use Render's free plans. A free Render Postgres expires 30 days after creation, has 1 GB of storage, and each workspace can have only one.
 
 ## Environment variables
 
@@ -35,6 +38,7 @@ The Blueprint defines:
 | `API_UPSTREAM` | Render service reference (backend) | Backend host and port on the private network. |
 | `VITE_API_MODE` | Blueprint | Set to `http`. Build-time value for the frontend bundle. |
 | `VITE_API_BASE_URL` | Blueprint | Set to `/api`. Build-time value for the frontend bundle. |
+| `PORT` | Blueprint | Set to `80`. Matches the port exposed by the frontend image. |
 
 ### Database
 | Variable | Source | Notes |

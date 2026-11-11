@@ -2,6 +2,7 @@ services:
   - type: web
     name: learn-ai-engineering-backend
     runtime: docker
+    plan: free
     branch: main
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
@@ -26,6 +27,7 @@ services:
   - type: web
     name: learn-ai-engineering-frontend
     runtime: docker
+    plan: free
     branch: main
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
@@ -40,9 +42,12 @@ services:
         value: http
       - key: VITE_API_BASE_URL
         value: /api
+      - key: PORT
+        value: 80
 
 databases:
   - name: learn-ai-engineering-db
     databaseName: learn_ai_engineering
     user: learn
-    plan: starter
+    plan: free
+    ipAllowList: []
