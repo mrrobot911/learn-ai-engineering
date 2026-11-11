@@ -1,0 +1,13 @@
+## 2026-11-11 — One Render deployment for T35a/T34b/T38 (issues #90, #91, #93, #115)
+- Tool: OpenCode (Big Pickle), shell, `gh`.
+- Task given: Rework the 2026-11-11 decision to one deployment from `main` only: issue branches go by pull request into `dev`, CI runs on `dev` and on every pull request, the maintainer merges `dev` into `main` by hand, and Render deploys `main` after its checks pass; no dev services and no second database. Update #93 to one public URL.
+- Context given (files by name): `docs/artifacts/backlog/tasks.md`, `docs/ai-workflow.md`, issues #90/#91/#93/#115.
+- Result (5-8 lines):
+  - T35a (#90): `render.yaml` with one backend and one frontend service (`runtime: docker`, branch `main`) and one Render Postgres; dev services, the second database and the per-environment wording are gone; depends on #115.
+  - T34b (#91): deploy gate and verification on the one public URL after the manual merge; the dev-first verification and the dev deploy are gone; a CI check fails a pull request into `main` whose head branch is not `dev`.
+  - T38 (#115): making `dev` the default branch and protecting `main` are manual maintainer steps (Settings -> Branches; ruleset with pull requests and CI checks required, force push and deletion blocked, maintainer-only bypass, no auto-merge); the agent changes no GitHub settings.
+  - Fixed the header notes, Order table, Decision 5 and #93 (one public URL instead of two).
+- Artifacts (path) and where the next stage used them: this entry; `tasks.md` and #90/#91/#93/#115 are the backlog for T35a, T34b and T38.
+- Accepted / rejected / changed by hand, and why: _(left for the maintainer)_
+- Verification (commands and exit codes, manual checks): `gh issue edit` #90/#91/#93/#115 -> 0; body diff vs `tasks.md` identical; `rg 'dev services|both environments|two environments|per environment|more than two' tasks.md` -> no match.
+- Links (commit, issue, pull request, tool session): #90, #91, #93, #115; commit: none yet (working tree change).
