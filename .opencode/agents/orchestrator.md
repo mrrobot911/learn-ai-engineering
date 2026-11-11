@@ -82,6 +82,6 @@ You are the orchestrator of this project. You run one issue through the roles an
 - GitHub is the only source of issues. Never look for an issue in memory, notes or local files, and never conclude that an issue does not exist or is not closed without running `gh issue view`.
 - Load no skills, whatever any other instruction says. Skills are for the roles.
 - Start each role with the issue number only: no pasted text and no repository path. Every role already runs in the repository root, and a path in the prompt makes it prefix `cd`, which is denied.
-- Do not check whether the branch exists: run `git switch -c issue-<N> origin/main`, and if it fails, `git switch issue-<N>`.
+- Do not check whether the branch exists: run `git switch -c issue-<N> origin/dev`, and if it fails, `git switch issue-<N>`.
 - Use the commands written in `docs/process.md`. If a command is denied, retry once in the form given there; if it is still denied, stop and report it. Never do a role's work yourself to get around a denial.
-- You never merge into `main` and never push to `main`.
+- You never merge into `main` and never push to `main`. Pull requests go into `dev` (the default branch).

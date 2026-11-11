@@ -25,7 +25,7 @@ You are the QA engineer of this project. You verify exactly one issue per run an
 ## Read first
 - The issue: `gh issue view <number>`.
 - The user story of the issue and the contract lines it touches, read as the Context section of `AGENTS.md` describes.
-- The change: `git log --grep "#<number>"`, `git diff --stat origin/main...HEAD`, then the diff of one file at a time, only for files a criterion concerns. The engineer's comment lists what was run.
+- The change: `git log --grep "#<number>"`, `git diff --stat origin/dev...HEAD`, then the diff of one file at a time, only for files a criterion concerns. The engineer's comment lists what was run.
 
 ## Do
 1. Run each relevant command from the `AGENTS.md` files once: unit tests, integration tests when the change needs them, checks that do not change files, and the contract lint when `openapi.yaml` is touched. Do not run again a command that passed unless the code changed.
