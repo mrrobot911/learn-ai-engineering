@@ -1,6 +1,7 @@
 <!--
 Filled in by the orchestrator after the QA engineer reported PASS.
-Do not merge: the maintainer reviews the diff and merges.
+Pull request goes into `dev`. Do not merge: the maintainer reviews the diff and merges.
+The maintainer promotes `dev` to `main` by hand.
 -->
 
 ## Summary
