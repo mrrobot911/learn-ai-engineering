@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: learn-ai-engineering-backend
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    autoDeployTrigger: checksPass
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: learn-ai-engineering-db
+          property: connectionString
+      - key: ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8080
+      - key: SEED_MAINTAINER_EMAIL
+        sync: false
+      - key: SEED_MAINTAINER_PASSWORD
+        sync: false
+
+  - type: web
+    name: learn-ai-engineering-frontend
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: API_UPSTREAM
+        fromService:
+          name: learn-ai-engineering-backend
+          type: web
+          property: hostport
+      - key: VITE_API_MODE
+        value: http
+      - key: VITE_API_BASE_URL
+        value: /api
+      - key: PORT
+        value: 80
+
+databases:
+  - name: learn-ai-engineering-db
+    databaseName: learn_ai_engineering
+    user: learn
+    plan: free
+    ipAllowList: []
