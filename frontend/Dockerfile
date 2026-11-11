@@ -21,6 +21,7 @@ RUN bun run build
 FROM caddy:2.8.4-alpine
 
 COPY Caddyfile /etc/caddy/Caddyfile
+RUN setcap -r /usr/bin/caddy
 COPY --from=builder /app/dist /srv
 
 EXPOSE 80
