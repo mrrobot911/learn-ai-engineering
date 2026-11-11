@@ -1,0 +1,17 @@
+## 2026-11-12 — Frontend proxies to the backend over its public URL on Render (no issue)
+- Tool: OpenCode (Big Pickle), direct change requested by the maintainer.
+- Task given: fix the frontend-to-backend proxy on Render; free web services cannot receive private network traffic, so the frontend must call the backend by its public URL.
+- Context given (files by name): `render.yaml`, `frontend/Caddyfile`, `docs/deployment.md`, `docker-compose.yml`, `.env.example`, `frontend/Dockerfile`.
+- Result (5-8 lines):
+  - `render.yaml`: frontend `API_UPSTREAM` is now `value: https://learn-ai-engineering-backend.onrender.com` instead of a `fromService` hostport reference.
+  - `frontend/Caddyfile`: `/api/*` reverse_proxy now sets `header_up Host {upstream_hostport}`, so the backend receives its own host instead of the frontend's origin.
+  - `docs/deployment.md`: new "Networking between services" section states the free-plan restriction, that `API_UPSTREAM` is the backend public URL, and the 15-minute idle spin-down with a slow first request; service and variable descriptions updated.
+  - `docker-compose.yml` and `.env.example` keep the local default `backend:8080`, unchanged.
+- Artifacts (path) and where the next stage used them: the three files above; no contract or spec change.
+- Accepted / rejected / changed by hand, and why: maintainer decision line left open.
+- Verification (commands and exit codes, manual checks):
+  - `docker compose build frontend` → exit 0.
+  - `docker compose up -d` (frontend healthy, default `API_UPSTREAM=backend:8080`), `curl http://127.0.0.1:3000/api/topics` → 200 with topic JSON; `/api/nope` → backend 404; `/` → 200 SPA. Then `docker compose down` → exit 0.
+  - `caddy validate` with `API_UPSTREAM=https://learn-ai-engineering-backend.onrender.com` → "Valid configuration", exit 0; `caddy adapt` shows upstream `…onrender.com:443` with the request `Host` set.
+  - Not verified: the live Render URL (no outbound access from this sandbox), and a real Render deploy.
+- Links (commit, issue, pull request, tool session): commit `fix(deploy): proxy to backend over public URL on Render free plan` on `fix-render-proxy`.

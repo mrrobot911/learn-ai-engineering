@@ -6,7 +6,9 @@
 	encode gzip
 
 	handle_path /api/* {
-		reverse_proxy {$API_UPSTREAM:backend:8080}
+		reverse_proxy {$API_UPSTREAM:backend:8080} {
+			header_up Host {upstream_hostport}
+		}
 	}
 
 	handle {
