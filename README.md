@@ -135,7 +135,7 @@ Makefile targets (run from the repository root):
 - `make check` — checks that do not change files (`gofmt -l` and `go vet`, frontend `typecheck`, `lint` and `format:check`, and Redocly lint of `openapi.yaml`).
 - `make up` / `make down` — start and stop the Compose stack.
 
-CI runs on every push to `dev` and on every pull request (see `.github/workflows/ci.yml`). The `check-and-test` job calls `make check` and `make test`; a separate `integration-tests` job starts `postgres:16-alpine` (same major as `docker-compose.yml`), creates an isolated `learn_ai_engineering_test` database, supplies `TEST_DATABASE_URL` and `DATABASE_URL` from the workflow only, and runs `make test-integration`. Integration tests always use an isolated test database (never the development database). Failing tests fail the job; no deploy step runs.
+CI runs on every push and on every pull request (see `.github/workflows/ci.yml`). The `check-and-test` job calls `make check` and `make test`; a separate `integration-tests` job starts `postgres:16-alpine` (same major as `docker-compose.yml`), creates an isolated `learn_ai_engineering_test` database, supplies `TEST_DATABASE_URL` and `DATABASE_URL` from the workflow only, and runs `make test-integration`. Integration tests always use an isolated test database (never the development database). Failing tests fail the job; no deploy step runs.
 
 ```bash
 # equivalent commands
@@ -158,7 +158,7 @@ Unit tests live next to the code. Integration tests are kept separate from unit 
 
 ## 10. CI/CD and deployment
 
-- **CI:** a GitHub Actions workflow runs the backend and frontend tests on every push to `dev` and on every pull request.
+- **CI:** a GitHub Actions workflow runs the backend and frontend tests on every push and on every pull request.
 - **CD:** when tests pass on the `main` branch, the workflow will deploy the application. The maintainer promotes `dev` to `main` by hand.
 - **Hosting:** _TODO: choose the hosting target (the course deploys to AWS)._
 - **Proof of deployment:** _TODO: public URL and a short description of how it was verified._
