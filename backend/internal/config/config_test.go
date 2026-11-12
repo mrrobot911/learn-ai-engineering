@@ -10,6 +10,7 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("PORT", "")
 	t.Setenv("ENV", "")
 	t.Setenv("DATABASE_URL", "")
+	t.Setenv("STATIC_DIR", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -24,8 +25,23 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Environment != "development" {
 		t.Errorf("expected environment development, got %s", cfg.Environment)
 	}
+	if cfg.StaticDir != "" {
+		t.Errorf("expected empty static dir, got %s", cfg.StaticDir)
+	}
 	if cfg.Addr() != "0.0.0.0:8080" {
 		t.Errorf("expected addr 0.0.0.0:8080, got %s", cfg.Addr())
+	}
+}
+
+func TestLoadStaticDir(t *testing.T) {
+	t.Setenv("STATIC_DIR", "/app/static")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.StaticDir != "/app/static" {
+		t.Errorf("expected static dir /app/static, got %s", cfg.StaticDir)
 	}
 }
 
