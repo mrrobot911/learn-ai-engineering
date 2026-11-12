@@ -5,7 +5,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 cleanup() {
-  docker compose --profile observability down -v >/dev/null 2>&1 || true
+  docker compose --profile observability stop otel-collector prometheus loki tempo grafana >/dev/null 2>&1 || true
+  docker compose --profile observability rm -f otel-collector prometheus loki tempo grafana >/dev/null 2>&1 || true
+  for v in prometheus_data loki_data tempo_data grafana_data; do
+    docker volume ls -q --filter "label=com.docker.compose.volume=$v" | xargs -r docker volume rm >/dev/null 2>&1 || true
+  done
 }
 trap cleanup EXIT
 

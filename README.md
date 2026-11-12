@@ -146,11 +146,22 @@ Start the application together with observability:
 docker compose --profile observability up --build
 ```
 
-Stop it and remove local observability volumes:
+Stop the observability services (keeps all volumes, including `db_data`):
 
 ```bash
-docker compose --profile observability down -v
+docker compose --profile observability stop otel-collector prometheus loki tempo grafana
 ```
+
+Remove the observability containers and only their local volumes (`prometheus_data`, `loki_data`, `tempo_data`, `grafana_data`) without deleting `db_data`:
+
+```bash
+docker compose --profile observability rm -f otel-collector prometheus loki tempo grafana
+for v in prometheus_data loki_data tempo_data grafana_data; do
+  docker volume ls -q --filter "label=com.docker.compose.volume=$v" | xargs -r docker volume rm
+done
+```
+
+`docker compose down` stops the default stack (`db`, `backend`, `frontend`) and keeps volumes; `docker compose down -v` also removes volumes, including `db_data`. To remove only observability volumes, use the commands above instead of `docker compose --profile observability down -v`.
 
 Localhost-bound ports (observability profile):
 
