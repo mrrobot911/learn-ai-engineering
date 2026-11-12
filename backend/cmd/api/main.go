@@ -104,7 +104,7 @@ func main() {
 	mux.Handle("PUT /topics/{topicSlug}/questions/{questionId}/unpublish", withSession(middleware.CSRF(middleware.Maintainer(http.HandlerFunc(contentHandler.UnpublishQuestion)))))
 
 	// Apply logging middleware
-	loggedMux := middleware.Logging(mux)
+	loggedMux := middleware.Logging(handler.NewRouter(mux, cfg.StaticDir))
 
 	log.Printf("Starting server on %s", cfg.Addr())
 	srv := &http.Server{

@@ -12,6 +12,7 @@ type Config struct {
 	Host        string
 	Environment string
 	DatabaseURL string
+	StaticDir   string
 }
 
 // Load reads configuration from environment variables with development defaults.
@@ -22,6 +23,7 @@ func Load() (*Config, error) {
 		Port:        getEnv("PORT", "8080"),
 		Environment: getEnv("ENV", "development"),
 		DatabaseURL: getEnv("DATABASE_URL", ""),
+		StaticDir:   getEnv("STATIC_DIR", ""),
 	}
 
 	if cfg.Environment != "development" && cfg.Environment != "test" && cfg.Environment != "production" {

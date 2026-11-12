@@ -96,6 +96,7 @@ opencode.jsonc         OpenCode project configuration (tools, permissions)
 openapi.yaml           API contract
 frontend/              React + TypeScript app
 backend/               Go API server, migrations, tests
+Dockerfile             single deployment image: frontend build + Go backend
 docker-compose.yml     frontend, backend and PostgreSQL
 .env.example           documented environment variables
 .github/PULL_REQUEST_TEMPLATE.md  pull request template, filled after the QA verdict
@@ -160,10 +161,11 @@ Unit tests live next to the code. Integration tests are kept separate from unit 
 
 - **CI:** a GitHub Actions workflow runs the backend and frontend tests on every push and on every pull request.
 - **CD:** when tests pass on the `main` branch, the workflow will deploy the application. The maintainer promotes `dev` to `main` by hand.
-- **Hosting:** _TODO: choose the hosting target (the course deploys to AWS)._
+- **Hosting:** Render free plan, one Docker web service built from the root [`Dockerfile`](Dockerfile). The image contains the frontend build and the Go backend, which serves both under one URL.
+- **Cold start:** a free web service sleeps after 15 minutes without traffic; the first request after that takes about a minute to wake it.
 - **Proof of deployment:** _TODO: public URL and a short description of how it was verified._
 
-Deployment steps will be documented in `docs/deployment.md`. _Planned._
+Deployment steps are in [`docs/deployment.md`](docs/deployment.md). If an older two-service Blueprint is still deployed, delete the old frontend service in the Render dashboard after the new service is live.
 
 ## 11. Reproducibility
 
