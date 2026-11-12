@@ -125,7 +125,63 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The application, API and database start together. Ports and URLs are defined in `docker-compose.yml`. _Planned: instructions are completed when the compose file exists._
+The application, API and database start together. Ports and URLs are defined in `docker-compose.yml`.
+
+- Frontend: `http://localhost:3000`
+- Backend API (inside the Compose network): `http://backend:8080` (exposed to the frontend container; not published on the host)
+
+Stop the stack with:
+
+```bash
+docker compose down
+```
+
+### Observability stack (local)
+
+The optional observability profile starts an OpenTelemetry Collector, Prometheus, Loki, Tempo and Grafana for local inspection only. It is not started by default, uses local volumes only, contains no secrets, and is not used by Render or CI/CD.
+
+Start the application together with observability:
+
+```bash
+docker compose --profile observability up --build
+```
+
+Stop the observability services (keeps all volumes, including `db_data`):
+
+```bash
+docker compose --profile observability stop otel-collector prometheus loki tempo grafana
+```
+
+Remove the observability containers and only their local volumes (`prometheus_data`, `loki_data`, `tempo_data`, `grafana_data`) without deleting `db_data`:
+
+```bash
+docker compose --profile observability rm -f otel-collector prometheus loki tempo grafana
+for v in prometheus_data loki_data tempo_data grafana_data; do
+  docker volume ls -q --filter "label=com.docker.compose.volume=$v" | xargs -r docker volume rm
+done
+```
+
+`docker compose down` stops the default stack (`db`, `backend`, `frontend`) and keeps volumes; `docker compose down -v` also removes volumes, including `db_data`. To remove only observability volumes, use the commands above instead of `docker compose --profile observability down -v`.
+
+Localhost-bound ports (observability profile):
+
+| Service | URL / port |
+|---|---|
+| Grafana UI | `http://127.0.0.1:3001` |
+| Prometheus | `http://127.0.0.1:9090` |
+| Loki | `http://127.0.0.1:3100` |
+| Tempo | `http://127.0.0.1:3200` |
+| OTel Collector (OTLP gRPC) | `127.0.0.1:4317` |
+| OTel Collector (OTLP HTTP) | `127.0.0.1:4318` |
+| OTel Collector (health) | `http://127.0.0.1:13133` |
+
+Grafana is provisioned from files in `observability/grafana/provisioning/` with Prometheus, Loki and Tempo datasources; no manual setup is required. Collector, Prometheus, Loki and Tempo configuration is committed under `observability/`.
+
+Smoke check (starts the profile, verifies Grafana and HTTP health endpoints, verifies OTLP ports accept connections, then tears the profile down):
+
+```bash
+./observability/smoke-check.sh
+```
 
 ## 9. Testing
 
