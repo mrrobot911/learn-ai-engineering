@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -956,9 +955,9 @@ func TestAuthEndpointsHideRepositoryErrors(t *testing.T) {
 
 func TestAuthFlowsDoNotLogSecrets(t *testing.T) {
 	var logs bytes.Buffer
-	previous := log.Writer()
-	log.SetOutput(&logs)
-	defer log.SetOutput(previous)
+	previous := middleware.LogWriter
+	middleware.LogWriter = &logs
+	defer func() { middleware.LogWriter = previous }()
 
 	s := newAuthTestServer(t, false)
 	s.handler = middleware.Logging(s.handler)

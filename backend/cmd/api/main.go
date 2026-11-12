@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/mrrobot911/learn-ai-engineering/internal/repo"
 	"github.com/mrrobot911/learn-ai-engineering/internal/seed"
 	"github.com/mrrobot911/learn-ai-engineering/internal/service"
+	"github.com/mrrobot911/learn-ai-engineering/internal/telemetry"
 	seeddata "github.com/mrrobot911/learn-ai-engineering/seed"
 )
 
@@ -23,6 +25,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	shutdownTelemetry, err := telemetry.Setup(context.Background())
+	if err != nil {
+		log.Fatalf("Failed to set up telemetry: %v", err)
+	}
+	defer func() { _ = shutdownTelemetry(context.Background()) }()
 
 	h := handler.NewHealthHandler()
 
@@ -103,13 +112,13 @@ func main() {
 	mux.Handle("PUT /topics/{topicSlug}/questions/{questionId}/publish", withSession(middleware.CSRF(middleware.Maintainer(http.HandlerFunc(contentHandler.PublishQuestion)))))
 	mux.Handle("PUT /topics/{topicSlug}/questions/{questionId}/unpublish", withSession(middleware.CSRF(middleware.Maintainer(http.HandlerFunc(contentHandler.UnpublishQuestion)))))
 
-	// Apply logging middleware
-	loggedMux := middleware.Logging(handler.NewRouter(mux, cfg.StaticDir))
+	// Apply telemetry middleware (tracing, metrics, structured logging).
+	instrumented := telemetry.Middleware(handler.NewRouter(mux, cfg.StaticDir))
 
-	log.Printf("Starting server on %s", cfg.Addr())
+	slog.Info("starting server", "addr", cfg.Addr())
 	srv := &http.Server{
 		Addr:              cfg.Addr(),
-		Handler:           loggedMux,
+		Handler:           instrumented,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	if err := srv.ListenAndServe(); err != nil {

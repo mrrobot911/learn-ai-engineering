@@ -38,6 +38,7 @@ func NewRouter(api http.Handler, staticDir string) http.Handler {
 			next.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")
 			next.URL.RawPath = ""
 			api.ServeHTTP(w, next)
+			r.Pattern = next.Pattern
 		default:
 			if file, err := dir.Open(path.Clean("/" + r.URL.Path)); err == nil {
 				file.Close()
