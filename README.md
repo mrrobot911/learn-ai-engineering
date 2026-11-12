@@ -161,11 +161,11 @@ Unit tests live next to the code. Integration tests are kept separate from unit 
 
 - **CI:** a GitHub Actions workflow runs the backend and frontend tests on every push and on every pull request.
 - **CD:** when tests pass on the `main` branch, the workflow will deploy the application. The maintainer promotes `dev` to `main` by hand.
-- **Hosting:** Render free plan, one Docker web service built from the root [`Dockerfile`](Dockerfile). The image contains the frontend build and the Go backend, which serves both under one URL.
+- **Hosting:** Render free plan, one Docker web service named `learn-ai-engineering` built from the root [`Dockerfile`](Dockerfile). The image contains the frontend build and the Go backend, which serves both at the service public URL shown in the Render dashboard.
 - **Cold start:** a free web service sleeps after 15 minutes without traffic; the first request after that takes about a minute to wake it.
 - **Proof of deployment:** _TODO: public URL and a short description of how it was verified._
 
-Deployment steps are in [`docs/deployment.md`](docs/deployment.md). If an older two-service Blueprint is still deployed, delete the old frontend service in the Render dashboard after the new service is live.
+Deployment steps are in [`docs/deployment.md`](docs/deployment.md). If an older two-service Blueprint is still deployed, delete the old `learn-ai-engineering-backend` and `learn-ai-engineering-frontend` services in the Render dashboard after the new `learn-ai-engineering` service is live.
 
 ## 11. Reproducibility
 

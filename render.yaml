@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: learn-ai-engineering-backend
+    name: learn-ai-engineering
     runtime: docker
     plan: free
     branch: main
