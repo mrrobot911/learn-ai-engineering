@@ -1,34 +1,34 @@
 # Deployment (Render)
 
-This project deploys to [Render](https://render.com) using a Render Blueprint defined in [`render.yaml`](../render.yaml). No container registry, image push or deploy hook is used; Render builds from the repository Dockerfiles.
+This project deploys to [Render](https://render.com) using a Render Blueprint defined in [`render.yaml`](../render.yaml). No container registry, image push or deploy hook is used; Render builds one image from the root [`Dockerfile`](../Dockerfile). The application is served at the service public URL shown in the Render dashboard.
 
 ## One-time setup: apply the Blueprint
 
 1. Make sure [`render.yaml`](../render.yaml) is on `main` before applying the Blueprint: merge the change into `dev`, then merge `dev` into `main`, then apply the Blueprint.
 2. In the [Render Dashboard](https://dashboard.render.com), go to **Blueprints → New Blueprint Instance**.
 3. Connect the repository and select the branch `main`.
-4. Render will detect [`render.yaml`](../render.yaml) and create the services and database defined by the Blueprint.
-5. Set the required secret values in the Render dashboard for any variables marked `sync: false` (see below). Render will not store secret values in the repository.
+4. Render will detect [`render.yaml`](../render.yaml) and create the web service and database defined by the Blueprint. Render identifies a service by its name, so the renamed `learn-ai-engineering` service is created as a new service with a new public URL.
+5. Set the required secret values in the Render dashboard for any variables marked `sync: false` (see below). Render will not store secret values in the repository. `SEED_MAINTAINER_EMAIL` and `SEED_MAINTAINER_PASSWORD` are asked again for the new service.
 6. Trigger the first deploy after the secrets are set.
+7. After the new deployment is live, delete the old `learn-ai-engineering-backend` and `learn-ai-engineering-frontend` web services in the Render dashboard. The single `learn-ai-engineering` service replaces both.
 
 ## Services and database
 
 The Blueprint defines:
-- One backend web service (Docker, build context `backend/`, health check at `/health`), on the `free` plan.
-- One frontend web service (Docker, build context `frontend/`), on the `free` plan; public origin that proxies `/api/` to the backend at its public URL.
+- One web service named `learn-ai-engineering` (Docker, build context `.`, root `Dockerfile`, health check at `/health`), on the `free` plan. The image contains the frontend build and the Go backend, so the service public URL shown in the Render dashboard serves the app and the API.
 - One Render Postgres database, on the `free` plan. The backend reads `DATABASE_URL` from it.
 
 All resources use Render's free plans. A free Render Postgres expires 30 days after creation, has 1 GB of storage, and each workspace can have only one.
 
-## Networking between services
+## Same-origin serving
 
-Free Render web services cannot receive private network traffic, so the frontend reaches the backend over the public internet: `API_UPSTREAM` is the backend's public URL, `https://learn-ai-engineering-backend.onrender.com`. The Caddy server in the frontend image proxies `/api/` to that URL and rewrites the `Host` header to the upstream host, so the backend accepts the request. The browser stays same-origin and no CORS is needed.
+The root `Dockerfile` builds the frontend with `VITE_API_MODE=http` and `VITE_API_BASE_URL=/api` and copies the build into the image. The backend serves the frontend from the directory in `STATIC_DIR` (set to `/app/static` in the image): known files are served as-is, unknown non-API paths fall back to `index.html`, and the whole API is served under `/api` with the prefix stripped. `GET /health` stays available without the prefix for Render's health check. The browser stays same-origin and no CORS is needed.
 
-A free backend web service spins down after 15 minutes without traffic. The first request after that starts it again and is slow (tens of seconds), so a slow first API call after an idle period is expected.
+A free web service spins down after 15 minutes without traffic. The first request after that cold start takes about a minute, so a slow first page load after an idle period is expected.
 
 ## Environment variables
 
-### Backend (web service)
+### Web service
 | Variable | Source | Notes |
 | --- | --- | --- |
 | `DATABASE_URL` | Render Postgres (from database) | Provided by Render from the linked database. |
@@ -37,19 +37,12 @@ A free backend web service spins down after 15 minutes without traffic. The firs
 | `PORT` | Blueprint | Set to `8080`. |
 | `SEED_MAINTAINER_EMAIL` | Render dashboard (secret) | Marked `sync: false`. No value stored in the repository. |
 | `SEED_MAINTAINER_PASSWORD` | Render dashboard (secret) | Marked `sync: false`. No value stored in the repository. |
-
-### Frontend (web service)
-| Variable | Source | Notes |
-| --- | --- | --- |
-| `API_UPSTREAM` | Blueprint | Backend public URL, `https://learn-ai-engineering-backend.onrender.com`. The frontend's Caddy proxies `/api/` to it. |
-| `VITE_API_MODE` | Blueprint | Set to `http`. Build-time value for the frontend bundle. |
-| `VITE_API_BASE_URL` | Blueprint | Set to `/api`. Build-time value for the frontend bundle. |
-| `PORT` | Blueprint | Set to `80`. Matches the port exposed by the frontend image. |
+| `STATIC_DIR` | Dockerfile | Set to `/app/static`; points the backend at the frontend build in the image. |
 
 ### Database
 | Variable | Source | Notes |
 | --- | --- | --- |
-| Render Postgres connection | Render | Exposed to the backend via `DATABASE_URL`. Credentials live only in Render environment variables. |
+| Render Postgres connection | Render | Exposed to the web service via `DATABASE_URL`. Credentials live only in Render environment variables. |
 
 ## Promotion
 
@@ -64,3 +57,4 @@ To roll back, redeploy an earlier commit from the Render dashboard (or revert an
 - The deploy gate and first verification are handled separately (T34b).
 - No registry, no image push and no deploy hook are used.
 - Secrets live only in Render environment variables.
+- Local use is unchanged: `docker compose up --build` still runs the frontend Caddy image and the backend as separate services.
