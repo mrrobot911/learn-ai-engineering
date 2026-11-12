@@ -3,6 +3,7 @@ package telemetry_test
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,10 +14,12 @@ import (
 	"github.com/mrrobot911/learn-ai-engineering/internal/handler"
 	"github.com/mrrobot911/learn-ai-engineering/internal/repo"
 	"github.com/mrrobot911/learn-ai-engineering/internal/service"
+	"github.com/mrrobot911/learn-ai-engineering/internal/session"
 	"github.com/mrrobot911/learn-ai-engineering/internal/telemetry"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/exemplar"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -33,7 +36,10 @@ func setupTelemetry(t *testing.T) *telemetryFixture {
 	exporter := tracetest.NewInMemoryExporter()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
 	reader := sdkmetric.NewManualReader()
-	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	mp := sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(reader),
+		sdkmetric.WithExemplarFilter(exemplar.TraceBasedFilter),
+	)
 	prevTP := otel.GetTracerProvider()
 	prevMP := otel.GetMeterProvider()
 	otel.SetTracerProvider(tp)
@@ -55,6 +61,11 @@ func setupTelemetry(t *testing.T) *telemetryFixture {
 
 func testQuizServer(t *testing.T) http.Handler {
 	t.Helper()
+	return testQuizServerWithSession(t, false)
+}
+
+func testQuizServerWithSession(t *testing.T, withSession bool) http.Handler {
+	t.Helper()
 	topics := []repo.Topic{{ID: "topic-1", Slug: "intro", Title: "Intro", Position: 1, Status: repo.StatusPublished}}
 	questions := []repo.Question{{
 		ID: "q1", TopicID: "topic-1", Text: "Question?", Explanation: "Because.", Status: repo.StatusPublished,
@@ -66,9 +77,17 @@ func testQuizServer(t *testing.T) http.Handler {
 	h := handler.NewContentHandler(svc)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /topics/{topicSlug}/quiz", h.StartQuiz)
+	mux.HandleFunc("GET /topics/{topicSlug}/quiz", h.StartQuiz)
 	mux.HandleFunc("POST /topics/{topicSlug}/quiz/submissions", h.SubmitQuiz)
-	return telemetry.Middleware(handler.NewRouter(mux, t.TempDir()))
+
+	var root http.Handler = mux
+	if withSession {
+		root = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := session.With(r.Context(), service.AuthSession{User: repo.User{ID: "user-1"}})
+			mux.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+	return telemetry.Middleware(handler.NewRouter(root, t.TempDir()))
 }
 
 func collectMetrics(t *testing.T, reader *sdkmetric.ManualReader) metricdata.ResourceMetrics {
@@ -130,6 +149,31 @@ func metricsContainRoute(rm metricdata.ResourceMetrics, route string) bool {
 			case metricdata.Histogram[float64]:
 				for _, dp := range d.DataPoints {
 					if v, ok := attrValue(dp.Attributes, "route"); ok && v == route {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func durationHistogramHasExemplarWithTrace(rm metricdata.ResourceMetrics, route, traceID string) bool {
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			if m.Name != "http.server.request.duration" {
+				continue
+			}
+			h, ok := m.Data.(metricdata.Histogram[float64])
+			if !ok {
+				continue
+			}
+			for _, dp := range h.DataPoints {
+				if v, ok := attrValue(dp.Attributes, "route"); !ok || v != route {
+					continue
+				}
+				for _, ex := range dp.Exemplars {
+					if hex.EncodeToString(ex.TraceID) == traceID {
 						return true
 					}
 				}
@@ -212,6 +256,11 @@ func TestQuizTraceAndLogsShareTraceID(t *testing.T) {
 	if !strings.Contains(logs, serverTraceID) {
 		t.Fatalf("logs do not contain trace id %q: %s", serverTraceID, logs)
 	}
+
+	rm := collectMetrics(t, fx.reader)
+	if !durationHistogramHasExemplarWithTrace(rm, "/topics/{topicSlug}/quiz/submissions", serverTraceID) {
+		t.Fatalf("request duration histogram missing exemplar with trace id %q: %s", serverTraceID, metricsDump(rm))
+	}
 }
 
 func TestTelemetryContainsNoSensitiveData(t *testing.T) {
@@ -263,6 +312,66 @@ func TestQuizSubmissionHasChildSpans(t *testing.T) {
 		names[s.Name] = true
 	}
 	for _, want := range []string{"quiz.load_questions", "quiz.grade"} {
+		if !names[want] {
+			t.Errorf("missing child span %q: %s", want, spansDump(spans))
+		}
+	}
+}
+
+func TestGetQuizJourneyIsTraced(t *testing.T) {
+	fx := setupTelemetry(t)
+	srv := testQuizServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/topics/intro/quiz", nil)
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	wantRoute := "/topics/{topicSlug}/quiz"
+	spans := fx.exporter.GetSpans()
+	found := false
+	for _, s := range spans {
+		if !strings.Contains(s.Name, wantRoute) {
+			continue
+		}
+		found = true
+		for _, a := range s.Attributes {
+			if string(a.Key) == "http.route" && a.Value.AsString() != wantRoute {
+				t.Errorf("unexpected route %q", a.Value.AsString())
+			}
+			if string(a.Key) == "http.route" && strings.Contains(a.Value.AsString(), "/api") {
+				t.Errorf("route leaked /api prefix: %v", a.Value.AsString())
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("no server span for %q: %s", wantRoute, spansDump(spans))
+	}
+	if !metricsContainRoute(collectMetrics(t, fx.reader), wantRoute) {
+		t.Fatalf("metrics missing route %q", wantRoute)
+	}
+}
+
+func TestQuizSubmissionStoresAttemptSpanWhenSessionPresent(t *testing.T) {
+	fx := setupTelemetry(t)
+	srv := testQuizServerWithSession(t, true)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/topics/intro/quiz/submissions", strings.NewReader(`{"answers":[{"question_id":"q1","option_id":"o1"}]}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	spans := fx.exporter.GetSpans()
+	names := map[string]bool{}
+	for _, s := range spans {
+		names[s.Name] = true
+	}
+	for _, want := range []string{"quiz.load_questions", "quiz.grade", "quiz.store_attempt"} {
 		if !names[want] {
 			t.Errorf("missing child span %q: %s", want, spansDump(spans))
 		}
