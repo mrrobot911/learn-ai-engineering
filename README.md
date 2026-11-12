@@ -125,7 +125,52 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The application, API and database start together. Ports and URLs are defined in `docker-compose.yml`. _Planned: instructions are completed when the compose file exists._
+The application, API and database start together. Ports and URLs are defined in `docker-compose.yml`.
+
+- Frontend: `http://localhost:3000`
+- Backend API (inside the Compose network): `http://backend:8080` (exposed to the frontend container; not published on the host)
+
+Stop the stack with:
+
+```bash
+docker compose down
+```
+
+### Observability stack (local)
+
+The optional observability profile starts an OpenTelemetry Collector, Prometheus, Loki, Tempo and Grafana for local inspection only. It is not started by default, uses local volumes only, contains no secrets, and is not used by Render or CI/CD.
+
+Start the application together with observability:
+
+```bash
+docker compose --profile observability up --build
+```
+
+Stop it and remove local observability volumes:
+
+```bash
+docker compose --profile observability down -v
+```
+
+Localhost-bound ports (observability profile):
+
+| Service | URL / port |
+|---|---|
+| Grafana UI | `http://127.0.0.1:3001` |
+| Prometheus | `http://127.0.0.1:9090` |
+| Loki | `http://127.0.0.1:3100` |
+| Tempo | `http://127.0.0.1:3200` |
+| OTel Collector (OTLP gRPC) | `127.0.0.1:4317` |
+| OTel Collector (OTLP HTTP) | `127.0.0.1:4318` |
+| OTel Collector (health) | `http://127.0.0.1:13133` |
+
+Grafana is provisioned from files in `observability/grafana/provisioning/` with Prometheus, Loki and Tempo datasources; no manual setup is required. Collector, Prometheus, Loki and Tempo configuration is committed under `observability/`.
+
+Smoke check (starts the profile, verifies Grafana and HTTP health endpoints, verifies OTLP ports accept connections, then tears the profile down):
+
+```bash
+./observability/smoke-check.sh
+```
 
 ## 9. Testing
 
