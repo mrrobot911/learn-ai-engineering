@@ -77,12 +77,38 @@ for i in $(seq 1 60); do
   fi
 done
 
-topic=$(curl -fsS "http://127.0.0.1:3000/api/topics" | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d[0]["slug"] if d else ""))')
-if [ -z "$topic" ]; then
-  echo "no topic available" >&2
-  exit 1
-fi
-quiz_json=$(curl -fsS -X POST "http://127.0.0.1:3000/api/topics/${topic}/quiz")
+topic=""
+for i in $(seq 1 60); do
+  topics_json=$(curl -fsS "http://127.0.0.1:3000/api/topics" 2>/dev/null || true)
+  topic=$(printf '%s' "$topics_json" | python3 -c 'import json,sys
+try:
+    d=json.load(sys.stdin)
+    print((d[0]["slug"] if isinstance(d,list) and d else ""))
+except Exception:
+    print("")' 2>/dev/null || true)
+  if [ -n "$topic" ]; then
+    break
+  fi
+  sleep 2
+  if [ "$i" -eq 60 ]; then
+    echo "no topic available from /api/topics" >&2
+    printf '%s\n' "$topics_json" >&2
+    exit 1
+  fi
+done
+
+quiz_json=""
+for i in $(seq 1 30); do
+  quiz_json=$(curl -fsS -X POST "http://127.0.0.1:3000/api/topics/${topic}/quiz" 2>/dev/null || true)
+  if [ -n "$quiz_json" ]; then
+    break
+  fi
+  sleep 2
+  if [ "$i" -eq 30 ]; then
+    echo "failed to start quiz for topic ${topic}" >&2
+    exit 1
+  fi
+done
 submission_body=$(printf '%s' "$quiz_json" | python3 -c 'import json,sys
 qs = json.load(sys.stdin)
 answers = []
