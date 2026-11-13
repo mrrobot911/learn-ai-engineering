@@ -146,7 +146,7 @@ for i in $(seq 1 20); do
   sleep 1
 done
 sleep 30
-alerts_phase1=$(curl -fsS "http://127.0.0.1:9093/api/v2/alerts")
+alerts_phase1=$(curl -fsS "http://127.0.0.1:9093/api/v2/alerts" 2>/dev/null || echo "[]")
 if printf '%s' "$alerts_phase1" | grep -q 'QuizSubmission5xxRateHigh'; then
   echo "alert fired during 2xx/4xx-only phase" >&2
   printf '%s\n' "$alerts_phase1" >&2
@@ -185,8 +185,9 @@ while [ $SECONDS -lt $end ]; do
 done
 
 # Wait for firing alert and webhook delivery.
+alerts=""
 for i in $(seq 1 120); do
-  alerts=$(curl -fsS "http://127.0.0.1:9093/api/v2/alerts")
+  alerts=$(curl -fsS "http://127.0.0.1:9093/api/v2/alerts" 2>/dev/null || echo "[]")
   if printf '%s' "$alerts" | grep -q 'QuizSubmission5xxRateHigh' && grep -q 'QuizSubmission5xxRateHigh' "$WEBHOOK_LOG"; then
     echo "Alertmanager/webhook observed firing QuizSubmission5xxRateHigh"
     break
@@ -198,6 +199,8 @@ for i in $(seq 1 120); do
     printf '%s\n' "$alerts" >&2
     echo "--- webhook ---" >&2
     cat "$WEBHOOK_LOG" >&2 || true
+    echo "--- prometheus rule state ---" >&2
+    curl -fsS "http://127.0.0.1:9090/api/v1/rules" 2>/dev/null | python3 -m json.tool 2>/dev/null | grep -B2 -A20 'QuizSubmission5xxRateHigh' >&2 || true
     docker compose --profile observability ps >&2 || true
     exit 1
   fi
