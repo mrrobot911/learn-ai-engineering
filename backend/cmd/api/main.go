@@ -26,10 +26,12 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	shutdownTelemetry, err := telemetry.Setup(context.Background())
 	if err != nil {
 		log.Fatalf("Failed to set up telemetry: %v", err)
+	}
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" && os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") == "" && os.Getenv("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT") == "" && os.Getenv("OTEL_EXPORTER_OTLP_LOGS_ENDPOINT") == "" {
+		telemetry.ConfigureLogger(nil)
 	}
 	defer func() { _ = shutdownTelemetry(context.Background()) }()
 

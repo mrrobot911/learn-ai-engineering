@@ -48,13 +48,16 @@ func setupTelemetry(t *testing.T) *telemetryFixture {
 
 	var logs bytes.Buffer
 	prevWriter := telemetry.LogWriter
+	prevLogger := telemetry.RequestLogger()
 	telemetry.LogWriter = &logs
+	telemetry.ConfigureLogger(nil)
 	t.Cleanup(func() {
 		_ = tp.Shutdown(context.Background())
 		_ = mp.Shutdown(context.Background())
 		otel.SetTracerProvider(prevTP)
 		otel.SetMeterProvider(prevMP)
 		telemetry.LogWriter = prevWriter
+		telemetry.SetRequestLogger(prevLogger)
 	})
 	return &telemetryFixture{exporter: exporter, reader: reader, logs: &logs}
 }

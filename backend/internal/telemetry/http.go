@@ -19,6 +19,8 @@ const instrumentationName = "github.com/mrrobot911/learn-ai-engineering/internal
 var (
 	LogWriter io.Writer = os.Stdout
 
+	requestLogger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	requestCount    metric.Int64Counter
 	requestDuration metric.Float64Histogram
 	quizSubmissions metric.Int64Counter
@@ -39,6 +41,16 @@ func initInstruments() {
 // Tests that install a meter provider after package init should call it.
 func ResetInstruments() { initInstruments() }
 
+// SetRequestLogger sets the logger used by the HTTP middleware.
+func SetRequestLogger(l *slog.Logger) {
+	if l != nil {
+		requestLogger = l
+	}
+}
+
+// RequestLogger returns the logger used by the HTTP middleware.
+func RequestLogger() *slog.Logger { return requestLogger }
+
 type statusWriter struct {
 	http.ResponseWriter
 	status int
@@ -53,7 +65,7 @@ func (w *statusWriter) WriteHeader(code int) {
 // logging. The route template recorded is the mux pattern (r.Pattern) without
 // the /api prefix, or the request path when no pattern is available.
 func Middleware(next http.Handler) http.Handler {
-	logger := slog.New(slog.NewJSONHandler(LogWriter, nil))
+	logger := requestLogger
 	tracer := otel.Tracer(instrumentationName)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
