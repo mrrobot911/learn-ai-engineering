@@ -5,9 +5,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 cleanup() {
-  docker compose --profile observability stop otel-collector prometheus loki tempo grafana >/dev/null 2>&1 || true
-  docker compose --profile observability rm -f otel-collector prometheus loki tempo grafana >/dev/null 2>&1 || true
-  for v in prometheus_data loki_data tempo_data grafana_data; do
+  docker compose --profile observability stop otel-collector prometheus alertmanager loki tempo grafana >/dev/null 2>&1 || true
+  docker compose --profile observability rm -f otel-collector prometheus alertmanager loki tempo grafana >/dev/null 2>&1 || true
+  for v in prometheus_data alertmanager_data loki_data tempo_data grafana_data; do
     docker volume ls -q --filter "label=com.docker.compose.volume=$v" | xargs -r docker volume rm >/dev/null 2>&1 || true
   done
 }
@@ -31,6 +31,7 @@ wait_http() {
 
 wait_http "Grafana" "http://127.0.0.1:3001/api/health"
 wait_http "Prometheus" "http://127.0.0.1:9090/-/healthy"
+wait_http "Alertmanager" "http://127.0.0.1:9093/-/healthy"
 wait_http "Loki" "http://127.0.0.1:3100/ready"
 wait_http "Tempo" "http://127.0.0.1:3200/ready"
 wait_http "OTel Collector" "http://127.0.0.1:13133/"
