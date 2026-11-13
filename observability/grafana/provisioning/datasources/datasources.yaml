@@ -17,7 +17,8 @@ datasources:
     jsonData:
       derivedFields:
         - name: trace_id
-          matcherRegex: '"trace_id":"([a-f0-9]+)"'
+          matcherType: label
+          matcherRegex: trace_id
           url: "$${__value.raw}"
           datasourceUid: tempo
           urlDisplayLabel: Trace
@@ -30,9 +31,10 @@ datasources:
     jsonData:
       tracesToLogsV2:
         datasourceUid: loki
-        filterByTraceID: true
+        filterByTraceID: false
         filterBySpanID: false
         tags:
-          - key: route
+          - key: http.route
+            value: route
       lokiSearch:
         datasourceUid: loki
