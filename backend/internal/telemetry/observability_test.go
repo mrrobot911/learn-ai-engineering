@@ -39,6 +39,7 @@ func setupTelemetry(t *testing.T) *telemetryFixture {
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(reader),
 		sdkmetric.WithExemplarFilter(exemplar.TraceBasedFilter),
+		sdkmetric.WithView(telemetry.RequestDurationView()),
 	)
 	prevTP := otel.GetTracerProvider()
 	prevMP := otel.GetMeterProvider()
