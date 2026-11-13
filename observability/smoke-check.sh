@@ -56,11 +56,20 @@ if [ -z "$topic" ]; then
   echo "no topic available for quiz smoke traffic" >&2
   exit 1
 fi
+quiz_json=$(curl -fsS -X POST "http://127.0.0.1:3000/api/topics/${topic}/quiz")
+submission_body=$(printf '%s' "$quiz_json" | python3 -c 'import json,sys
+qs = json.load(sys.stdin)
+answers = []
+for q in qs:
+    opts = q.get("options") or []
+    answers.append({"question_id": q["id"], "option_id": opts[0]["id"] if opts else None})
+print(json.dumps({"answers": answers}))
+')
 for i in 1 2 3; do
-  curl -fsS "http://127.0.0.1:3000/api/topics/${topic}/quiz" >/dev/null
+  curl -fsS -X POST "http://127.0.0.1:3000/api/topics/${topic}/quiz" >/dev/null
   curl -fsS -X POST -H 'Content-Type: application/json' \
-    -d '{"answers":[]}' \
-    "http://127.0.0.1:3000/api/topics/${topic}/quiz/submissions" >/dev/null || true
+    -d "$submission_body" \
+    "http://127.0.0.1:3000/api/topics/${topic}/quiz/submissions" >/dev/null
 done
 echo "Quiz journey smoke traffic: ok"
 
