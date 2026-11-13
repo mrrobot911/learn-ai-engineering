@@ -11,11 +11,17 @@ import (
 
 	"github.com/mrrobot911/learn-ai-engineering/internal/apperr"
 	"github.com/mrrobot911/learn-ai-engineering/internal/repo"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // quizSize is the number of questions a quiz returns when the topic has enough
 // published questions. Version 1 does not let the client choose it.
 const quizSize = 5
+
+func quizTracer() trace.Tracer {
+	return otel.Tracer("github.com/mrrobot911/learn-ai-engineering/internal/service")
+}
 
 // QuizAnswer is one answer of a quiz submission. OptionID is nil when the
 // question is unanswered.
@@ -164,10 +170,13 @@ func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []
 		return QuizResult{}, err
 	}
 
-	questions, err := s.repository.ListPublishedQuestionsByTopicID(ctx, topic.ID)
+	loadCtx, loadSpan := quizTracer().Start(ctx, "quiz.load_questions")
+	questions, err := s.repository.ListPublishedQuestionsByTopicID(loadCtx, topic.ID)
 	if err != nil {
+		loadSpan.End()
 		return QuizResult{}, fmt.Errorf("list questions of topic %q for grading: %w", slug, err)
 	}
+	loadSpan.End()
 
 	published := make(map[string]repo.Question, len(questions))
 	for _, question := range questions {
@@ -190,6 +199,7 @@ func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []
 		seen[answer.QuestionID] = true
 	}
 
+	_, gradeSpan := quizTracer().Start(ctx, "quiz.grade")
 	results := make([]QuizAnswerResult, 0, len(submitted))
 	attemptAnswers := make([]repo.QuizAttemptAnswer, 0, len(submitted))
 	score := 0
@@ -232,6 +242,7 @@ func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []
 			IsCorrect:          isCorrect,
 		})
 	}
+	gradeSpan.End()
 
 	result := QuizResult{
 		Score:   score,
@@ -239,7 +250,8 @@ func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []
 		Answers: results,
 	}
 	if userID != "" {
-		if _, err := s.attempts.CreateAttempt(ctx, repo.QuizAttempt{
+		storeCtx, storeSpan := quizTracer().Start(ctx, "quiz.store_attempt")
+		if _, err := s.attempts.CreateAttempt(storeCtx, repo.QuizAttempt{
 			UserID:    userID,
 			TopicID:   topic.ID,
 			TopicSlug: topic.Slug,
@@ -248,8 +260,10 @@ func (s *ContentService) SubmitQuiz(ctx context.Context, slug string, answers []
 			CreatedAt: time.Now(),
 			Answers:   attemptAnswers,
 		}); err != nil {
+			storeSpan.End()
 			return QuizResult{}, fmt.Errorf("store quiz attempt for user %q: %w", userID, err)
 		}
+		storeSpan.End()
 	}
 	return result, nil
 }

@@ -1,5 +1,5 @@
-# Build stage: pin Go version from go.mod (go 1.22).
-FROM golang:1.22.12-alpine3.20 AS builder
+# Build stage: pin Go version from go.mod (go 1.23).
+FROM golang:1.23.8-alpine3.20 AS builder
 
 WORKDIR /build
 

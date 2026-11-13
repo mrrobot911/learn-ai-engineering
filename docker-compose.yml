@@ -25,6 +25,9 @@ services:
       ENV: ${ENV:-development}
       SEED_MAINTAINER_EMAIL: ${SEED_MAINTAINER_EMAIL:-}
       SEED_MAINTAINER_PASSWORD: ${SEED_MAINTAINER_PASSWORD:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-learn-ai-engineering-backend}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
     depends_on:
       db:
         condition: service_healthy

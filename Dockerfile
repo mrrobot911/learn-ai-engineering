@@ -16,8 +16,8 @@ ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 RUN bun run build
 
-# Build stage: backend (pin Go version from backend/go.mod, go 1.22).
-FROM golang:1.22.12-alpine3.20 AS backend
+# Build stage: backend (pin Go version from backend/go.mod, go 1.23).
+FROM golang:1.23.8-alpine3.20 AS backend
 
 WORKDIR /build
 
