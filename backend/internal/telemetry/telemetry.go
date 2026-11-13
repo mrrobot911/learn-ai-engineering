@@ -21,6 +21,17 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
+// RequestDurationView configures second-based bucket boundaries for the HTTP
+// server request duration histogram so Prometheus quantiles reflect seconds.
+func RequestDurationView() sdkmetric.View {
+	return sdkmetric.NewView(
+		sdkmetric.Instrument{Name: "http.server.request.duration"},
+		sdkmetric.Stream{Aggregation: sdkmetric.AggregationExplicitBucketHistogram{
+			Boundaries: []float64{0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+		}},
+	)
+}
+
 // Setup configures tracing, metrics and log export from the standard OTEL_*
 // environment variables. When no OTLP endpoint is configured it is a no-op:
 // providers stay at their defaults and the API behaves the same. The returned
@@ -70,6 +81,7 @@ func Setup(ctx context.Context) (shutdown func(context.Context) error, err error
 		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExp)),
 		sdkmetric.WithResource(res),
 		sdkmetric.WithExemplarFilter(exemplar.TraceBasedFilter),
+		sdkmetric.WithView(RequestDurationView()),
 	)
 	shutdowns = append(shutdowns, mp.Shutdown)
 	otel.SetMeterProvider(mp)

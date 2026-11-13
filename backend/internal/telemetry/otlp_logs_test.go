@@ -37,6 +37,7 @@ func TestRequestLogsExportedOverOTLP(t *testing.T) {
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(reader),
 		sdkmetric.WithExemplarFilter(exemplar.TraceBasedFilter),
+		sdkmetric.WithView(telemetry.RequestDurationView()),
 	)
 	prevTP := otel.GetTracerProvider()
 	prevMP := otel.GetMeterProvider()
