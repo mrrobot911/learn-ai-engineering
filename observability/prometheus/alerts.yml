@@ -4,12 +4,12 @@ groups:
       - alert: QuizSubmission5xxRateHigh
         expr: |
           (
-            sum(rate(http_server_request_count_total{route="/topics/{topicSlug}/quiz/submissions",status=~"5.."}[2m]))
+            sum(rate({__name__=~"http_server_request_count(_total)?",route="/topics/{topicSlug}/quiz/submissions",status=~"5.."}[2m]))
             /
-            clamp_min(sum(rate(http_server_request_count_total{route="/topics/{topicSlug}/quiz/submissions"}[2m])), 1e-9)
+            clamp_min(sum(rate({__name__=~"http_server_request_count(_total)?",route="/topics/{topicSlug}/quiz/submissions"}[2m])), 1e-9)
           ) > 0.05
           and
-          sum(increase(http_server_request_count_total{route="/topics/{topicSlug}/quiz/submissions"}[2m])) >= 5
+          sum(increase({__name__=~"http_server_request_count(_total)?",route="/topics/{topicSlug}/quiz/submissions"}[2m])) >= 5
         for: 2m
         labels:
           severity: warning

@@ -63,6 +63,16 @@ wait_http "Prometheus" "http://127.0.0.1:9090/-/healthy"
 wait_http "Alertmanager" "http://127.0.0.1:9093/-/healthy"
 wait_http "App" "http://127.0.0.1:3000/api/health"
 
+assert_app_reachable() {
+  local code
+  code=$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000/api/health" || echo "000")
+  if [ "$code" = "000" ]; then
+    echo "app became unreachable" >&2
+    docker compose --profile observability ps >&2 || true
+    exit 1
+  fi
+}
+
 # Wait for Prometheus to have loaded the alert rule.
 for i in $(seq 1 60); do
   rules=$(curl -fsS "http://127.0.0.1:9090/api/v1/rules" || true)
@@ -136,7 +146,7 @@ for i in $(seq 1 20); do
   sleep 1
 done
 sleep 30
-alerts_phase1=$(curl -fsS "http://127.0.0.1:9093/api/v2/alerts" || true)
+alerts_phase1=$(curl -fsS "http://127.0.0.1:9093/api/v2/alerts")
 if printf '%s' "$alerts_phase1" | grep -q 'QuizSubmission5xxRateHigh'; then
   echo "alert fired during 2xx/4xx-only phase" >&2
   printf '%s\n' "$alerts_phase1" >&2
@@ -150,19 +160,33 @@ echo "2xx/4xx-only phase: no alert"
 
 echo "Phase 2: induce 5xx responses and wait for webhook delivery after window"
 docker compose --profile observability stop db >/dev/null
+sleep 2
+assert_app_reachable
+probe=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+  -d "$submission_body" "http://127.0.0.1:3000/api/topics/${topic}/quiz/submissions" || echo "000")
+if [ "${probe:0:1}" != "5" ]; then
+  echo "expected 5xx on submission endpoint after stopping db, got $probe" >&2
+  docker compose --profile observability ps >&2 || true
+  exit 1
+fi
 
 # Generate sustained 5xx traffic on POST /topics/{topicSlug}/quiz/submissions.
 # Alert: >5% 5xx for 2m, minimum 5 requests in 2m. Run for ~5 minutes.
 end=$((SECONDS + 300))
 while [ $SECONDS -lt $end ]; do
-  curl -sS -o /dev/null -X POST -H 'Content-Type: application/json' \
-    -d "$submission_body" "http://127.0.0.1:3000/api/topics/${topic}/quiz/submissions" || true
+  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+    -d "$submission_body" "http://127.0.0.1:3000/api/topics/${topic}/quiz/submissions" || echo "000")
+  if [ "$code" = "000" ]; then
+    echo "app became unreachable during 5xx generation" >&2
+    docker compose --profile observability ps >&2 || true
+    exit 1
+  fi
   sleep 2
 done
 
 # Wait for firing alert and webhook delivery.
 for i in $(seq 1 120); do
-  alerts=$(curl -fsS "http://127.0.0.1:9093/api/v2/alerts" || true)
+  alerts=$(curl -fsS "http://127.0.0.1:9093/api/v2/alerts")
   if printf '%s' "$alerts" | grep -q 'QuizSubmission5xxRateHigh' && grep -q 'QuizSubmission5xxRateHigh' "$WEBHOOK_LOG"; then
     echo "Alertmanager/webhook observed firing QuizSubmission5xxRateHigh"
     break
@@ -174,6 +198,7 @@ for i in $(seq 1 120); do
     printf '%s\n' "$alerts" >&2
     echo "--- webhook ---" >&2
     cat "$WEBHOOK_LOG" >&2 || true
+    docker compose --profile observability ps >&2 || true
     exit 1
   fi
 done
