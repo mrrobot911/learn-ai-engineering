@@ -140,28 +140,27 @@ docker compose down
 
 The optional observability profile starts an OpenTelemetry Collector, Prometheus, Loki, Tempo and Grafana for local inspection only. It is not started by default, uses local volumes only, contains no secrets, and is not used by Render or CI/CD.
 
-Start the application together with observability:
+Start the application together with observability (the backend exports telemetry only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set; without it the backend sends no telemetry):
 
 ```bash
-docker compose --profile observability up --build
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf docker compose --profile observability up --build
 ```
 
-Stop the observability services (keeps all volumes, including `db_data`):
+Stop the profile with:
 
 ```bash
-docker compose --profile observability stop otel-collector prometheus loki tempo grafana
+docker compose --profile observability down
 ```
 
-Remove the observability containers and only their local volumes (`prometheus_data`, `loki_data`, `tempo_data`, `grafana_data`) without deleting `db_data`:
+Never use `docker compose --profile observability down -v`: it removes volumes, including the `db_data` database volume.
 
-```bash
-docker compose --profile observability rm -f otel-collector prometheus loki tempo grafana
-for v in prometheus_data loki_data tempo_data grafana_data; do
-  docker volume ls -q --filter "label=com.docker.compose.volume=$v" | xargs -r docker volume rm
-done
-```
+#### See the quiz journey
 
-`docker compose down` stops the default stack (`db`, `backend`, `frontend`) and keeps volumes; `docker compose down -v` also removes volumes, including `db_data`. To remove only observability volumes, use the commands above instead of `docker compose --profile observability down -v`.
+After taking a quiz and waiting about 90 seconds for telemetry to be exported and indexed, open Grafana at `http://127.0.0.1:3001` and inspect:
+
+- **Tempo (traces):** in Explore with the Tempo datasource, run a TraceQL search with the `q` parameter, for example `{ resource.service.name = "learn-ai-engineering-backend" && span.http.route = "/topics/{topicSlug}/quiz/submissions" }`.
+- **Prometheus (metrics):** in Explore with the Prometheus datasource, query `quiz_submissions_total`.
+- **Loki (logs):** in Explore with the Loki datasource, query with a pipeline filter such as `{service_name="learn-ai-engineering-backend"} | route="/topics/{topicSlug}/quiz/submissions"`. `trace_id` and `route` are structured metadata, not stream labels.
 
 Localhost-bound ports (observability profile):
 
