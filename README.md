@@ -138,7 +138,7 @@ docker compose down
 
 ### Observability stack (local)
 
-The optional observability profile starts an OpenTelemetry Collector, Prometheus, Loki, Tempo and Grafana for local inspection only. It is not started by default, uses local volumes only, contains no secrets, and is not used by Render or CI/CD.
+The optional observability profile starts an OpenTelemetry Collector, Prometheus, Loki, Tempo and Grafana for local inspection only. It is not started by default, uses local volumes only, contains no secrets, and is not used by Render or CI/CD. Details: [`observability/README.md`](observability/README.md).
 
 Start the application together with observability (the backend exports telemetry only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set; without it the backend sends no telemetry):
 
@@ -154,13 +154,15 @@ docker compose --profile observability down
 
 Never use `docker compose --profile observability down -v`: it removes volumes, including the `db_data` database volume.
 
-#### See the quiz journey
+#### Quiz journey dashboard
 
-After taking a quiz and waiting about 90 seconds for telemetry to be exported and indexed, open Grafana at `http://127.0.0.1:3001` and inspect:
+Grafana is provisioned from files (no manual dashboard or datasource setup):
 
-- **Tempo (traces):** in Explore with the Tempo datasource, run a TraceQL search with the `q` parameter, for example `{ resource.service.name = "learn-ai-engineering-backend" && span.http.route = "/topics/{topicSlug}/quiz/submissions" }`.
-- **Prometheus (metrics):** in Explore with the Prometheus datasource, query `quiz_submissions_total`.
-- **Loki (logs):** in Explore with the Loki datasource, query with a pipeline filter such as `{service_name="learn-ai-engineering-backend"} | route="/topics/{topicSlug}/quiz/submissions"`. `trace_id` and `route` are structured metadata, not stream labels.
+- URL: `http://127.0.0.1:3001/d/quiz-journey/quiz-journey`
+- UID: `quiz-journey`
+- Dashboard JSON: `observability/grafana/dashboards/quiz-journey.json`
+
+The dashboard covers `GET /topics/{topicSlug}/quiz` and `POST /topics/{topicSlug}/quiz/submissions` with request rate, 5xx rate and p95 latency (Prometheus), quiz submissions and trace search (Tempo), and journey logs with `trace_id` (Loki). It can be filtered by journey and time range; panels show "No data" instead of an error when empty. Datasource provisioning includes trace/log correlation (`trace_id` in logs opens the trace in Tempo, traces link back to logs).
 
 Localhost-bound ports (observability profile):
 
@@ -174,9 +176,7 @@ Localhost-bound ports (observability profile):
 | OTel Collector (OTLP HTTP) | `127.0.0.1:4318` |
 | OTel Collector (health) | `http://127.0.0.1:13133` |
 
-Grafana is provisioned from files in `observability/grafana/provisioning/` with Prometheus, Loki and Tempo datasources; no manual setup is required. Collector, Prometheus, Loki and Tempo configuration is committed under `observability/`.
-
-Smoke check (starts the profile, verifies Grafana and HTTP health endpoints, verifies OTLP ports accept connections, then tears the profile down):
+Smoke check (starts the profile, verifies service and OTLP health, generates quiz journey traffic, and queries the Grafana API to confirm dashboard `quiz-journey` exists, is provisioned, and contains the required panels; then tears the profile down):
 
 ```bash
 ./observability/smoke-check.sh
