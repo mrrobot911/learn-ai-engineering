@@ -1,0 +1,22 @@
+groups:
+  - name: quiz-journey
+    rules:
+      - alert: QuizSubmission5xxRateHigh
+        expr: |
+          (
+            sum(rate({__name__=~"http_server_request_count(_total)?",route="/topics/{topicSlug}/quiz/submissions",status=~"5.."}[2m]))
+            /
+            clamp_min(sum(rate({__name__=~"http_server_request_count(_total)?",route="/topics/{topicSlug}/quiz/submissions"}[2m])), 1e-9)
+          ) > 0.05
+          and
+          sum(increase({__name__=~"http_server_request_count(_total)?",route="/topics/{topicSlug}/quiz/submissions"}[2m])) >= 5
+        for: 2m
+        labels:
+          severity: warning
+          journey: quiz-submission
+        annotations:
+          summary: "Visitors cannot submit a quiz"
+          description: >-
+            More than 5% of requests to POST /topics/{topicSlug}/quiz/submissions
+            returned 5xx responses for 2 minutes with at least 5 requests in the window.
+            Threshold: >5% 5xx rate; window: 2m (for: 2m); minimum traffic: >=5 requests in 2m.

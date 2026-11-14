@@ -1,0 +1,25 @@
+# Compose override used only by the alert checks
+# (observability/alertmanager-webhook-check.sh and observability/alert-integration-check.sh).
+#
+# It is applied on top of docker-compose.yml inside the isolated Compose project
+# "alert-check", so the checks never touch the containers or volumes of a normal
+# `docker compose --profile observability up`. It is never used for a deploy.
+services:
+  backend:
+    environment:
+      # Designated test environment: the only one where the fault hook may be enabled.
+      ENV: test
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      # The SDK exports metrics every 60 s by default. A short interval only speeds up
+      # the test; alert thresholds, windows and `for` are not changed.
+      OTEL_METRIC_EXPORT_INTERVAL: "5000"
+
+  # The checks talk to the services over the Compose network, so nothing is published
+  # on the host and a running dev stack cannot cause port conflicts.
+  otel-collector:
+    ports: !reset []
+  prometheus:
+    ports: !reset []
+  alertmanager:
+    ports: !reset []

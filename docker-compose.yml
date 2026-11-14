@@ -28,6 +28,7 @@ services:
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-learn-ai-engineering-backend}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
+      FAULT_INJECT_QUIZ_SUBMISSION_5XX: ${FAULT_INJECT_QUIZ_SUBMISSION_5XX:-}
     depends_on:
       db:
         condition: service_healthy
@@ -78,11 +79,40 @@ services:
       - --web.enable-lifecycle
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/alerts.yml:/etc/prometheus/alerts/quiz-journey.yml:ro
       - prometheus_data:/prometheus
     ports:
       - "127.0.0.1:9090:9090"
+    depends_on:
+      alertmanager:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    profiles: ["observability"]
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        sed "s|__ALERT_WEBHOOK_URL__|${ALERT_WEBHOOK_URL:-http://127.0.0.1:9999/alerts}|g" /etc/alertmanager/alertmanager.yml.tmpl > /tmp/alertmanager.yml
+        exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager --web.listen-address=:9093
+    environment:
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-http://127.0.0.1:9999/alerts}
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml.tmpl:/etc/alertmanager/alertmanager.yml.tmpl:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9093/-/healthy >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -150,6 +180,7 @@ services:
 volumes:
   db_data:
   prometheus_data:
+  alertmanager_data:
   loki_data:
   tempo_data:
   grafana_data:

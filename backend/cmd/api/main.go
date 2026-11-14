@@ -81,6 +81,7 @@ func main() {
 
 	contentService := service.NewContentService(contentRepository, attemptRepository)
 	contentHandler := handler.NewContentHandler(contentService)
+	contentHandler.SetQuizSubmissionFaultInjection(cfg.FaultInjectQuizSubmission5xx)
 
 	authService := service.NewAuthService(authRepository)
 	authHandler := handler.NewAuthHandler(authService, cfg.Environment == "production")
