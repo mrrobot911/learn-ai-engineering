@@ -28,6 +28,7 @@ services:
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-learn-ai-engineering-backend}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
+      FAULT_INJECT_QUIZ_SUBMISSION_5XX: ${FAULT_INJECT_QUIZ_SUBMISSION_5XX:-}
     depends_on:
       db:
         condition: service_healthy

@@ -83,3 +83,59 @@ func TestLoadInvalidEnv(t *testing.T) {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
+
+func TestLoadQuizSubmissionFaultInjectionEnabledInTest(t *testing.T) {
+	t.Setenv("ENV", "test")
+	t.Setenv("DATABASE_URL", "postgres://example/test")
+	t.Setenv("FAULT_INJECT_QUIZ_SUBMISSION_5XX", "true")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !cfg.FaultInjectQuizSubmission5xx {
+		t.Fatal("expected quiz submission fault injection to be enabled")
+	}
+}
+
+func TestLoadQuizSubmissionFaultInjectionRejectedInProduction(t *testing.T) {
+	t.Setenv("ENV", "production")
+	t.Setenv("DATABASE_URL", "postgres://example/prod")
+	t.Setenv("FAULT_INJECT_QUIZ_SUBMISSION_5XX", "true")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error when enabling fault injection in production")
+	}
+	if err.Error() != "FAULT_INJECT_QUIZ_SUBMISSION_5XX can only be enabled when ENV=test" {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestLoadQuizSubmissionFaultInjectionRejectedOutsideTest(t *testing.T) {
+	t.Setenv("ENV", "development")
+	t.Setenv("DATABASE_URL", "")
+	t.Setenv("FAULT_INJECT_QUIZ_SUBMISSION_5XX", "true")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error when enabling fault injection outside test environment")
+	}
+	if err.Error() != "FAULT_INJECT_QUIZ_SUBMISSION_5XX can only be enabled when ENV=test" {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestLoadQuizSubmissionFaultInjectionDisabledByDefault(t *testing.T) {
+	t.Setenv("ENV", "test")
+	t.Setenv("DATABASE_URL", "postgres://example/test")
+	t.Setenv("FAULT_INJECT_QUIZ_SUBMISSION_5XX", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.FaultInjectQuizSubmission5xx {
+		t.Fatal("expected quiz submission fault injection to be disabled by default")
+	}
+}

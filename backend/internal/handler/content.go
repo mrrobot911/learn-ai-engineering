@@ -13,12 +13,20 @@ import (
 
 // ContentHandler handles the public content endpoints.
 type ContentHandler struct {
-	service *service.ContentService
+	service                *service.ContentService
+	forceQuizSubmission5xx bool
 }
 
 // NewContentHandler creates a content handler.
 func NewContentHandler(contentService *service.ContentService) *ContentHandler {
 	return &ContentHandler{service: contentService}
+}
+
+// SetQuizSubmissionFaultInjection enables or disables the test-only fault
+// injection hook for quiz submissions. When enabled, SubmitQuiz returns a
+// deterministic 5xx response without invoking quiz grading or storage.
+func (h *ContentHandler) SetQuizSubmissionFaultInjection(enabled bool) {
+	h.forceQuizSubmission5xx = enabled
 }
 
 type topicSummaryResponse struct {
@@ -218,6 +226,11 @@ func (h *ContentHandler) StartQuiz(w http.ResponseWriter, r *http.Request) {
 // SubmitQuiz grades a quiz submission on the server. It works with or without
 // a session; an anonymous submission returns the result and stores nothing.
 func (h *ContentHandler) SubmitQuiz(w http.ResponseWriter, r *http.Request) {
+	if h.forceQuizSubmission5xx {
+		WriteError(w, &apperr.Error{Code: apperr.CodeInternal, Message: "Injected quiz submission failure."})
+		return
+	}
+
 	var request quizSubmissionRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		WriteError(w, &apperr.Error{Code: apperr.CodeValidation, Message: "The request body is invalid."})

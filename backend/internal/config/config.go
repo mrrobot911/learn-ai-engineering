@@ -8,11 +8,12 @@ import (
 
 // Config holds application configuration loaded from environment variables.
 type Config struct {
-	Port        string
-	Host        string
-	Environment string
-	DatabaseURL string
-	StaticDir   string
+	Port                         string
+	Host                         string
+	Environment                  string
+	DatabaseURL                  string
+	StaticDir                    string
+	FaultInjectQuizSubmission5xx bool
 }
 
 // Load reads configuration from environment variables with development defaults.
@@ -28,6 +29,14 @@ func Load() (*Config, error) {
 
 	if cfg.Environment != "development" && cfg.Environment != "test" && cfg.Environment != "production" {
 		return nil, fmt.Errorf("ENV must be development, test or production")
+	}
+
+	faultInjection := os.Getenv("FAULT_INJECT_QUIZ_SUBMISSION_5XX")
+	if faultInjection == "true" {
+		if cfg.Environment != "test" {
+			return nil, errors.New("FAULT_INJECT_QUIZ_SUBMISSION_5XX can only be enabled when ENV=test")
+		}
+		cfg.FaultInjectQuizSubmission5xx = true
 	}
 
 	if cfg.Environment == "production" && cfg.DatabaseURL == "" {

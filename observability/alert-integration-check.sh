@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-WEBHOOK_PORT="${WEBHOOK_PORT:-9999}"
+WEBHOOK_PORT="${WEBHOOK_PORT:-9997}"
 WEBHOOK_LOG="$(mktemp)"
 LISTENER_PID=""
 
@@ -14,8 +14,8 @@ cleanup() {
     kill "$LISTENER_PID" >/dev/null 2>&1 || true
     wait "$LISTENER_PID" >/dev/null 2>&1 || true
   fi
-  docker compose --profile observability start db >/dev/null 2>&1 || true
-  docker compose --profile observability down >/dev/null 2>&1 || true
+  ENV=test FAULT_INJECT_QUIZ_SUBMISSION_5XX=false \
+    docker compose --profile observability stop prometheus alertmanager otel-collector backend >/dev/null 2>&1 || true
   rm -f "$WEBHOOK_LOG" "${WEBHOOK_LOG}.py" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
@@ -40,10 +40,13 @@ python3 "${WEBHOOK_LOG}.py" "$WEBHOOK_LOG" "$WEBHOOK_PORT" &
 LISTENER_PID=$!
 sleep 1
 
-ALERT_WEBHOOK_URL="http://host.docker.internal:${WEBHOOK_PORT}/alerts" \
-OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318 \
-OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
-docker compose --profile observability up -d --build
+export ALERT_WEBHOOK_URL="http://host.docker.internal:${WEBHOOK_PORT}/alerts"
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export ENV=test
+export FAULT_INJECT_QUIZ_SUBMISSION_5XX=false
+
+docker compose --profile observability up -d --build db backend otel-collector prometheus alertmanager
 
 wait_http() {
   local name="$1" url="$2"
@@ -58,22 +61,9 @@ wait_http() {
   return 1
 }
 
-wait_http "Grafana" "http://127.0.0.1:3001/api/health"
 wait_http "Prometheus" "http://127.0.0.1:9090/-/healthy"
 wait_http "Alertmanager" "http://127.0.0.1:9093/-/healthy"
-wait_http "App" "http://127.0.0.1:3000/api/health"
 
-assert_app_reachable() {
-  local code
-  code=$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000/api/health" || echo "000")
-  if [ "$code" = "000" ]; then
-    echo "app became unreachable" >&2
-    docker compose --profile observability ps >&2 || true
-    exit 1
-  fi
-}
-
-# Wait for Prometheus to have loaded the alert rule.
 for i in $(seq 1 60); do
   rules=$(curl -fsS "http://127.0.0.1:9090/api/v1/rules" || true)
   if printf '%s' "$rules" | grep -q 'QuizSubmission5xxRateHigh'; then
@@ -87,9 +77,37 @@ for i in $(seq 1 60); do
   fi
 done
 
+backend_cid="$(docker compose --profile observability ps -q backend)"
+if [ -z "$backend_cid" ]; then
+  echo "backend container not found" >&2
+  exit 1
+fi
+network="$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' "$backend_cid")"
+
+api_get() {
+  local path="$1"
+  docker run --rm --network "$network" curlimages/curl:8.10.1 -fsS "http://backend:8080${path}"
+}
+api_post() {
+  local path="$1" body="${2-}"
+  if [ -n "$body" ]; then
+    docker run --rm --network "$network" curlimages/curl:8.10.1 -fsS \
+      -H 'Content-Type: application/json' -d "$body" "http://backend:8080${path}"
+  else
+    docker run --rm --network "$network" curlimages/curl:8.10.1 -fsS -X POST \
+      "http://backend:8080${path}"
+  fi
+}
+api_post_code() {
+  local path="$1" body="$2"
+  docker run --rm --network "$network" curlimages/curl:8.10.1 -sS -o /dev/null -w '%{http_code}' \
+    -H 'Content-Type: application/json' -d "$body" "http://backend:8080${path}"
+}
+
+# Wait for backend/API and seed data.
 topic=""
-for i in $(seq 1 60); do
-  topics_json=$(curl -fsS "http://127.0.0.1:3000/api/topics" 2>/dev/null || true)
+for i in $(seq 1 90); do
+  topics_json=$(api_get "/topics" 2>/dev/null || true)
   topic=$(printf '%s' "$topics_json" | python3 -c 'import json,sys
 try:
     d=json.load(sys.stdin)
@@ -97,48 +115,35 @@ try:
 except Exception:
     print("")' 2>/dev/null || true)
   if [ -n "$topic" ]; then
+    echo "Backend/topics: ok (${topic})"
     break
   fi
   sleep 2
-  if [ "$i" -eq 60 ]; then
-    echo "no topic available from /api/topics" >&2
-    printf '%s\n' "$topics_json" >&2
+  if [ "$i" -eq 90 ]; then
+    echo "backend/topics not ready" >&2
+    docker compose --profile observability logs --tail=200 backend >&2 || true
     exit 1
   fi
 done
 
-quiz_json=""
-for i in $(seq 1 30); do
-  quiz_json=$(curl -fsS -X POST "http://127.0.0.1:3000/api/topics/${topic}/quiz" 2>/dev/null || true)
-  if [ -n "$quiz_json" ]; then
-    break
-  fi
-  sleep 2
-  if [ "$i" -eq 30 ]; then
-    echo "failed to start quiz for topic ${topic}" >&2
-    exit 1
-  fi
-done
+quiz_json=$(api_post "/topics/${topic}/quiz")
 submission_body=$(printf '%s' "$quiz_json" | python3 -c 'import json,sys
-qs = json.load(sys.stdin)
-answers = []
+qs=json.load(sys.stdin)
+answers=[]
 for q in qs:
-    opts = q.get("options") or []
+    opts=q.get("options") or []
     answers.append({"question_id": q["id"], "option_id": opts[0]["id"] if opts else None})
 print(json.dumps({"answers": answers}))
 ')
 
-echo "Phase 1: only 2xx/4xx responses (must not trigger alert)"
+echo "Phase 1: only 2xx/4xx responses on submission endpoint (must not trigger alert)"
 for i in $(seq 1 20); do
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
-    -d "$submission_body" "http://127.0.0.1:3000/api/topics/${topic}/quiz/submissions")
+  code=$(api_post_code "/topics/${topic}/quiz/submissions" "$submission_body")
   if [ "${code:0:1}" = "5" ]; then
     echo "unexpected 5xx in phase 1: $code" >&2
     exit 1
   fi
-  # 4xx on same endpoint (invalid body) - must not count as 5xx/firing cause.
-  code4=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
-    -d '{}' "http://127.0.0.1:3000/api/topics/${topic}/quiz/submissions")
+  code4=$(api_post_code "/topics/${topic}/quiz/submissions" '{}')
   if [ "${code4:0:1}" = "5" ]; then
     echo "unexpected 5xx on 4xx request in phase 1: $code4" >&2
     exit 1
@@ -158,33 +163,53 @@ if grep -q 'QuizSubmission5xxRateHigh' "$WEBHOOK_LOG"; then
 fi
 echo "2xx/4xx-only phase: no alert"
 
-echo "Phase 2: induce 5xx responses and wait for webhook delivery after window"
-docker compose --profile observability stop db >/dev/null
+echo "Phase 2: enable test-only submission fault injection and wait for webhook delivery"
+export FAULT_INJECT_QUIZ_SUBMISSION_5XX=true
+docker compose --profile observability up -d --no-deps --force-recreate backend
 sleep 2
-assert_app_reachable
-probe=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
-  -d "$submission_body" "http://127.0.0.1:3000/api/topics/${topic}/quiz/submissions" || echo "000")
+
+# Wait for backend healthy after restart.
+backend_cid=""
+for i in $(seq 1 90); do
+  backend_cid="$(docker compose --profile observability ps -q backend)"
+  if [ -n "$backend_cid" ]; then
+    topics_json=$(api_get "/topics" 2>/dev/null || true)
+    topic2=$(printf '%s' "$topics_json" | python3 -c 'import json,sys
+try:
+    d=json.load(sys.stdin)
+    print((d[0]["slug"] if isinstance(d,list) and d else ""))
+except Exception:
+    print("")' 2>/dev/null || true)
+    if [ -n "$topic2" ]; then
+      echo "Backend restarted with fault injection: ok"
+      break
+    fi
+  fi
+  sleep 2
+  if [ "$i" -eq 90 ]; then
+    echo "backend not ready after fault-injection restart" >&2
+    docker compose --profile observability logs --tail=200 backend >&2 || true
+    exit 1
+  fi
+done
+network="$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' "$backend_cid")"
+
+probe=$(api_post_code "/topics/${topic}/quiz/submissions" "$submission_body")
 if [ "${probe:0:1}" != "5" ]; then
-  echo "expected 5xx on submission endpoint after stopping db, got $probe" >&2
-  docker compose --profile observability ps >&2 || true
+  echo "expected deterministic 5xx from injected fault, got $probe" >&2
   exit 1
 fi
 
-# Generate sustained 5xx traffic on POST /topics/{topicSlug}/quiz/submissions.
-# Alert: >5% 5xx for 2m, minimum 5 requests in 2m. Run for ~5 minutes.
 end=$((SECONDS + 300))
 while [ $SECONDS -lt $end ]; do
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
-    -d "$submission_body" "http://127.0.0.1:3000/api/topics/${topic}/quiz/submissions" || echo "000")
+  code=$(api_post_code "/topics/${topic}/quiz/submissions" "$submission_body" || echo "000")
   if [ "$code" = "000" ]; then
-    echo "app became unreachable during 5xx generation" >&2
-    docker compose --profile observability ps >&2 || true
+    echo "request failed during 5xx generation" >&2
     exit 1
   fi
   sleep 2
 done
 
-# Wait for firing alert and webhook delivery.
 alerts=""
 for i in $(seq 1 120); do
   alerts=$(curl -fsS "http://127.0.0.1:9093/api/v2/alerts" 2>/dev/null || echo "[]")
@@ -201,7 +226,7 @@ for i in $(seq 1 120); do
     cat "$WEBHOOK_LOG" >&2 || true
     echo "--- prometheus rule state ---" >&2
     curl -fsS "http://127.0.0.1:9090/api/v1/rules" 2>/dev/null | python3 -m json.tool 2>/dev/null | grep -B2 -A20 'QuizSubmission5xxRateHigh' >&2 || true
-    docker compose --profile observability ps >&2 || true
+    docker compose --profile observability logs --tail=200 backend otel-collector prometheus alertmanager >&2 || true
     exit 1
   fi
 done
@@ -217,8 +242,7 @@ for c in chunks:
         obj = json.loads(c)
     except Exception:
         continue
-    alerts = obj.get('alerts') or []
-    for a in alerts:
+    for a in (obj.get('alerts') or []):
         labels = a.get('labels') or {}
         ann = a.get('annotations') or {}
         if labels.get('alertname') == 'QuizSubmission5xxRateHigh' and 'Visitors cannot submit a quiz' in ann.get('summary', ''):
@@ -228,8 +252,4 @@ if not found:
 print('Webhook JSON delivery: ok')
 PY
 
-# Restore DB and verify alert can resolve (best-effort; not required to block pass if slow).
-docker compose --profile observability start db >/dev/null
-wait_http "App" "http://127.0.0.1:3000/api/health" || true
-
-echo "Alert check passed."
+echo "Alert integration check passed."

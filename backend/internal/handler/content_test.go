@@ -367,3 +367,45 @@ func TestContentEndpointsHideRepositoryErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestSubmitQuizFaultInjectionReturnsDeterministic5xx(t *testing.T) {
+	h := newFixtureServer()
+	handler, ok := h.(*http.ServeMux)
+	if !ok {
+		t.Fatal("expected mux handler")
+	}
+	// Build handler directly to enable fault injection.
+	topics, lessons, questions := contentFixtures()
+	ch := NewContentHandler(service.NewContentService(repo.NewMemoryContentRepository(topics, lessons, questions), repo.NewMemoryAttemptRepository()))
+	ch.SetQuizSubmissionFaultInjection(true)
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /topics/{topicSlug}/quiz/submissions", ch.SubmitQuiz)
+	_ = handler
+
+	req := httptest.NewRequest(http.MethodPost, "/topics/intro/quiz/submissions", strings.NewReader(`{"answers":[{"question_id":"question-1","option_id":"question-1-option-1"}]}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	assertErrorCode(t, w, http.StatusInternalServerError, "internal_error")
+	body := decodeObject(t, w)
+	if body["message"] != "Injected quiz submission failure." {
+		t.Fatalf("expected deterministic injected failure message, got %v", body["message"])
+	}
+}
+
+func TestSubmitQuizFaultInjectionDisabledByDefault(t *testing.T) {
+	topics, lessons, questions := contentFixtures()
+	ch := NewContentHandler(service.NewContentService(repo.NewMemoryContentRepository(topics, lessons, questions), repo.NewMemoryAttemptRepository()))
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /topics/{topicSlug}/quiz/submissions", ch.SubmitQuiz)
+
+	req := httptest.NewRequest(http.MethodPost, "/topics/intro/quiz/submissions", strings.NewReader(`{"answers":[{"question_id":"question-1","option_id":"question-1-option-1"}]}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200 when fault injection disabled, got %d: %s", w.Code, w.Body.String())
+	}
+}

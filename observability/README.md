@@ -53,10 +53,43 @@ The dashboard is provisioned from `observability/grafana/dashboards/quiz-journey
 
 Starts the profile, verifies service health and OTLP ports, generates quiz journey traffic, and queries the Grafana API to confirm dashboard `quiz-journey` exists, is provisioned, and contains the required panels.
 
-## Alert check
+## Alert checks
 
-```bash
-./observability/alert-check.sh
-```
+The alert testing architecture is split into three focused checks:
 
-Starts the profile with a local webhook listener (test stub, not committed), verifies the `QuizSubmission5xxRateHigh` rule is loaded, confirms 2xx/4xx-only traffic sends no alert, then induces 5xx responses on `POST /topics/{topicSlug}/quiz/submissions` and waits for the webhook delivery after the alert window. Requires Docker and several minutes to complete.
+1. **Prometheus rule tests (deterministic)**
+
+   ```bash
+   docker run --rm -v "$PWD/observability/prometheus:/work" -w /work prom/prometheus:v2.55.1 promtool test rules alerts_test.yml
+   ```
+
+   Validates `QuizSubmission5xxRateHigh` rule semantics from the committed `alerts.yml`: firing above threshold with minimum traffic, resolve, and no firing on 4xx-only traffic, other endpoints, or no/insufficient traffic.
+
+2. **Alertmanager webhook delivery (isolated)**
+
+   ```bash
+   ./observability/alertmanager-webhook-check.sh
+   ```
+
+   Renders `alertmanager.yml.tmpl` with `ALERT_WEBHOOK_URL`, starts a standalone Alertmanager and an ephemeral local webhook listener (not committed), posts a synthetic alert via the Alertmanager API, and asserts JSON webhook delivery with the expected user-impact summary.
+
+3. **Minimal endpoint-to-webhook integration (AC4)**
+
+   ```bash
+   ./observability/alert-integration-check.sh
+   ```
+
+   Starts only the minimal pipeline (`db`, `backend`, `otel-collector`, `prometheus`, `alertmanager`) with an ephemeral webhook listener, confirms 2xx/4xx-only submission traffic sends no alert, then induces deterministic 5xx responses on `POST /topics/{topicSlug}/quiz/submissions` and observes webhook delivery after the alert window. Requires Docker and several minutes (alert `rate`/`for` windows are unchanged).
+
+### Test-only fault injection for the integration check
+
+The integration check uses a narrowly scoped, startup-time fault injection hook for `POST /topics/{topicSlug}/quiz/submissions` so it can produce deterministic 5xx responses without stopping PostgreSQL or other shared dependencies.
+
+- Environment variable: `FAULT_INJECT_QUIZ_SUBMISSION_5XX=true`
+- **Disabled by default.** Normal behavior is unchanged when unset/false.
+- **Designated test environment only:** the backend enables it only when `ENV=test`; startup rejects attempts to enable it in `development` or `production`.
+- **Not a runtime/public control:** there is no HTTP endpoint or unauthenticated toggle; it is read only from environment at startup.
+- **Scope:** affects only `POST /topics/{topicSlug}/quiz/submissions` and returns a deterministic 500 `internal_error` response.
+- **Render safety:** `render.yaml` sets `ENV=production` and does not define this variable; production startup rejects enabling it, so it cannot be accidentally enabled in the deployed environment.
+
+`alert-integration-check.sh` enables it by restarting the backend with `ENV=test` and `FAULT_INJECT_QUIZ_SUBMISSION_5XX=true` for the 5xx phase, and disables it by starting/restarting without it (or with it unset/false). Recreate/restart the backend process to change the setting.
