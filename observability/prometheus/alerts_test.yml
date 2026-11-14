@@ -82,6 +82,48 @@ tests:
         alertname: QuizSubmission5xxRateHigh
         exp_alerts: []
 
+  # Threshold boundary: 4% of requests are 5xx (below 5%), plenty of traffic.
+  - interval: 1m
+    input_series:
+      - series: 'http_server_request_count_total{route="/topics/{topicSlug}/quiz/submissions",status="500",method="POST"}'
+        values: '0+1x10'
+      - series: 'http_server_request_count_total{route="/topics/{topicSlug}/quiz/submissions",status="200",method="POST"}'
+        values: '0+24x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: QuizSubmission5xxRateHigh
+        exp_alerts: []
+
+  # Threshold boundary: 10% of requests are 5xx (above 5%), a mix of 2xx and 5xx.
+  - interval: 1m
+    input_series:
+      - series: 'http_server_request_count_total{route="/topics/{topicSlug}/quiz/submissions",status="500",method="POST"}'
+        values: '0+2x10'
+      - series: 'http_server_request_count_total{route="/topics/{topicSlug}/quiz/submissions",status="200",method="POST"}'
+        values: '0+18x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: QuizSubmission5xxRateHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              journey: quiz-submission
+            exp_annotations:
+              summary: "Visitors cannot submit a quiz"
+              description: "More than 5% of requests to POST /topics/{topicSlug}/quiz/submissions returned 5xx responses for 2 minutes with at least 5 requests in the window. Threshold: >5% 5xx rate; window: 2m (for: 2m); minimum traffic: >=5 requests in 2m."
+
+  # Healthy traffic on the submission endpoint while another endpoint returns 5xx.
+  - interval: 1m
+    input_series:
+      - series: 'http_server_request_count_total{route="/topics/{topicSlug}/quiz/submissions",status="200",method="POST"}'
+        values: '0+10x10'
+      - series: 'http_server_request_count_total{route="/topics/{topicSlug}/quiz",status="500",method="POST"}'
+        values: '0+10x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: QuizSubmission5xxRateHigh
+        exp_alerts: []
+
   # Does not fire when there is no traffic.
   - interval: 1m
     input_series: []

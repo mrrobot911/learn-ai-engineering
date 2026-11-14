@@ -369,18 +369,11 @@ func TestContentEndpointsHideRepositoryErrors(t *testing.T) {
 }
 
 func TestSubmitQuizFaultInjectionReturnsDeterministic5xx(t *testing.T) {
-	h := newFixtureServer()
-	handler, ok := h.(*http.ServeMux)
-	if !ok {
-		t.Fatal("expected mux handler")
-	}
-	// Build handler directly to enable fault injection.
 	topics, lessons, questions := contentFixtures()
 	ch := NewContentHandler(service.NewContentService(repo.NewMemoryContentRepository(topics, lessons, questions), repo.NewMemoryAttemptRepository()))
 	ch.SetQuizSubmissionFaultInjection(true)
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /topics/{topicSlug}/quiz/submissions", ch.SubmitQuiz)
-	_ = handler
 
 	req := httptest.NewRequest(http.MethodPost, "/topics/intro/quiz/submissions", strings.NewReader(`{"answers":[{"question_id":"question-1","option_id":"question-1-option-1"}]}`))
 	req.Header.Set("Content-Type", "application/json")

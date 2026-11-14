@@ -55,41 +55,30 @@ Starts the profile, verifies service health and OTLP ports, generates quiz journ
 
 ## Alert checks
 
-The alert testing architecture is split into three focused checks:
+The alert is verified in four independent steps, from fastest to slowest. Each one fails on its own link of the chain `backend -> OTel collector -> Prometheus rule -> Alertmanager -> webhook`, so a failure points at one place.
 
-1. **Prometheus rule tests (deterministic)**
+| Step | Command | Time | Proves |
+| --- | --- | --- | --- |
+| 1. Rule logic | `docker run --rm -v "$PWD/observability/prometheus:/work" -w /work prom/prometheus:v2.55.1 promtool test rules alerts_test.yml` | seconds | AC1, AC2: fires above 5% with enough traffic and `for: 2m`, resolves, ignores 4xx, other routes, low and no traffic |
+| 2. Webhook delivery | `./observability/alertmanager-webhook-check.sh` | ~1 min | AC3: the real `alertmanager` service renders its config from `ALERT_WEBHOOK_URL` and a throwaway listener receives a JSON notification |
+| 3. Real pipeline, fast | `./observability/alert-integration-check.sh` | ~2 min | AC4, first half: real requests produce metrics the rule selects; 2xx/4xx traffic keeps the rule inactive and sends nothing; 5xx traffic activates the rule |
+| 4. Real pipeline, full | `./observability/alert-integration-check.sh full` | ~4-5 min | AC4: 5xx traffic through the unchanged `for: 2m` window ends in a webhook notification |
 
-   ```bash
-   docker run --rm -v "$PWD/observability/prometheus:/work" -w /work prom/prometheus:v2.55.1 promtool test rules alerts_test.yml
-   ```
+Steps 2-4 need Docker. They run in an isolated Compose project named `alert-check` (own containers, network and volumes), so they do not touch a running dev stack and need no free host ports. They start only `db`, `backend`, `otel-collector`, `prometheus` and `alertmanager` (step 2: only `alertmanager`). Nothing is published on the host; requests go through a short-lived curl container and the webhook listener is a throwaway container whose code is written to a temp directory at run time (not committed). Add `AC_KEEP=1` to leave the stack running for debugging; remove it with `docker compose -p alert-check down -v`.
 
-   Validates `QuizSubmission5xxRateHigh` rule semantics from the committed `alerts.yml`: firing above threshold with minimum traffic, resolve, and no firing on 4xx-only traffic, other endpoints, or no/insufficient traffic.
+Step 3 stops as soon as the rule becomes `pending`, which already proves that its expression is true on live data, so it does not wait for the `for: 2m` window. Run step 4 once before handing the work over; it is the only slow one. Times exclude the first run's image build and pulls.
 
-2. **Alertmanager webhook delivery (isolated)**
+The checks use `observability/alert-test.compose.yml` on top of `docker-compose.yml`. It sets `ENV=test`, wires the backend to the collector, and sets `OTEL_METRIC_EXPORT_INTERVAL=5000` because the SDK exports metrics only every 60 s by default. Alert thresholds, windows, minimum traffic and `for` are not changed.
 
-   ```bash
-   ./observability/alertmanager-webhook-check.sh
-   ```
+### Test-only fault injection
 
-   Renders `alertmanager.yml.tmpl` with `ALERT_WEBHOOK_URL`, starts a standalone Alertmanager and an ephemeral local webhook listener (not committed), posts a synthetic alert via the Alertmanager API, and asserts JSON webhook delivery with the expected user-impact summary.
-
-3. **Minimal endpoint-to-webhook integration (AC4)**
-
-   ```bash
-   ./observability/alert-integration-check.sh
-   ```
-
-   Starts only the minimal pipeline (`db`, `backend`, `otel-collector`, `prometheus`, `alertmanager`) with an ephemeral webhook listener, confirms 2xx/4xx-only submission traffic sends no alert, then induces deterministic 5xx responses on `POST /topics/{topicSlug}/quiz/submissions` and observes webhook delivery after the alert window. Requires Docker and several minutes (alert `rate`/`for` windows are unchanged).
-
-### Test-only fault injection for the integration check
-
-The integration check uses a narrowly scoped, startup-time fault injection hook for `POST /topics/{topicSlug}/quiz/submissions` so it can produce deterministic 5xx responses without stopping PostgreSQL or other shared dependencies.
+Step 3 and 4 need real 5xx responses on `POST /topics/{topicSlug}/quiz/submissions` without stopping PostgreSQL, so the backend has a startup-time fault hook.
 
 - Environment variable: `FAULT_INJECT_QUIZ_SUBMISSION_5XX=true`
-- **Disabled by default.** Normal behavior is unchanged when unset/false.
-- **Designated test environment only:** the backend enables it only when `ENV=test`; startup rejects attempts to enable it in `development` or `production`.
-- **Not a runtime/public control:** there is no HTTP endpoint or unauthenticated toggle; it is read only from environment at startup.
-- **Scope:** affects only `POST /topics/{topicSlug}/quiz/submissions` and returns a deterministic 500 `internal_error` response.
-- **Render safety:** `render.yaml` sets `ENV=production` and does not define this variable; production startup rejects enabling it, so it cannot be accidentally enabled in the deployed environment.
+- **Disabled by default.** Normal behavior is unchanged when unset or not `true`.
+- **Designated test environment only:** it is enabled only when `ENV=test`; startup fails if it is requested in `development` or `production`.
+- **Not a runtime or public control:** there is no HTTP endpoint or toggle; it is read once from the environment at startup.
+- **Scope:** only `POST /topics/{topicSlug}/quiz/submissions` is affected and it returns a deterministic 500 `internal_error`.
+- **Render safety:** `render.yaml` sets `ENV=production` and does not define this variable; production startup rejects it, so it cannot be enabled in the deployed environment.
 
-`alert-integration-check.sh` enables it by restarting the backend with `ENV=test` and `FAULT_INJECT_QUIZ_SUBMISSION_5XX=true` for the 5xx phase, and disables it by starting/restarting without it (or with it unset/false). Recreate/restart the backend process to change the setting.
+The integration check enables it by recreating only the backend container with `FAULT_INJECT_QUIZ_SUBMISSION_5XX=true`, and runs without it before that. To disable it, recreate the backend without the variable.
