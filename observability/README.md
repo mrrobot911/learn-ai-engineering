@@ -59,7 +59,7 @@ The alert is verified in four independent steps, from fastest to slowest. Each o
 
 | Step | Command | Time | Proves |
 | --- | --- | --- | --- |
-| 1. Rule logic | `docker run --rm -v "$PWD/observability/prometheus:/work" -w /work prom/prometheus:v2.55.1 promtool test rules alerts_test.yml` | seconds | AC1, AC2: fires above 5% with enough traffic and `for: 2m`, resolves, ignores 4xx, other routes, low and no traffic |
+| 1. Rule logic | `docker run --rm --entrypoint promtool -v "$PWD/observability/prometheus:/work" -w /work prom/prometheus:v2.55.1 test rules alerts_test.yml` | seconds | AC1, AC2: fires above 5% with enough traffic and `for: 2m`, resolves, ignores 4xx, other routes, low and no traffic |
 | 2. Webhook delivery | `./observability/alertmanager-webhook-check.sh` | ~1 min | AC3: the real `alertmanager` service renders its config from `ALERT_WEBHOOK_URL` and a throwaway listener receives a JSON notification |
 | 3. Real pipeline, fast | `./observability/alert-integration-check.sh` | ~2 min | AC4, first half: real requests produce metrics the rule selects; 2xx/4xx traffic keeps the rule inactive and sends nothing; 5xx traffic activates the rule |
 | 4. Real pipeline, full | `./observability/alert-integration-check.sh full` | ~4-5 min | AC4: 5xx traffic through the unchanged `for: 2m` window ends in a webhook notification |
