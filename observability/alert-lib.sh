@@ -64,6 +64,12 @@ ac_diagnose() {
 # ---- lifecycle -------------------------------------------------------------------------
 
 ac_init() {
+  local existing
+  existing="$(${AC_COMPOSE[@]} ps -aq 2>/dev/null || true)"
+  if [ -n "$existing" ] || docker container inspect "$AC_LISTENER" "$AC_CURL" >/dev/null 2>&1; then
+    printf '[alert-check] FAIL: alert-check resources already exist. Run the checks one at a time and clean up with: docker compose -p alert-check down -v; docker rm -f alert-check-listener alert-check-curl\n' >&2
+    exit 1
+  fi
   AC_TMP="$(mktemp -d)"
   : > "$AC_TMP/webhook.log"
   chmod 777 "$AC_TMP"
