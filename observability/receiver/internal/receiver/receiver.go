@@ -36,11 +36,11 @@ type Server struct {
 	now    func() time.Time
 	run    func(ctx context.Context, name string, args []string, dir string, env []string) ([]byte, error)
 
-	mu       sync.Mutex
-	started  map[string]struct{} // alertname/fingerprint dedupe
-	wg       sync.WaitGroup
-	repoOnce sync.Once
-	repoErr  error
+	mu        sync.Mutex
+	started   map[string]struct{} // alertname/fingerprint dedupe
+	wg        sync.WaitGroup
+	repoMu    sync.Mutex
+	repoReady bool
 }
 
 func New(cfg Config) *Server {
@@ -48,7 +48,7 @@ func New(cfg Config) *Server {
 		cfg.BundleRoot = "/data/incidents"
 	}
 	if cfg.RepoDir == "" {
-		cfg.RepoDir = "/repo"
+		cfg.RepoDir = "/data/repo"
 	}
 	if cfg.LokiURL == "" {
 		cfg.LokiURL = "http://loki:3100"
@@ -183,7 +183,9 @@ func (s *Server) process(raw []byte, payload alertPayload, startAgent bool) (str
 		return "", err
 	}
 
+	key := incidentKey(payload)
 	if !startAgent {
+		s.releaseIncident(key)
 		meta["agent"] = map[string]any{"started": false, "reason": "not_firing"}
 		_ = writeJSON(filepath.Join(dir, "metadata.json"), meta)
 		return dir, nil
@@ -195,7 +197,6 @@ func (s *Server) process(raw []byte, payload alertPayload, startAgent bool) (str
 		log.Printf("incident %s: %s", id, msg)
 		return dir, nil
 	}
-	key := incidentKey(payload)
 	if !s.claimIncident(key) {
 		meta["agent"] = map[string]any{"started": false, "reason": "duplicate_incident", "key": key}
 		_ = writeJSON(filepath.Join(dir, "metadata.json"), meta)
@@ -409,7 +410,7 @@ func LoadConfigFromEnv() Config {
 	key, src := resolveAPIKey()
 	return Config{
 		BundleRoot:   envOr("INCIDENT_BUNDLE_DIR", envOr("BUNDLE_DIR", "/data/incidents")),
-		RepoDir:      envOr("REPO_DIR", "/repo"),
+		RepoDir:      envOr("REPO_DIR", "/data/repo"),
 		RepoSrc:      strings.TrimSpace(os.Getenv("REPO_SRC")),
 		LokiURL:      envOr("LOKI_URL", "http://loki:3100"),
 		TempoURL:     envOr("TEMPO_URL", "http://tempo:3200"),
@@ -476,6 +477,7 @@ func (s *Server) runAgent(dir, prompt, key string) {
 		result["error"] = "prepare repo: " + err.Error()
 		log.Printf("incident agent failed for %s: prepare repo: %v", key, err)
 		_ = writeJSON(filepath.Join(dir, "agent-result.json"), result)
+		s.releaseIncident(key)
 		return
 	}
 	env := buildEnv(s.cfg)
@@ -491,27 +493,35 @@ func (s *Server) runAgent(dir, prompt, key string) {
 	tail := redactTail(string(out), 4000, s.cfg.APIKey)
 	result["output_tail"] = tail
 	_ = writeJSON(filepath.Join(dir, "agent-result.json"), result)
+	if err != nil {
+		s.releaseIncident(key)
+	}
 }
 
 func (s *Server) ensureRepo(ctx context.Context) error {
 	if strings.TrimSpace(s.cfg.RepoSrc) == "" {
 		return nil
 	}
-	s.repoOnce.Do(func() {
-		src := s.cfg.RepoSrc
-		dst := s.cfg.RepoDir
-		if err := os.RemoveAll(dst); err != nil {
-			s.repoErr = err
-			return
-		}
-		// Copy repository checkout without .env so the agent/container do not read secrets.
-		cmd := exec.CommandContext(ctx, "sh", "-c", "cp -a \"$1\" \"$2\" && rm -f \"$2/.env\"", "sh", src, dst)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			s.repoErr = fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
-		}
-	})
-	return s.repoErr
+	s.repoMu.Lock()
+	defer s.repoMu.Unlock()
+	if s.repoReady {
+		return nil
+	}
+	src := s.cfg.RepoSrc
+	dst := s.cfg.RepoDir
+	if err := os.RemoveAll(dst); err != nil {
+		return err
+	}
+	// Copy repository checkout without .env or .env.* secrets (.env.example kept).
+	script := "cp -a \"$1\" \"$2\" && " +
+		"find \"$2\" -maxdepth 1 -type f \\( -name '.env' -o -name '.env.*' \\) ! -name '.env.example' -delete"
+	cmd := exec.CommandContext(ctx, "sh", "-c", script, "sh", src, dst)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
+	}
+	s.repoReady = true
+	return nil
 }
 
 func redactTail(s string, max int, secret string) string {

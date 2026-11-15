@@ -310,3 +310,195 @@ func TestMissingKeyFailsFastAndStartsNoAgent(t *testing.T) {
 		t.Fatal("opencode should not have been started")
 	}
 }
+
+func TestResolvedNotificationReleasesKey(t *testing.T) {
+	bundleDir := t.TempDir()
+	repoDir := t.TempDir()
+	countFile := filepath.Join(t.TempDir(), "count")
+	fakeBin := filepath.Join(t.TempDir(), "fake-opencode")
+	script := "#!/bin/sh\nif [ -f " + countFile + " ]; then c=$(cat " + countFile + "); else c=0; fi; c=$((c+1)); echo $c > " + countFile + "\n"
+	if err := os.WriteFile(fakeBin, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	srv := New(Config{BundleRoot: bundleDir, RepoDir: repoDir, LokiURL: "http://127.0.0.1:1", TempoURL: "http://127.0.0.1:1", OpencodeBin: fakeBin, APIKey: "k"})
+	now := time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC)
+	srv.now = func() time.Time { return now }
+	srv.client = &http.Client{Timeout: 50 * time.Millisecond}
+
+	firing := `{"status":"firing","alerts":[{"status":"firing","fingerprint":"fp-release","labels":{"alertname":"QuizSubmission5xxRateHigh"},"startsAt":"2026-11-14T11:55:00Z"}]}`
+	resolved := `{"status":"resolved","alerts":[{"status":"resolved","fingerprint":"fp-release","labels":{"alertname":"QuizSubmission5xxRateHigh"},"startsAt":"2026-11-14T11:55:00Z","endsAt":"2026-11-14T11:58:00Z"}]}`
+
+	post := func(p string) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/alerts", strings.NewReader(p))
+		w := httptest.NewRecorder()
+		srv.Routes().ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+		}
+	}
+
+	post(firing)
+	srv.Wait()
+	post(resolved)
+	now = now.Add(time.Second)
+	post(firing)
+	srv.Wait()
+
+	b, err := os.ReadFile(countFile)
+	if err != nil {
+		t.Fatalf("agent not started: %v", err)
+	}
+	if strings.TrimSpace(string(b)) != "2" {
+		t.Fatalf("expected 2 agent runs after resolve, got %q", string(b))
+	}
+}
+
+func TestAgentFailureReleasesKeyForRetry(t *testing.T) {
+	bundleDir := t.TempDir()
+	repoDir := t.TempDir()
+	countFile := filepath.Join(t.TempDir(), "count")
+	fakeBin := filepath.Join(t.TempDir(), "fake-opencode")
+	script := "#!/bin/sh\nif [ -f " + countFile + " ]; then c=$(cat " + countFile + "); else c=0; fi; c=$((c+1)); echo $c > " + countFile + "\nif [ \"$c\" -eq 1 ]; then echo fail; exit 2; fi\necho ok\n"
+	if err := os.WriteFile(fakeBin, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	srv := New(Config{BundleRoot: bundleDir, RepoDir: repoDir, LokiURL: "http://127.0.0.1:1", TempoURL: "http://127.0.0.1:1", OpencodeBin: fakeBin, APIKey: "k"})
+	now := time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC)
+	srv.now = func() time.Time { return now }
+	srv.client = &http.Client{Timeout: 50 * time.Millisecond}
+
+	payload := `{"status":"firing","alerts":[{"status":"firing","fingerprint":"fp-retry","labels":{"alertname":"QuizSubmission5xxRateHigh"},"startsAt":"2026-11-14T11:55:00Z"}]}`
+	post := func() string {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/alerts", strings.NewReader(payload))
+		w := httptest.NewRecorder()
+		srv.Routes().ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+		}
+		srv.Wait()
+		entries, _ := os.ReadDir(bundleDir)
+		if len(entries) == 0 {
+			t.Fatal("expected bundle")
+		}
+		// return newest/only bundle dir for this timestamp
+		return filepath.Join(bundleDir, entries[len(entries)-1].Name())
+	}
+
+	dir1 := post()
+	res1, err := os.ReadFile(filepath.Join(dir1, "agent-result.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(res1), "error") {
+		t.Fatalf("expected first run failure recorded, got: %s", string(res1))
+	}
+
+	now = now.Add(time.Second)
+	dir2 := post()
+	res2, err := os.ReadFile(filepath.Join(dir2, "agent-result.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(res2), "\"error\"") {
+		t.Fatalf("expected second run success after retry, got: %s", string(res2))
+	}
+
+	b, err := os.ReadFile(countFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(b)) != "2" {
+		t.Fatalf("expected 2 agent runs, got %q", string(b))
+	}
+}
+
+func TestEnsureRepoRetriesAfterFailureAndStripsEnvFiles(t *testing.T) {
+	bundleDir := t.TempDir()
+	root := t.TempDir()
+	repoSrc := filepath.Join(root, "src-missing")
+	repoDir := filepath.Join(root, "repo")
+	countFile := filepath.Join(t.TempDir(), "count")
+	fakeBin := filepath.Join(t.TempDir(), "fake-opencode")
+	script := "#!/bin/sh\nif [ -f " + countFile + " ]; then c=$(cat " + countFile + "); else c=0; fi; c=$((c+1)); echo $c > " + countFile + "\necho ok\n"
+	if err := os.WriteFile(fakeBin, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	srv := New(Config{BundleRoot: bundleDir, RepoDir: repoDir, RepoSrc: repoSrc, LokiURL: "http://127.0.0.1:1", TempoURL: "http://127.0.0.1:1", OpencodeBin: fakeBin, APIKey: "k"})
+	now := time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC)
+	srv.now = func() time.Time { return now }
+	srv.client = &http.Client{Timeout: 50 * time.Millisecond}
+
+	payload := `{"status":"firing","alerts":[{"status":"firing","fingerprint":"fp-ensurerepo","labels":{"alertname":"QuizSubmission5xxRateHigh"},"startsAt":"2026-11-14T11:55:00Z"}]}`
+	post := func() string {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/alerts", strings.NewReader(payload))
+		w := httptest.NewRecorder()
+		srv.Routes().ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+		}
+		srv.Wait()
+		entries, _ := os.ReadDir(bundleDir)
+		if len(entries) == 0 {
+			t.Fatal("expected bundle")
+		}
+		return filepath.Join(bundleDir, entries[len(entries)-1].Name())
+	}
+
+	dir1 := post()
+	res1, err := os.ReadFile(filepath.Join(dir1, "agent-result.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(res1), "prepare repo") {
+		t.Fatalf("expected prepare repo failure, got: %s", string(res1))
+	}
+
+	if err := os.MkdirAll(repoSrc, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repoSrc, ".env"), []byte("SECRET=1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repoSrc, ".env.local"), []byte("SECRET=2\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repoSrc, ".env.example"), []byte("OK=1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repoSrc, "README.md"), []byte("hi\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	now = now.Add(time.Second)
+	dir2 := post()
+	res2, err := os.ReadFile(filepath.Join(dir2, "agent-result.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(res2), "prepare repo") || strings.Contains(string(res2), "\"error\"") {
+		t.Fatalf("expected success after repo becomes available, got: %s", string(res2))
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, ".env")); err == nil {
+		t.Fatal(".env must be removed from copied repo")
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, ".env.local")); err == nil {
+		t.Fatal(".env.local must be removed from copied repo")
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, ".env.example")); err != nil {
+		t.Fatalf(".env.example must be kept: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(repoDir, "README.md")); err != nil {
+		t.Fatalf("expected copied file: %v", err)
+	}
+
+	b, err := os.ReadFile(countFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(b)) != "1" {
+		t.Fatalf("expected 1 opencode run after repo became available, got %q", string(b))
+	}
+}

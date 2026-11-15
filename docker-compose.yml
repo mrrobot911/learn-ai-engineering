@@ -103,7 +103,7 @@ services:
       LOKI_URL: ${LOKI_URL:-http://loki:3100}
       TEMPO_URL: ${TEMPO_URL:-http://tempo:3200}
       INCIDENT_BUNDLE_DIR: ${INCIDENT_BUNDLE_DIR:-/data/incidents}
-      REPO_DIR: ${REPO_DIR:-/repo}
+      REPO_DIR: ${REPO_DIR:-/data/repo}
       REPO_SRC: ${REPO_SRC:-/repo-src}
       OPENCODE_BIN: ${OPENCODE_BIN:-opencode}
       OPENCODE_PROVIDER: ${OPENCODE_PROVIDER:-}
@@ -112,8 +112,29 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
-      - ./:/repo-src:ro
-      - receiver_data:/data/incidents
+      - receiver_data:/data
+      - ./.agents:/repo-src/.agents:ro
+      - ./AGENTS.md:/repo-src/AGENTS.md:ro
+      - ./backend:/repo-src/backend:ro
+      - ./.bun-version:/repo-src/.bun-version:ro
+      - ./.cortexkit:/repo-src/.cortexkit:ro
+      - ./docker-compose.yml:/repo-src/docker-compose.yml:ro
+      - ./Dockerfile:/repo-src/Dockerfile:ro
+      - ./docs:/repo-src/docs:ro
+      - ./.env.example:/repo-src/.env.example:ro
+      - ./frontend:/repo-src/frontend:ro
+      - ./.git:/repo-src/.git:ro
+      - ./.github:/repo-src/.github:ro
+      - ./.gitignore:/repo-src/.gitignore:ro
+      - ./Makefile:/repo-src/Makefile:ro
+      - ./observability:/repo-src/observability:ro
+      - ./openapi.yaml:/repo-src/openapi.yaml:ro
+      - ./.opencode:/repo-src/.opencode:ro
+      - ./opencode.jsonc:/repo-src/opencode.jsonc:ro
+      - ./product-spec.md:/repo-src/product-spec.md:ro
+      - ./README.md:/repo-src/README.md:ro
+      - ./render.yaml:/repo-src/render.yaml:ro
+      - ./scripts:/repo-src/scripts:ro
     ports:
       - "127.0.0.1:8081:8081"
     depends_on:
