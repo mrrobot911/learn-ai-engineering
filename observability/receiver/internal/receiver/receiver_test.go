@@ -25,10 +25,14 @@ func TestIncidentBundleAndOpencodeCalledWithoutKeyLeak(t *testing.T) {
 	defer loki.Close()
 
 	tempo := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/search" {
+		switch r.URL.Path {
+		case "/api/search":
+			_ = json.NewEncoder(w).Encode(map[string]any{"traces": []any{map[string]any{"traceID": "expected-trace-id", "rootServiceName": "backend"}}})
+		case "/api/traces/expected-trace-id":
+			_ = json.NewEncoder(w).Encode(map[string]any{"batches": []any{map[string]any{"traceID": "expected-trace-id-full"}}})
+		default:
 			t.Fatalf("unexpected tempo path: %s", r.URL.Path)
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"traces": []any{map[string]any{"traceID": "expected-trace-id", "rootServiceName": "backend"}}})
 	}))
 	defer tempo.Close()
 
@@ -37,7 +41,7 @@ func TestIncidentBundleAndOpencodeCalledWithoutKeyLeak(t *testing.T) {
 	fakeBin := filepath.Join(t.TempDir(), "fake-opencode")
 	argsFile := filepath.Join(t.TempDir(), "args.txt")
 	promptFile := filepath.Join(t.TempDir(), "prompt.txt")
-	script := "#!/bin/sh\nprintf '%s\n' \"$@\" > " + argsFile + "\nprintf '%s' \"$2\" > " + promptFile + "\n"
+	script := "#!/bin/sh\nprintf '%s\n' \"$@\" > " + argsFile + "\nprintf '%s' \"$2\" > " + promptFile + "\necho opencode-out\n"
 	if err := os.WriteFile(fakeBin, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -73,6 +77,7 @@ func TestIncidentBundleAndOpencodeCalledWithoutKeyLeak(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
 	}
+	srv.Wait()
 
 	entries, err := os.ReadDir(bundleDir)
 	if err != nil || len(entries) != 1 {
@@ -92,7 +97,10 @@ func TestIncidentBundleAndOpencodeCalledWithoutKeyLeak(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(tracesBytes), "expected-trace-id") {
-		t.Fatalf("traces.json missing expected content: %s", string(tracesBytes))
+		t.Fatalf("traces.json missing search trace id: %s", string(tracesBytes))
+	}
+	if !strings.Contains(string(tracesBytes), "expected-trace-id-full") {
+		t.Fatalf("traces.json missing fetched trace content: %s", string(tracesBytes))
 	}
 
 	argsBytes, err := os.ReadFile(argsFile)
@@ -112,8 +120,18 @@ func TestIncidentBundleAndOpencodeCalledWithoutKeyLeak(t *testing.T) {
 	if !strings.Contains(string(promptBytes), "QuizSubmission5xxRateHigh") {
 		t.Fatalf("prompt missing incident context: %s", string(promptBytes))
 	}
+	if _, err := os.Stat(filepath.Join(dir, "opencode.log")); err == nil {
+		t.Fatal("raw opencode output must not be stored in bundle")
+	}
+	resultBytes, err := os.ReadFile(filepath.Join(dir, "agent-result.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resultBytes), "output_tail") {
+		t.Fatalf("agent-result.json missing tail: %s", string(resultBytes))
+	}
 
-	// Sentinel must be absent from bundle, logs (receiver log output none) and generated prompt.
+	// Sentinel must be absent from bundle and generated prompt/args.
 	checkNoSentinel(t, dir, sentinel)
 	if strings.Contains(string(promptBytes), sentinel) {
 		t.Fatal("sentinel API key leaked into prompt")
@@ -150,6 +168,113 @@ func checkNoSentinel(t *testing.T, dir, sentinel string) {
 	}
 }
 
+func TestRepeatedNotificationStartsAgentOnce(t *testing.T) {
+	bundleDir := t.TempDir()
+	repoDir := t.TempDir()
+	countFile := filepath.Join(t.TempDir(), "count")
+	fakeBin := filepath.Join(t.TempDir(), "fake-opencode")
+	script := "#!/bin/sh\nif [ -f " + countFile + " ]; then c=$(cat " + countFile + "); else c=0; fi; c=$((c+1)); echo $c > " + countFile + "\n"
+	if err := os.WriteFile(fakeBin, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	srv := New(Config{BundleRoot: bundleDir, RepoDir: repoDir, LokiURL: "http://127.0.0.1:1", TempoURL: "http://127.0.0.1:1", OpencodeBin: fakeBin, APIKey: "k"})
+	srv.now = func() time.Time { return time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC) }
+	srv.client = &http.Client{Timeout: 50 * time.Millisecond}
+	payload := `{"status":"firing","alerts":[{"status":"firing","fingerprint":"fp1","labels":{"alertname":"QuizSubmission5xxRateHigh"},"startsAt":"2026-11-14T11:55:00Z"}]}`
+
+	for i := 0; i < 2; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/alerts", strings.NewReader(payload))
+		w := httptest.NewRecorder()
+		srv.Routes().ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("call %d: status=%d body=%s", i, w.Code, w.Body.String())
+		}
+	}
+	srv.Wait()
+	b, err := os.ReadFile(countFile)
+	if err != nil {
+		t.Fatalf("agent not started: %v", err)
+	}
+	if strings.TrimSpace(string(b)) != "1" {
+		t.Fatalf("expected 1 agent run, got %q", string(b))
+	}
+}
+
+func TestResolvedNotificationStoresBundleWithoutAgent(t *testing.T) {
+	bundleDir := t.TempDir()
+	fakeBin := filepath.Join(t.TempDir(), "fake-opencode")
+	marker := filepath.Join(t.TempDir(), "called")
+	script := "#!/bin/sh\necho called > " + marker + "\n"
+	if err := os.WriteFile(fakeBin, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	srv := New(Config{BundleRoot: bundleDir, LokiURL: "http://127.0.0.1:1", TempoURL: "http://127.0.0.1:1", OpencodeBin: fakeBin, APIKey: "k"})
+	srv.now = func() time.Time { return time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC) }
+	srv.client = &http.Client{Timeout: 50 * time.Millisecond}
+
+	payload := `{"status":"resolved","alerts":[{"status":"resolved","labels":{"alertname":"QuizSubmission5xxRateHigh"},"startsAt":"2026-11-14T11:55:00Z","endsAt":"2026-11-14T11:58:00Z"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/alerts", strings.NewReader(payload))
+	w := httptest.NewRecorder()
+	srv.Routes().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", w.Code, w.Body.String())
+	}
+	srv.Wait()
+	if _, err := os.Stat(marker); err == nil {
+		t.Fatal("opencode should not have been started for resolved alert")
+	}
+	entries, _ := os.ReadDir(bundleDir)
+	if len(entries) != 1 {
+		t.Fatalf("expected bundle stored, got %v", entries)
+	}
+	metaBytes, err := os.ReadFile(filepath.Join(bundleDir, entries[0].Name(), "metadata.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(metaBytes), "not_firing") {
+		t.Fatalf("expected not_firing recorded, got: %s", string(metaBytes))
+	}
+}
+
+func TestAgentFailureRecordedWithoutRawOutput(t *testing.T) {
+	bundleDir := t.TempDir()
+	repoDir := t.TempDir()
+	sentinel := "SENTINEL_API_KEY_12345"
+	fakeBin := filepath.Join(t.TempDir(), "fake-opencode")
+	script := "#!/bin/sh\necho 'fail " + sentinel + "'\nexit 2\n"
+	if err := os.WriteFile(fakeBin, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	srv := New(Config{BundleRoot: bundleDir, RepoDir: repoDir, LokiURL: "http://127.0.0.1:1", TempoURL: "http://127.0.0.1:1", OpencodeBin: fakeBin, APIKey: sentinel})
+	srv.now = func() time.Time { return time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC) }
+	srv.client = &http.Client{Timeout: 50 * time.Millisecond}
+
+	payload := `{"status":"firing","alerts":[{"status":"firing","fingerprint":"fp-fail","labels":{"alertname":"QuizSubmission5xxRateHigh"},"startsAt":"2026-11-14T11:55:00Z"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/alerts", strings.NewReader(payload))
+	w := httptest.NewRecorder()
+	srv.Routes().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 once bundle stored, got %d body=%s", w.Code, w.Body.String())
+	}
+	srv.Wait()
+	entries, _ := os.ReadDir(bundleDir)
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 bundle, got %v", entries)
+	}
+	dir := filepath.Join(bundleDir, entries[0].Name())
+	if _, err := os.Stat(filepath.Join(dir, "opencode.log")); err == nil {
+		t.Fatal("raw opencode output must not be stored in bundle")
+	}
+	resultBytes, err := os.ReadFile(filepath.Join(dir, "agent-result.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resultBytes), "error") {
+		t.Fatalf("expected failure recorded, got: %s", string(resultBytes))
+	}
+	checkNoSentinel(t, dir, sentinel)
+}
+
 func TestMissingKeyFailsFastAndStartsNoAgent(t *testing.T) {
 	bundleDir := t.TempDir()
 	fakeBin := filepath.Join(t.TempDir(), "fake-opencode")
@@ -166,11 +291,20 @@ func TestMissingKeyFailsFastAndStartsNoAgent(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/alerts", strings.NewReader(payload))
 	w := httptest.NewRecorder()
 	srv.Routes().ServeHTTP(w, req)
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d body=%s", w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", w.Code, w.Body.String())
 	}
-	if !strings.Contains(w.Body.String(), "missing API key") {
-		t.Fatalf("expected clear missing key message, got: %s", w.Body.String())
+	srv.Wait()
+	entries, err := os.ReadDir(bundleDir)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("expected 1 bundle dir, got %v err=%v", entries, err)
+	}
+	metaBytes, err := os.ReadFile(filepath.Join(bundleDir, entries[0].Name(), "metadata.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(metaBytes), "missing API key") {
+		t.Fatalf("expected missing key recorded in metadata, got: %s", string(metaBytes))
 	}
 	if _, err := os.Stat(marker); err == nil {
 		t.Fatal("opencode should not have been started")

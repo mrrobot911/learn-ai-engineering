@@ -6,7 +6,11 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/receiver ./cmd/receiver
 
 FROM alpine:3.20.8
-RUN apk add --no-cache ca-certificates && addgroup -S app && adduser -S -G app app
+ARG OPENCODE_VERSION=1.3.2
+RUN apk add --no-cache ca-certificates git nodejs npm \
+	&& npm install -g opencode-ai@${OPENCODE_VERSION} \
+	&& npm cache clean --force \
+	&& addgroup -S app && adduser -S -G app app
 WORKDIR /app
 COPY --from=builder /out/receiver /app/receiver
 USER app

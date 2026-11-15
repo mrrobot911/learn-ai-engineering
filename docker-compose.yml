@@ -104,6 +104,7 @@ services:
       TEMPO_URL: ${TEMPO_URL:-http://tempo:3200}
       INCIDENT_BUNDLE_DIR: ${INCIDENT_BUNDLE_DIR:-/data/incidents}
       REPO_DIR: ${REPO_DIR:-/repo}
+      REPO_SRC: ${REPO_SRC:-/repo-src}
       OPENCODE_BIN: ${OPENCODE_BIN:-opencode}
       OPENCODE_PROVIDER: ${OPENCODE_PROVIDER:-}
       OPENCODE_MODEL: ${OPENCODE_MODEL:-}
@@ -111,7 +112,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
-      - ./:/repo
+      - ./:/repo-src:ro
       - receiver_data:/data/incidents
     ports:
       - "127.0.0.1:8081:8081"

@@ -3,7 +3,6 @@ package receiver
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,12 +13,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Config struct {
 	BundleRoot   string
 	RepoDir      string
+	RepoSrc      string
 	LokiURL      string
 	TempoURL     string
 	OpencodeBin  string
@@ -34,6 +35,12 @@ type Server struct {
 	client *http.Client
 	now    func() time.Time
 	run    func(ctx context.Context, name string, args []string, dir string, env []string) ([]byte, error)
+
+	mu       sync.Mutex
+	started  map[string]struct{} // alertname/fingerprint dedupe
+	wg       sync.WaitGroup
+	repoOnce sync.Once
+	repoErr  error
 }
 
 func New(cfg Config) *Server {
@@ -53,9 +60,10 @@ func New(cfg Config) *Server {
 		cfg.OpencodeBin = "opencode"
 	}
 	return &Server{
-		cfg:    cfg,
-		client: &http.Client{Timeout: 15 * time.Second},
-		now:    time.Now,
+		cfg:     cfg,
+		client:  &http.Client{Timeout: 15 * time.Second},
+		now:     time.Now,
+		started: make(map[string]struct{}),
 		run: func(ctx context.Context, name string, args []string, dir string, env []string) ([]byte, error) {
 			cmd := exec.CommandContext(ctx, name, args...)
 			cmd.Dir = dir
@@ -120,23 +128,26 @@ func (s *Server) handleAlerts(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	bundlePath, err := s.process(r.Context(), body, payload, firing)
+	bundlePath, err := s.process(body, payload, firing)
 	if err != nil {
+		// Bundle storage itself failed; reply 500 so Alertmanager can retry storage.
 		log.Printf("incident handling failed: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "incident handling failed", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "stored", "bundle": bundlePath})
 }
 
-func (s *Server) process(ctx context.Context, raw []byte, payload alertPayload, startAgent bool) (string, error) {
+func (s *Server) process(raw []byte, payload alertPayload, startAgent bool) (string, error) {
 	start, end := incidentWindow(payload, s.now())
 	id := incidentID(payload, s.now())
 	dir := filepath.Join(s.cfg.BundleRoot, id)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf("create bundle dir: %w", err)
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	logs, logsErr := s.fetchLoki(ctx, start, end)
 	traces, tracesErr := s.fetchTempo(ctx, start, end)
 
@@ -158,10 +169,8 @@ func (s *Server) process(ctx context.Context, raw []byte, payload alertPayload, 
 	if tracesErr != nil {
 		meta["traces_error"] = tracesErr.Error()
 	}
+
 	if err := writeJSON(filepath.Join(dir, "alert.json"), json.RawMessage(raw)); err != nil {
-		return "", err
-	}
-	if err := writeJSON(filepath.Join(dir, "metadata.json"), meta); err != nil {
 		return "", err
 	}
 	if err := writeJSON(filepath.Join(dir, "logs.json"), logs); err != nil {
@@ -175,21 +184,41 @@ func (s *Server) process(ctx context.Context, raw []byte, payload alertPayload, 
 	}
 
 	if !startAgent {
+		meta["agent"] = map[string]any{"started": false, "reason": "not_firing"}
+		_ = writeJSON(filepath.Join(dir, "metadata.json"), meta)
 		return dir, nil
 	}
 	if strings.TrimSpace(s.cfg.APIKey) == "" {
-		return dir, errors.New("missing API key: set OPENCODE_API_KEY (or the provider's documented equivalent) before starting the on-call agent")
+		msg := "missing API key: set OPENCODE_API_KEY (or the provider's documented equivalent) before starting the on-call agent"
+		meta["agent"] = map[string]any{"started": false, "error": msg}
+		_ = writeJSON(filepath.Join(dir, "metadata.json"), meta)
+		log.Printf("incident %s: %s", id, msg)
+		return dir, nil
 	}
+	key := incidentKey(payload)
+	if !s.claimIncident(key) {
+		meta["agent"] = map[string]any{"started": false, "reason": "duplicate_incident", "key": key}
+		_ = writeJSON(filepath.Join(dir, "metadata.json"), meta)
+		log.Printf("incident %s: agent already started for %s", id, key)
+		return dir, nil
+	}
+
 	prompt := buildPrompt(payload, dir, meta)
 	if err := os.WriteFile(filepath.Join(dir, "prompt.txt"), []byte(prompt), 0o600); err != nil {
+		s.releaseIncident(key)
 		return "", err
 	}
-	env := buildEnv(s.cfg)
-	out, err := s.run(ctx, s.cfg.OpencodeBin, []string{"run", prompt}, s.cfg.RepoDir, env)
-	_ = os.WriteFile(filepath.Join(dir, "opencode.log"), out, 0o600)
-	if err != nil {
-		return dir, fmt.Errorf("opencode run failed: %w", err)
+	meta["agent"] = map[string]any{"started": true, "key": key}
+	if err := writeJSON(filepath.Join(dir, "metadata.json"), meta); err != nil {
+		s.releaseIncident(key)
+		return "", err
 	}
+
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		s.runAgent(dir, prompt, key)
+	}()
 	return dir, nil
 }
 
@@ -274,11 +303,60 @@ func (s *Server) fetchTempo(ctx context.Context, start, end time.Time) (any, err
 	if resp.StatusCode >= 300 {
 		return json.RawMessage(b), fmt.Errorf("tempo status %d", resp.StatusCode)
 	}
-	var v any
-	if err := json.Unmarshal(b, &v); err != nil {
+	var search struct {
+		Traces []struct {
+			TraceID string `json:"traceID"`
+		} `json:"traces"`
+	}
+	if err := json.Unmarshal(b, &search); err != nil {
 		return json.RawMessage(b), nil
 	}
-	return v, nil
+	limit := len(search.Traces)
+	if limit > 5 {
+		limit = 5
+	}
+	type traceResult struct {
+		TraceID string          `json:"traceID"`
+		Trace   json.RawMessage `json:"trace,omitempty"`
+		Error   string          `json:"error,omitempty"`
+	}
+	out := struct {
+		Search json.RawMessage `json:"search"`
+		Traces []traceResult   `json:"traces"`
+	}{Search: json.RawMessage(b)}
+	for i := 0; i < limit; i++ {
+		id := strings.TrimSpace(search.Traces[i].TraceID)
+		if id == "" {
+			continue
+		}
+		tr, terr := s.fetchTempoTrace(ctx, id)
+		r := traceResult{TraceID: id}
+		if terr != nil {
+			r.Error = terr.Error()
+			if tr != nil {
+				r.Trace = tr
+			}
+		} else {
+			r.Trace = tr
+		}
+		out.Traces = append(out.Traces, r)
+	}
+	return out, nil
+}
+
+func (s *Server) fetchTempoTrace(ctx context.Context, id string) (json.RawMessage, error) {
+	u := strings.TrimRight(s.cfg.TempoURL, "/") + "/api/traces/" + url.PathEscape(id)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		return json.RawMessage(b), fmt.Errorf("tempo trace %s status %d", id, resp.StatusCode)
+	}
+	return json.RawMessage(b), nil
 }
 
 func buildPrompt(p alertPayload, bundleDir string, meta map[string]any) string {
@@ -332,6 +410,7 @@ func LoadConfigFromEnv() Config {
 	return Config{
 		BundleRoot:   envOr("INCIDENT_BUNDLE_DIR", envOr("BUNDLE_DIR", "/data/incidents")),
 		RepoDir:      envOr("REPO_DIR", "/repo"),
+		RepoSrc:      strings.TrimSpace(os.Getenv("REPO_SRC")),
 		LokiURL:      envOr("LOKI_URL", "http://loki:3100"),
 		TempoURL:     envOr("TEMPO_URL", "http://tempo:3200"),
 		OpencodeBin:  envOr("OPENCODE_BIN", "opencode"),
@@ -356,6 +435,93 @@ func envOr(k, def string) string {
 		return v
 	}
 	return def
+}
+
+func incidentKey(p alertPayload) string {
+	for _, a := range p.Alerts {
+		if a.Fingerprint != "" {
+			return "fp:" + a.Fingerprint
+		}
+		if n := a.Labels["alertname"]; n != "" {
+			return "name:" + n
+		}
+	}
+	return "incident"
+}
+
+func (s *Server) claimIncident(key string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.started[key]; ok {
+		return false
+	}
+	s.started[key] = struct{}{}
+	return true
+}
+
+func (s *Server) releaseIncident(key string) {
+	s.mu.Lock()
+	delete(s.started, key)
+	s.mu.Unlock()
+}
+
+func (s *Server) Wait() { s.wg.Wait() }
+
+func (s *Server) runAgent(dir, prompt, key string) {
+	ctx := context.Background()
+	result := map[string]any{
+		"finished_at": s.now().UTC().Format(time.RFC3339),
+	}
+	if err := s.ensureRepo(ctx); err != nil {
+		result["error"] = "prepare repo: " + err.Error()
+		log.Printf("incident agent failed for %s: prepare repo: %v", key, err)
+		_ = writeJSON(filepath.Join(dir, "agent-result.json"), result)
+		return
+	}
+	env := buildEnv(s.cfg)
+	out, err := s.run(ctx, s.cfg.OpencodeBin, []string{"run", prompt}, s.cfg.RepoDir, env)
+	result["finished_at"] = s.now().UTC().Format(time.RFC3339)
+	if err != nil {
+		result["error"] = err.Error()
+		log.Printf("incident agent failed for %s: %v", key, err)
+	} else {
+		log.Printf("incident agent finished for %s", key)
+	}
+	// Store exit status and a redacted tail only; never write raw output to the bundle.
+	tail := redactTail(string(out), 4000, s.cfg.APIKey)
+	result["output_tail"] = tail
+	_ = writeJSON(filepath.Join(dir, "agent-result.json"), result)
+}
+
+func (s *Server) ensureRepo(ctx context.Context) error {
+	if strings.TrimSpace(s.cfg.RepoSrc) == "" {
+		return nil
+	}
+	s.repoOnce.Do(func() {
+		src := s.cfg.RepoSrc
+		dst := s.cfg.RepoDir
+		if err := os.RemoveAll(dst); err != nil {
+			s.repoErr = err
+			return
+		}
+		// Copy repository checkout without .env so the agent/container do not read secrets.
+		cmd := exec.CommandContext(ctx, "sh", "-c", "cp -a \"$1\" \"$2\" && rm -f \"$2/.env\"", "sh", src, dst)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			s.repoErr = fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
+		}
+	})
+	return s.repoErr
+}
+
+func redactTail(s string, max int, secret string) string {
+	if secret != "" {
+		s = strings.ReplaceAll(s, secret, "[REDACTED]")
+	}
+	if len(s) > max {
+		s = s[len(s)-max:]
+	}
+	return s
 }
 
 func (s *Server) ListenAndServe(addr string) error {
