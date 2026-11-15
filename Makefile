@@ -3,6 +3,7 @@
 # Unit tests (backend + frontend). Does not require a database.
 test:
 	(cd backend && go test ./...)
+	(cd observability/receiver && CGO_ENABLED=0 go test ./...)
 	(cd frontend && bun install --frozen-lockfile && bun run test)
 
 # Integration tests on an isolated test database (never the dev database).
@@ -43,8 +44,10 @@ _test-integration-backend:
 check:
 	@echo "==> gofmt"
 	@test -z "$$(cd backend && gofmt -l .)" || (echo "gofmt needed:"; cd backend && gofmt -l .; exit 1)
+	@test -z "$$(cd observability/receiver && gofmt -l .)" || (echo "gofmt needed (receiver):"; cd observability/receiver && gofmt -l .; exit 1)
 	@echo "==> go vet"
 	(cd backend && go vet ./...)
+	(cd observability/receiver && CGO_ENABLED=0 go vet ./...)
 	@echo "==> frontend typecheck"
 	(cd frontend && bun install --frozen-lockfile && bun run typecheck)
 	@echo "==> frontend lint"

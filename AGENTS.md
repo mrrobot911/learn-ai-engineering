@@ -28,6 +28,13 @@ Run from the repository root; wrap directory changes in a subshell, as `(cd <dir
 - Comments only for the why that code cannot show, one line at most.
 - Never cut validation at trust boundaries, error handling that prevents data loss, security, accessibility or anything the user asked for. End a reply that changes code with one or two lines on what was skipped or not verified, and any risk.
 
+## On-call agent
+- Runs only in the local observability drill, never in production.
+- Works on a temporary branch, never deploys.
+- Never prints or commits secrets, credentials, API keys or personal data; use only evidence stored in the incident bundle.
+- Leaves its diagnosis and fix as a commit or a pull request on that temporary branch.
+
+
 ## Context
 - Never read whole: `openapi.yaml`, `docs/artifacts/backlog/tasks.md` and `done.md`, `docs/artifacts/planning/`, `.agents/skills/*/reference.md`. Read a user story with `scripts/story.sh <n>`, the contract with `scripts/contract.sh` (usage in its first lines), a task by its heading in `tasks.md`.
 - Do not read the same range again without a change in between; save long command output to a file once and read the file.

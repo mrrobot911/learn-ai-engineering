@@ -93,6 +93,41 @@ services:
       retries: 5
       start_period: 10s
 
+  receiver:
+    build:
+      context: ./observability/receiver
+      dockerfile: Dockerfile
+    profiles: ["observability"]
+    environment:
+      PORT: "8081"
+      LOKI_URL: ${LOKI_URL:-http://loki:3100}
+      TEMPO_URL: ${TEMPO_URL:-http://tempo:3200}
+      INCIDENT_BUNDLE_DIR: ${INCIDENT_BUNDLE_DIR:-/data/incidents}
+      REPO_DIR: ${REPO_DIR:-/repo}
+      REPO_SRC: ${REPO_SRC:-/repo-src}
+      OPENCODE_BIN: ${OPENCODE_BIN:-opencode}
+      OPENCODE_PROVIDER: ${OPENCODE_PROVIDER:-}
+      OPENCODE_MODEL: ${OPENCODE_MODEL:-}
+      OPENCODE_API_KEY: ${OPENCODE_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./:/repo-src:ro
+      - receiver_data:/data/incidents
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   alertmanager:
     image: prom/alertmanager:v0.27.0
     profiles: ["observability"]
@@ -100,10 +135,10 @@ services:
       - /bin/sh
       - -ec
       - |
-        sed "s|__ALERT_WEBHOOK_URL__|${ALERT_WEBHOOK_URL:-http://127.0.0.1:9999/alerts}|g" /etc/alertmanager/alertmanager.yml.tmpl > /tmp/alertmanager.yml
+        sed "s|__ALERT_WEBHOOK_URL__|${ALERT_WEBHOOK_URL:-http://receiver:8081/alerts}|g" /etc/alertmanager/alertmanager.yml.tmpl > /tmp/alertmanager.yml
         exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager --web.listen-address=:9093
     environment:
-      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-http://127.0.0.1:9999/alerts}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-http://receiver:8081/alerts}
     volumes:
       - ./observability/alertmanager/alertmanager.yml.tmpl:/etc/alertmanager/alertmanager.yml.tmpl:ro
       - alertmanager_data:/alertmanager
@@ -111,6 +146,9 @@ services:
       - "127.0.0.1:9093:9093"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      receiver:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9093/-/healthy >/dev/null || exit 1"]
       interval: 10s
@@ -184,3 +222,4 @@ volumes:
   loki_data:
   tempo_data:
   grafana_data:
+  receiver_data:
