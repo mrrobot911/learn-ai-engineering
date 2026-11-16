@@ -74,7 +74,7 @@ The project follows a specification-first workflow:
 4. **Implementation with AI tools.** Code is generated task by task, in the order: frontend prototype with mocks, OpenAPI contract, backend with its tests, persistent storage with integration tests, connect the frontend to the backend, deployment pipeline. Tools: OpenCode in the repository (configuration in `opencode.jsonc`), Bolt for the UI prototype _(planned)_, Claude for planning and documents. Project skills for UI and React work are kept in `.agents/skills/`: `frontend-design`, `web-design-guidelines`, `react-best-practices` and `composition-patterns`, copied from their upstream repositories at the commit recorded in [`docs/artifacts/frontend-prototype/skills.md`](docs/artifacts/frontend-prototype/skills.md).
 5. **Stage artifacts.** Each stage ends with an artifact committed to the repository and linked to its issue (specification, prototype screenshots or notes, `openapi.yaml`, test results). The next stage receives it as context by path. Documents and screenshots are stored in `docs/artifacts/`; the specification and the API contract stay in the repository root.
 6. **Verification.** Generated code is checked by tests (unit and separate integration tests), a lint step, and manual review of the diff.
-7. **Logging.** For each significant task, one file in [`docs/ai-log/`](docs/ai-log/) (rules and template in [`docs/ai-workflow.md`](docs/ai-workflow.md)) records the issue and its acceptance criteria, the instructions and specification given to the AI tool, what it implemented, which tests were run and their result, and what was reviewed or changed manually. Secrets and private data are never included. _Planned: created when implementation starts._
+7. **Logging.** For each significant task, one file in [`docs/ai-log/`](docs/ai-log/) (rules and template in [`docs/ai-workflow.md`](docs/ai-workflow.md)) records the issue and its acceptance criteria, the instructions and specification given to the AI tool, what it implemented, which tests were run and their result, and what was reviewed or changed manually. Secrets and private data are never included.
 
 AI-prepared lesson and question drafts always go through human review before publication.
 
@@ -104,7 +104,7 @@ render.yaml                         Render Blueprint (single web service and dat
 .opencode/commands/                 OpenCode commands
 backend/
   Dockerfile                        backend container image
-  AGENTS.md, cmd/, internal/, migrations/, seed/, tests/
+  AGENTS.md, cmd/, internal/, migrations/, README.md, seed/, tests/
 frontend/
   Dockerfile                        frontend container image (served via Caddy/proxy in Compose)
   AGENTS.md, src/, tests/, package.json, ...
@@ -214,7 +214,7 @@ Localhost-bound ports (observability profile), as defined in [`docker-compose.ym
 
 Observability-related variables (documented in [`.env.example`](.env.example)): `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_PROTOCOL`, `ALERT_WEBHOOK_URL`, `OPENCODE_PROVIDER`, `OPENCODE_MODEL`, `OPENCODE_API_KEY` (or provider-specific equivalents such as `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`), `LOKI_URL`, `TEMPO_URL`, `INCIDENT_BUNDLE_DIR`, `REPO_DIR`, `REPO_SRC`, `OPENCODE_BIN`, and test-only `FAULT_INJECT_QUIZ_SUBMISSION_5XX` (commented; not for production/Render).
 
-Smoke check (from [`observability/README.md`](observability/README.md)): starts the profile, verifies service and OTLP health, generates quiz journey traffic, and queries the Grafana API to confirm dashboard `quiz-journey` exists, is provisioned, and contains the required panels; then tears the profile down.
+Smoke check (from [`observability/README.md`](observability/README.md)): starts the profile, verifies service and OTLP health, generates quiz journey traffic, and queries the Grafana API to confirm dashboard `quiz-journey` exists, is provisioned, and contains the required panels; then stops and removes only `otel-collector`, `prometheus`, `alertmanager`, `loki`, `tempo` and `grafana` with their volumes, not the receiver.
 
 ```bash
 ./observability/smoke-check.sh
